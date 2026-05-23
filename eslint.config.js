@@ -19,5 +19,11 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    linterOptions: {
+      reportUnusedDisableDirectives: 'off',
+    },
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="833" height="833" viewBox="0 0 833 833" role="img" aria-labelledby="title desc">
+  <title id="title">AI 云脑圆形矢量图</title>
+  <desc id="desc">裁切为圆形的 AI 云脑图标，蓝紫渐变背景上，一个由电路与二进制构成的大脑图形，前景为带 AI 字样的云朵。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="833" x2="833" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#126dd9"/>
+      <stop offset="0.52" stop-color="#343bd3"/>
+      <stop offset="1" stop-color="#8d38de"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="5" y1="740" x2="775" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#52e9ff"/>
+      <stop offset="0.45" stop-color="#91f2ff"/>
+      <stop offset="1" stop-color="#d7fbff"/>
+    </linearGradient>
+    <linearGradient id="cloudFill" x1="275" y1="560" x2="685" y2="225" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2260d9"/>
+      <stop offset="0.54" stop-color="#0facda"/>
+      <stop offset="1" stop-color="#26c7ea"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="circleClip">
+      <circle cx="416.5" cy="416.5" r="396"/>
+    </clipPath>
+    <style>
+      .outline{fill:none;stroke:url(#cyan);stroke-width:20;stroke-linecap:round;stroke-linejoin:round;filter:url(#softGlow)}
+      .circuit{fill:none;stroke:#8ff4ff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;opacity:.95}
+      .node{fill:#2450d6;stroke:#8ff4ff;stroke-width:5}
+      .bits{font-family:'Courier New',monospace;font-weight:700;font-size:28px;letter-spacing:8px;fill:#a8f6ff;opacity:.92}
+      .bitsSmall{font-family:'Courier New',monospace;font-weight:700;font-size:24px;letter-spacing:7px;fill:#a8f6ff;opacity:.88}
+    </style>
+  </defs>
+
+  <circle cx="416.5" cy="416.5" r="408" fill="url(#bg)"/>
+  <g clip-path="url(#circleClip)">
+    <rect width="833" height="833" fill="url(#bg)"/>
+
+    <!-- 整体向左平移以适配正圆裁切 -->
+    <g transform="translate(-75,0)">
+      <!-- 后景：AI 大脑轮廓 -->
+      <g id="brain" transform="translate(10,0)">
+        <path class="outline" d="M199 217
+          C214 150 284 117 337 136
+          C385 88 469 88 512 135
+          C563 105 632 113 663 171
+          C708 170 739 197 751 235
+          C710 221 666 218 626 228
+          C562 244 520 289 506 351
+          C458 350 415 374 390 415
+          C367 452 368 506 394 542
+          C429 592 491 605 548 596
+          C559 629 537 671 499 694
+          C463 716 421 724 389 704
+          L389 776
+          C331 750 315 700 315 650
+          C262 664 205 631 206 577
+          C134 569 97 510 113 449
+          C72 426 69 361 125 329
+          C119 282 151 238 199 217 Z"/>
+
+        <path class="outline" d="M337 136 C382 148 432 151 498 137 L498 350" opacity=".95"/>
+        <path class="outline" d="M512 135 C506 166 508 198 508 236" opacity=".95"/>
+        <path class="outline" d="M389 704 C389 647 392 604 406 562" opacity=".85"/>
+
+        <g id="binary">
+          <text class="bits" x="169" y="263">0010010</text>
+          <text class="bits" x="174" y="297">01010010</text>
+          <text class="bits" x="174" y="331">0101000</text>
+          <text class="bits" x="120" y="393">0100100</text>
+          <text class="bits" x="120" y="467">00101101</text>
+          <text class="bitsSmall" x="199" y="522">10101</text>
+          <text class="bitsSmall" x="253" y="574">0101</text>
+          <text class="bitsSmall" x="212" y="606">00100011</text>
+          <text class="bitsSmall" x="229" y="638">10000010</text>
+          <text class="bitsSmall" x="254" y="667">1101</text>
+          <text class="bitsSmall" x="250" y="186">0000110</text>
+          <text class="bitsSmall" x="229" y="222">0111</text>
+          <text class="bitsSmall" x="386" y="151">00</text>
+          <text class="bitsSmall" x="524" y="170">110</text>
+          <text class="bitsSmall" x="523" y="198">110111</text>
+        </g>
+
+        <g id="left-circuits">
+          <path class="circuit" d="M188 343 L220 374 L351 374"/>
+          <circle class="node" cx="355" cy="352" r="11"/>
+          <path class="circuit" d="M131 410 L322 410"/>
+          <path class="circuit" d="M132 427 L287 427" opacity=".8"/>
+          <circle class="node" cx="132" cy="418" r="11"/>
+          <path class="circuit" d="M163 490 L322 490"/>
+          <circle class="node" cx="164" cy="491" r="10"/>
+          <path class="circuit" d="M217 552 L267 513"/>
+          <circle class="node" cx="217" cy="552" r="10"/>
+        </g>
+
+        <g id="middle-circuits">
+          <path class="circuit" d="M388 198 L388 338"/>
+          <path class="circuit" d="M415 197 L439 222 L439 311"/>
+          <path class="circuit" d="M458 159 L458 296"/>
+          <circle class="node" cx="458" cy="157" r="11"/>
+          <path class="circuit" d="M472 587 L472 674"/>
+          <circle class="node" cx="472" cy="678" r="9"/>
+          <path class="circuit" d="M495 585 L495 748"/>
+          <path class="circuit" d="M417 695 L417 780"/>
+          <path class="circuit" d="M431 728 L459 699"/>
+          <path class="circuit" d="M404 679 L404 786" opacity=".85"/>
+        </g>
+
+        <g id="bottom-circuits">
+          <path class="circuit" d="M498 601 L657 601 L673 586"/>
+          <path class="circuit" d="M519 619 L519 672"/>
+          <circle class="node" cx="519" cy="675" r="9"/>
+        </g>
+      </g>
+
+      <g id="ai-cloud">
+        <path d="M394 565
+          C352 565 318 532 318 489
+          C318 448 349 414 389 411
+          C406 319 493 251 595 251
+          C690 251 770 312 791 396
+          C837 401 874 438 874 486
+          C874 530 839 565 795 565 Z"
+          fill="url(#cloudFill)"/>
+        <path class="outline" d="M394 565
+          C352 565 318 532 318 489
+          C318 448 349 414 389 411
+          C406 319 493 251 595 251
+          C690 251 770 312 791 396
+          C837 401 874 438 874 486
+          C874 530 839 565 795 565
+          L394 565 Z"/>
+        <text x="505" y="488" font-family="Arial, Helvetica, sans-serif" font-size="176" font-weight="900" fill="#ffffff">AI</text>
+      </g>
+    </g>
+  </g>
+
+  <circle cx="416.5" cy="416.5" r="405" fill="none" stroke="#aef8ff" stroke-width="8" opacity=".9"/>
+</svg>
