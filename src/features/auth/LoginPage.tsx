@@ -34,14 +34,14 @@ export function LoginPage() {
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm rounded-lg border bg-background p-5">
-        <h1 className="text-base font-medium">Sign in</h1>
+        <h1 className="text-base font-medium text-center">登录</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {fakeAuthEnabled
             ? "Dev mode: any username/password will work."
             : "Use your username and password to continue."}
         </p>
 
-        <label className="mt-4 block text-sm font-medium">Username</label>
+        <label className="mt-4 block text-sm font-medium">用户名</label>
         <input
           className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
           value={username}
@@ -50,7 +50,7 @@ export function LoginPage() {
           autoComplete="username"
         />
 
-        <label className="mt-4 block text-sm font-medium">Password</label>
+        <label className="mt-4 block text-sm font-medium">密码</label>
         <input
           className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
           value={password}
@@ -72,7 +72,7 @@ export function LoginPage() {
           disabled={!username.trim() || !password || loginMutation.isPending}
           onClick={() => loginMutation.mutate()}
         >
-          {loginMutation.isPending ? "Signing in..." : "Continue"}
+          {loginMutation.isPending ? "Signing in..." : "继续"}
         </button>
       </div>
     </div>
