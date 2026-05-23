@@ -5,6 +5,8 @@ import { AppLayout } from "@/features/layout/AppLayout"
 import { ChatPage } from "@/features/chat/ChatPage"
 import { EntryPage } from "@/features/entry/EntryPage"
 import { ImportPage } from "@/features/import/ImportPage"
+import { AssistantListPage } from "@/features/assistants/AssistantListPage"
+import { AssistantEditPage } from "@/features/assistants/AssistantEditPage"
 import { KbPage } from "@/features/kb/KbPage"
 import { KbDetailPage } from "@/features/kb/KbDetailPage"
 import { SearchPage } from "@/features/search/SearchPage"
@@ -30,6 +32,8 @@ export const router = createBrowserRouter([
       { path: "import", element: <ImportPage /> },
       { path: "search", element: <SearchPage /> },
       { path: "chat", element: <ChatPage /> },
+      { path: "assistants", element: <AssistantListPage /> },
+      { path: "assistants/:id", element: <AssistantEditPage /> },
       { path: "settings", element: <SettingsPage /> },
     ],
   },

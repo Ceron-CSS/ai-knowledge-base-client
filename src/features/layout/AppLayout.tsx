@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom"
-import { BookOpen, FileText, Import, MessageCircle, Search, Settings } from "lucide-react"
+import { BookOpen, Bot, FileText, Import, MessageCircle, Search, Settings } from "lucide-react"
 import { useAuth } from "@/features/auth/authContext"
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/import", label: "导入", Icon: Import },
   { to: "/search", label: "检索", Icon: Search },
   { to: "/chat", label: "问答", Icon: MessageCircle },
+  { to: "/assistants", label: "问答助手", Icon: Bot },
   { to: "/settings", label: "设置", Icon: Settings },
 ]
 
@@ -17,7 +18,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-svh">
       <aside className="w-64 shrink-0 border-r bg-background p-3">
-        <div className="px-2 py-2 text-sm font-semibold">AI Knowledge Base</div>
+        <div className="px-2 py-2 text-sm font-semibold">AI知识库管理平台</div>
         <nav className="mt-2 flex flex-col gap-1">
           {navItems.map(({ to, label, Icon }) => (
             <NavLink
