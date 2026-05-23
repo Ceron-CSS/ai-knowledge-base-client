@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/app/env"
+import { getApiBaseUrl } from "@/app/env"
 import { getAccessToken } from "@/features/auth/authStorage"
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
@@ -48,7 +48,8 @@ export type RequestOptions = {
 }
 
 export async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const url = new URL(joinUrl(API_BASE_URL, path))
+  const baseUrl = getApiBaseUrl()
+  const url = new URL(joinUrl(baseUrl, path))
   if (options.query) {
     for (const [key, value] of Object.entries(options.query)) {
       if (value === undefined || value === null) continue
@@ -82,4 +83,3 @@ export async function requestJson<T>(path: string, options: RequestOptions = {})
 
   return (await response.json()) as T
 }
-

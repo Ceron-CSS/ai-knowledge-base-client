@@ -30,4 +30,4 @@ import { Button } from "@/components/ui/button"
 ## API 层
 
 - 统一封装：`src/api/http.ts`（`baseURL`、token、统一错误）
-- 分模块：`src/api/{kb,entry,import,search,chat}.ts`
+- 分模块：`src/api/{auth,kb,entry,import,search,chat}.ts`
