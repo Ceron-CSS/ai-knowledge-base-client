@@ -11,6 +11,7 @@ import { KbPage } from "@/features/kb/KbPage"
 import { KbDetailPage } from "@/features/kb/KbDetailPage"
 import { SearchPage } from "@/features/search/SearchPage"
 import { SettingsPage } from "@/features/settings/SettingsPage"
+import { AssistantChatPage } from "@/features/assistantChat/AssistantChatPage"
 
 export const router = createBrowserRouter([
   {
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: "chat", element: <ChatPage /> },
       { path: "assistants", element: <AssistantListPage /> },
       { path: "assistants/:id", element: <AssistantEditPage /> },
+      { path: "assistants/:id/chat", element: <AssistantChatPage /> },
       { path: "settings", element: <SettingsPage /> },
     ],
   },

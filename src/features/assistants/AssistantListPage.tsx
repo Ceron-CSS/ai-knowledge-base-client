@@ -134,7 +134,7 @@ export function AssistantListPage() {
                     className="inline-flex cursor-pointer items-center justify-center rounded-md border px-2.5 py-2 text-sm hover:bg-muted/60"
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate(`/chat?assistantId=${encodeURIComponent(a.id)}`)
+                      navigate(`/assistants/${encodeURIComponent(a.id)}/chat`)
                     }}
                     title="对话"
                     aria-label="对话"

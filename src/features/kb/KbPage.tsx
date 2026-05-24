@@ -157,7 +157,7 @@ export function KbPage() {
         {kbList.isLoading ? (
           <div className="px-4 py-6 text-sm text-muted-foreground">加载中...</div>
         ) : kbList.isError ? (
-          <div className="px-4 py-6 text-sm text-destructive">加载失败：请确认 `VITE_API_BASE_URL` 与后端服务可用。</div>
+          <div className="px-4 py-6 text-sm text-destructive">加载失败：请确认后端服务可用。</div>
         ) : kbList.data?.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

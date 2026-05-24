@@ -34,19 +34,19 @@ export function LoginPage() {
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm rounded-lg border bg-background p-5">
-        <h1 className="text-base font-medium text-center">登录</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-base font-medium text-center">密码登录</h1>
+        {/* <p className="mt-1 text-sm text-muted-foreground">
           {fakeAuthEnabled
             ? "Dev mode: any username/password will work."
             : "Use your username and password to continue."}
-        </p>
+        </p> */}
 
         <label className="mt-4 block text-sm font-medium">用户名</label>
         <input
           className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="yourname"
+          placeholder="请输入用户名"
           autoComplete="username"
         />
 
@@ -55,7 +55,7 @@ export function LoginPage() {
           className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
+          placeholder="请输入密码"
           type="password"
           autoComplete="current-password"
           onKeyDown={(e) => {
@@ -72,7 +72,7 @@ export function LoginPage() {
           disabled={!username.trim() || !password || loginMutation.isPending}
           onClick={() => loginMutation.mutate()}
         >
-          {loginMutation.isPending ? "Signing in..." : "继续"}
+          {loginMutation.isPending ? "Signing in..." : "登录"}
         </button>
       </div>
     </div>

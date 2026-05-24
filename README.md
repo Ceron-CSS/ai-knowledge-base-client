@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button"
 - 路由：`react-router-dom`（`src/app/router.tsx`）
 - 请求/缓存：`@tanstack/react-query`（`src/app/queryClient.ts`）
 - 目录：按业务拆分到 `src/features/*`
-- 环境变量：`VITE_API_BASE_URL`（见 `.env.example`）
+- 环境变量：`VITE_API_BASE_URL`（见 `.env`）
 
 ## API 层
 

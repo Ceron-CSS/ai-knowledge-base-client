@@ -173,7 +173,7 @@ export function AssistantEditPage() {
               {kbList.isLoading ? (
                 <div className="text-sm text-muted-foreground">加载知识库列表中...</div>
               ) : kbList.isError ? (
-                <div className="text-sm text-destructive">加载失败：请确认 `VITE_API_BASE_URL` 与后端服务可用。</div>
+                <div className="text-sm text-destructive">加载失败：请确认后端服务可用。</div>
               ) : kbList.data?.length ? (
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {kbList.data.map((kb) => (
