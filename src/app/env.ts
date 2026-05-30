@@ -10,9 +10,3 @@ export function getApiBaseUrl(): string {
   }
   return value
 }
-
-export function getBooleanEnv(name: keyof ImportMetaEnv, defaultValue: boolean) {
-  const value = getEnv(name)
-  if (!value) return defaultValue
-  return value === "1" || value.toLowerCase() === "true"
-}

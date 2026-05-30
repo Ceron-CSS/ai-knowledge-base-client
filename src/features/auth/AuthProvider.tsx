@@ -16,6 +16,9 @@ export function AuthProvider(props: { children: React.ReactNode }) {
       logout: () => {
         clearAccessToken()
         setToken(null)
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+          window.location.assign("/login")
+        }
       },
     }),
     [token]
@@ -23,4 +26,3 @@ export function AuthProvider(props: { children: React.ReactNode }) {
 
   return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>
 }
-

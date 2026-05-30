@@ -2,7 +2,6 @@ import { useMemo, useState } from "react"
 import { Navigate, useLocation } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { login } from "@/api/auth"
-import { getBooleanEnv, getEnv } from "@/app/env"
 import { useAuth } from "@/features/auth/authContext"
 
 export function LoginPage() {
@@ -16,16 +15,8 @@ export function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
 
-  const apiBaseUrl = getEnv("VITE_API_BASE_URL")
-  const fakeAuthEnabled = getBooleanEnv("VITE_FAKE_AUTH", !apiBaseUrl)
-
   const loginMutation = useMutation({
-    mutationFn: async () => {
-      if (fakeAuthEnabled) {
-        return { accessToken: `dev-token:${username.trim() || "user"}` }
-      }
-      return login({ username: username.trim(), password })
-    },
+    mutationFn: () => login({ username: username.trim(), password }),
     onSuccess: (data) => auth.loginWithToken(data.accessToken),
   })
 
@@ -35,11 +26,6 @@ export function LoginPage() {
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm rounded-lg border bg-background p-5">
         <h1 className="text-base font-medium text-center">密码登录</h1>
-        {/* <p className="mt-1 text-sm text-muted-foreground">
-          {fakeAuthEnabled
-            ? "Dev mode: any username/password will work."
-            : "Use your username and password to continue."}
-        </p> */}
 
         <label className="mt-4 block text-sm font-medium">用户名</label>
         <input
@@ -64,7 +50,9 @@ export function LoginPage() {
         />
 
         {loginMutation.isError ? (
-          <div className="mt-3 text-sm text-destructive">Login failed. Please check your credentials.</div>
+          <div className="mt-3 text-sm text-destructive">
+            {loginMutation.error instanceof Error ? loginMutation.error.message : "登录失败，请检查用户名和密码。"}
+          </div>
         ) : null}
 
         <button

@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "@/app/env"
 import { getAccessToken } from "@/features/auth/authStorage"
+import { clearAccessToken } from "@/features/auth/authStorage"
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
 
@@ -70,6 +71,14 @@ export async function requestJson<T>(path: string, options: RequestOptions = {})
     body: options.body ? JSON.stringify(options.body) : undefined,
     signal: options.signal,
   })
+
+  if (response.status === 401) {
+    clearAccessToken()
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.assign("/login")
+    }
+    throw new HttpError(401, "Session expired")
+  }
 
   if (!response.ok) {
     const body = await parseErrorBody(response)

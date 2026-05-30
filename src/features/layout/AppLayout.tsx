@@ -63,7 +63,7 @@ export function AppLayout() {
       >
         <div className={["flex items-center gap-2", collapsed ? "justify-center px-1 py-2" : "justify-between px-2 py-2"].join(" ")}>
           {collapsed ? null : (
-            <div className="min-w-0 truncate text-sm font-semibold" title="AI知识库管理平台">
+            <div className="min-w-0 truncate text-l font-semibold" title="AI知识库管理平台">
               AI知识库管理平台
             </div>
           )}
