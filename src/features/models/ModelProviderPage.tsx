@@ -3,37 +3,44 @@ import type { ModelConfig, ModelProvider } from "@/api/models"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
 import { Select } from "@/components/ui/select"
-import { useCreateModelConfig, useDeleteModelConfig, useModelConfigList, useUpdateModelConfig } from "@/features/search/queries"
+import { useCreateModelConfig, useDeleteModelConfig, useModelConfigList, useUpdateModelConfig } from "@/features/models/queries"
 
 type FormState = {
-  name: string
   provider: ModelProvider
   apiUrl: string
   apiKey: string
 }
 
-function initialFormState(): FormState {
+const PROVIDERS: Array<{ value: ModelProvider; label: string; defaultApiUrl: string }> = [
+  { value: "aliyun-bailian", label: "百炼", defaultApiUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1" },
+  { value: "deepseek", label: "DeepSeek", defaultApiUrl: "https://api.deepseek.com/v1" },
+]
+
+function providerLabel(provider: ModelProvider) {
+  return PROVIDERS.find((p) => p.value === provider)?.label ?? provider
+}
+
+function initialFormState(provider: ModelProvider = "aliyun-bailian"): FormState {
+  const p = PROVIDERS.find((x) => x.value === provider) ?? PROVIDERS[0]
   return {
-    name: "",
-    provider: "aliyun-bailian",
-    apiUrl: "",
+    provider: p.value,
+    apiUrl: p.defaultApiUrl,
     apiKey: "",
   }
 }
 
 function getFormError(form: FormState): string | null {
-  if (!form.name.trim()) return "\u540d\u79f0\u4e0d\u80fd\u4e3a\u7a7a"
-  if (!form.apiUrl.trim()) return "API URL \u4e0d\u80fd\u4e3a\u7a7a"
-  if (!form.apiKey.trim()) return "API KEY \u4e0d\u80fd\u4e3a\u7a7a"
+  if (!form.apiUrl.trim()) return "API URL 不能为空"
+  if (!form.apiKey.trim()) return "API KEY 不能为空"
   try {
     new URL(form.apiUrl.trim())
   } catch {
-    return "API URL \u683c\u5f0f\u4e0d\u6b63\u786e"
+    return "API URL 格式不正确"
   }
   return null
 }
 
-export function SearchPage() {
+export function ModelProviderPage() {
   const modelConfigs = useModelConfigList()
   const createModel = useCreateModelConfig()
   const updateModel = useUpdateModelConfig()
@@ -47,12 +54,16 @@ export function SearchPage() {
 
   const submitting = createModel.isPending || updateModel.isPending
   const list = modelConfigs.data ?? []
-  const countLabel = useMemo(() => `${list.length} \u4e2a\u6a21\u578b`, [list.length])
+  const countLabel = useMemo(() => `${list.length} 个供应商配置`, [list.length])
   const loadErrorText = modelConfigs.error instanceof Error ? modelConfigs.error.message : ""
+
+  const usedProviders = useMemo(() => new Set(list.map((x) => x.provider)), [list])
+  const availableProviders = useMemo(() => PROVIDERS.filter((p) => !usedProviders.has(p.value)), [usedProviders])
+  const canCreate = availableProviders.length > 0
 
   function openCreate() {
     setEditing(null)
-    setForm(initialFormState())
+    setForm(initialFormState(availableProviders[0]?.value ?? "aliyun-bailian"))
     setError(null)
     setOpen(true)
   }
@@ -60,7 +71,6 @@ export function SearchPage() {
   function openEdit(item: ModelConfig) {
     setEditing(item)
     setForm({
-      name: item.name,
       provider: item.provider,
       apiUrl: item.apiUrl,
       apiKey: "",
@@ -84,7 +94,6 @@ export function SearchPage() {
 
     setError(null)
     const payload = {
-      name: form.name.trim(),
       provider: form.provider,
       apiUrl: form.apiUrl.trim(),
       apiKey: form.apiKey.trim(),
@@ -98,7 +107,7 @@ export function SearchPage() {
       }
       setOpen(false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "\u4fdd\u5b58\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5")
+      setError(e instanceof Error ? e.message : "保存失败，请稍后重试")
     }
   }
 
@@ -109,24 +118,35 @@ export function SearchPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">{"\u6a21\u578b"}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{"\u7ba1\u7406\u6a21\u578b\u914d\u7f6e\uff0c\u5f53\u524d\u4ec5\u652f\u6301\u767e\u70bc\u4f9b\u5e94\u5546\u3002"}</p>
-        </div>
-        <button className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={openCreate}>
-          {"\u6dfb\u52a0\u6a21\u578b"}
-        </button>
+    <div className="space-y-2">
+      <div>
+        <h1 className="text-lg font-semibold">模型供应商</h1>
+        <p className="mt-1 text-sm text-muted-foreground">管理模型供应商配置(每种供应商仅允许一个配置)。</p>
       </div>
 
-      <div className="text-sm text-muted-foreground">{countLabel}</div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="text-sm text-muted-foreground">{countLabel}</div>
+        <span className="group relative inline-flex">
+          <button
+            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            onClick={openCreate}
+            disabled={!canCreate}
+          >
+            添加供应商配置
+          </button>
+          {!canCreate ? (
+            <span className="pointer-events-none absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
+              所有供应商都已配置
+            </span>
+          ) : null}
+        </span>
+      </div>
 
       {modelConfigs.isLoading ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">{"\u52a0\u8f7d\u4e2d..."}</div>
+        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
       ) : modelConfigs.isError ? (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">
-          {"\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5\u540e\u7aef\u670d\u52a1\u3002"}
+          加载失败，请检查后端服务。
           {loadErrorText ? <div className="mt-2 text-xs text-muted-foreground">{loadErrorText}</div> : null}
         </div>
       ) : list.length ? (
@@ -134,18 +154,16 @@ export function SearchPage() {
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">{"\u540d\u79f0"}</th>
-                <th className="px-3 py-2 text-left font-medium">{"\u4f9b\u5e94\u5546"}</th>
+                <th className="px-3 py-2 text-left font-medium">供应商</th>
                 <th className="px-3 py-2 text-left font-medium">API URL</th>
                 <th className="px-3 py-2 text-left font-medium">API KEY</th>
-                <th className="px-3 py-2 text-left font-medium">{"\u64cd\u4f5c"}</th>
+                <th className="px-3 py-2 text-left font-medium">操作</th>
               </tr>
             </thead>
             <tbody>
               {list.map((item) => (
                 <tr key={item.id} className="border-t">
-                  <td className="px-3 py-2">{item.name}</td>
-                  <td className="px-3 py-2">{item.provider === "aliyun-bailian" ? "\u767e\u70bc" : item.provider}</td>
+                  <td className="px-3 py-2">{providerLabel(item.provider)}</td>
                   <td className="max-w-72 truncate px-3 py-2" title={item.apiUrl}>
                     {item.apiUrl}
                   </td>
@@ -153,13 +171,13 @@ export function SearchPage() {
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <button className="rounded-md border px-2 py-1 hover:bg-muted/60" onClick={() => openEdit(item)}>
-                        {"\u7f16\u8f91"}
+                        编辑
                       </button>
                       <button
                         className="rounded-md border border-destructive/40 px-2 py-1 text-destructive hover:bg-destructive/10"
                         onClick={() => setDeleting(item)}
                       >
-                        {"\u5220\u9664"}
+                        删除
                       </button>
                     </div>
                   </td>
@@ -169,33 +187,34 @@ export function SearchPage() {
           </table>
         </div>
       ) : (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">{"\u6682\u65e0\u6a21\u578b\u914d\u7f6e\uff0c\u5148\u6dfb\u52a0\u4e00\u4e2a\u5427\u3002"}</div>
+        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无供应商配置，先添加一个吧。</div>
       )}
 
-      <Dialog open={open} onOpenChange={(next) => !next && closeDialog()} title={editing ? "\u7f16\u8f91\u6a21\u578b" : "\u6dfb\u52a0\u6a21\u578b"}>
+      <Dialog open={open} onOpenChange={(next) => !next && closeDialog()} title={editing ? "编辑供应商配置" : "添加供应商配置"}>
         <div className="grid gap-4">
           <div>
             <label className="block text-sm font-medium">
-              {"\u540d\u79f0"} <span className="text-destructive">*</span>
-            </label>
-            <input
-              className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
-              value={form.name}
-              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder={"\u4f8b\u5982\uff1a\u9ed8\u8ba4\u767e\u70bc\u6a21\u578b"}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">
-              {"\u4f9b\u5e94\u5546"} <span className="text-destructive">*</span>
+              供应商 <span className="text-destructive">*</span>
             </label>
             <Select
-              className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+              className="mt-2"
               value={form.provider}
-              onValueChange={(v) => setForm((prev) => ({ ...prev, provider: v as ModelProvider }))}
-              options={[{ label: "\u767e\u70bc", value: "aliyun-bailian" }]}
+              onValueChange={(v) => {
+                const next = v as ModelProvider
+                const defaultApiUrl = PROVIDERS.find((p) => p.value === next)?.defaultApiUrl ?? ""
+                setForm((prev) => ({ ...prev, provider: next, apiUrl: editing ? prev.apiUrl : defaultApiUrl }))
+              }}
+              options={
+                editing
+                  ? PROVIDERS.map((p) => ({ label: p.label, value: p.value }))
+                  : PROVIDERS.map((p) => ({
+                      label: usedProviders.has(p.value) ? `${p.label}（已配置）` : p.label,
+                      value: p.value,
+                      disabled: usedProviders.has(p.value),
+                    }))
+              }
               modal={false}
+              disabled={!!editing}
             />
           </div>
 
@@ -207,7 +226,7 @@ export function SearchPage() {
               className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
               value={form.apiUrl}
               onChange={(e) => setForm((prev) => ({ ...prev, apiUrl: e.target.value }))}
-              placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
+              placeholder="https://..."
             />
           </div>
 
@@ -220,7 +239,7 @@ export function SearchPage() {
               className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
               value={form.apiKey}
               onChange={(e) => setForm((prev) => ({ ...prev, apiKey: e.target.value }))}
-              placeholder={editing ? "\u7f16\u8f91\u65f6\u8bf7\u91cd\u65b0\u8f93\u5165 API KEY" : "\u8bf7\u8f93\u5165 API KEY"}
+              placeholder={editing ? "编辑时请重新输入 API KEY" : "请输入 API KEY"}
             />
           </div>
 
@@ -228,14 +247,14 @@ export function SearchPage() {
 
           <div className="flex justify-end gap-2">
             <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={closeDialog} disabled={submitting}>
-              {"\u53d6\u6d88"}
+              取消
             </button>
             <button
               className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               onClick={submit}
               disabled={submitting}
             >
-              {submitting ? "\u4fdd\u5b58\u4e2d..." : "\u4fdd\u5b58"}
+              {submitting ? "保存中..." : "保存"}
             </button>
           </div>
         </div>
@@ -245,8 +264,8 @@ export function SearchPage() {
         open={!!deleting}
         onCancel={() => setDeleting(null)}
         onConfirm={confirmDelete}
-        description={deleting ? `\u5c06\u5220\u9664\u6a21\u578b\u914d\u7f6e\u300c${deleting.name}\u300d\uff0c\u6b64\u64cd\u4f5c\u4e0d\u53ef\u6062\u590d\u3002` : undefined}
-        errorText={deleteModel.isError ? "\u5220\u9664\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5\u3002" : null}
+        description={deleting ? `将删除${providerLabel(deleting.provider)}供应商配置，此操作不可恢复。` : undefined}
+        errorText={deleteModel.isError ? "删除失败，请重试。" : null}
         confirming={deleteModel.isPending}
       />
     </div>

@@ -127,4 +127,12 @@
   html {
     @apply font-sans;
     }
+
+  ::placeholder {
+    color: oklch(0.76 0 0);
+  }
+
+  .dark ::placeholder {
+    color: oklch(0.45 0 0);
+  }
 }

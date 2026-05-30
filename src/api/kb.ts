@@ -38,3 +38,13 @@ export function setKbEnabled(id: string, enabled: boolean) {
 export function deleteKb(id: string) {
   return requestJson<void>(`/kb/${id}`, { method: "DELETE" })
 }
+
+export type KbLinkedAssistant = {
+  id: string
+  name: string
+  published: boolean
+}
+
+export function getKbLinkedAssistants(id: string) {
+  return requestJson<KbLinkedAssistant[]>(`/kb/${id}/assistants`)
+}

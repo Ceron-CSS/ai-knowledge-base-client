@@ -51,6 +51,10 @@ export function publishAssistant(id: string) {
   return requestJson<Assistant>(`/assistants/${id}/publish`, { method: "POST" })
 }
 
+export function unpublishAssistant(id: string) {
+  return requestJson<Assistant>(`/assistants/${id}/unpublish`, { method: "POST" })
+}
+
 export function deleteAssistant(id: string) {
   return requestJson<void>(`/assistants/${id}`, { method: "DELETE" })
 }
