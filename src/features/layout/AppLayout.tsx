@@ -1,12 +1,12 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
-import { BookOpen, Bot, ChevronLeft, ChevronRight, FileText, Import, MessageCircle, Search, Settings } from "lucide-react"
+import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, FileText, Import, MessageCircle, Settings } from "lucide-react"
 
 const navItems = [
   { to: "/kb", label: "知识库", Icon: BookOpen },
   { to: "/entry", label: "条目", Icon: FileText },
   { to: "/import", label: "导入", Icon: Import },
-  { to: "/search", label: "模型", Icon: Search },
+  { to: "/models", label: "模型供应商", Icon: Cpu },
   { to: "/chat", label: "问答", Icon: MessageCircle },
   { to: "/assistants", label: "问答助手", Icon: Bot },
   { to: "/settings", label: "设置", Icon: Settings },

@@ -41,8 +41,11 @@ export function useSetKbEnabled() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => setKbEnabled(id, enabled),
-    onSuccess: async () => {
+    onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: kbKeys.all })
+      if (!vars.enabled) {
+        await qc.invalidateQueries({ queryKey: ["assistants"] })
+      }
     },
   })
 }

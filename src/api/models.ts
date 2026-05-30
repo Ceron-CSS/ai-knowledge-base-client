@@ -1,10 +1,9 @@
 import { requestJson } from "@/api/http"
 
-export type ModelProvider = "aliyun-bailian"
+export type ModelProvider = "aliyun-bailian" | "deepseek"
 
 export type ModelConfig = {
   id: string
-  name: string
   provider: ModelProvider
   apiUrl: string
   apiKeyMasked: string
@@ -17,7 +16,6 @@ export function listModelConfigs() {
 }
 
 export function createModelConfig(body: {
-  name: string
   provider: ModelProvider
   apiUrl: string
   apiKey: string
@@ -27,7 +25,7 @@ export function createModelConfig(body: {
 
 export function updateModelConfig(
   id: string,
-  body: { name?: string; provider?: ModelProvider; apiUrl?: string; apiKey?: string },
+  body: { provider?: ModelProvider; apiUrl?: string; apiKey?: string },
 ) {
   return requestJson<ModelConfig>(`/model-configs/${id}`, { method: "PATCH", body })
 }

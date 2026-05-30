@@ -5,6 +5,7 @@ import {
   getAssistant,
   listAssistants,
   publishAssistant,
+  unpublishAssistant,
   updateAssistant,
 } from "@/api/assistants"
 
@@ -54,6 +55,17 @@ export function usePublishAssistant() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id }: { id: string }) => publishAssistant(id),
+    onSuccess: async (_data, vars) => {
+      await qc.invalidateQueries({ queryKey: assistantKeys.all })
+      await qc.invalidateQueries({ queryKey: assistantKeys.byId(vars.id) })
+    },
+  })
+}
+
+export function useUnpublishAssistant() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => unpublishAssistant(id),
     onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: assistantKeys.all })
       await qc.invalidateQueries({ queryKey: assistantKeys.byId(vars.id) })

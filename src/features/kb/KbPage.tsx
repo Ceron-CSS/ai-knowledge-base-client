@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowUpDown } from "lucide-react"
-import type { Kb, KbSortBy, SortDir } from "@/api/kb"
+import type { Kb, KbLinkedAssistant, KbSortBy, SortDir } from "@/api/kb"
+import { getKbLinkedAssistants } from "@/api/kb"
 import { useCreateKb, useDeleteKb, useKbList, useSetKbEnabled, useUpdateKb } from "@/features/kb/queries"
 import { Dialog } from "@/components/ui/dialog"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
@@ -57,6 +58,8 @@ export function KbPage() {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [deleting, setDeleting] = useState<Kb | null>(null)
+  const [disablingKb, setDisablingKb] = useState<{ kb: Kb; linked: KbLinkedAssistant[] } | null>(null)
+  const [checkingLinked, setCheckingLinked] = useState(false)
 
   const isSaving = createKb.isPending || updateKb.isPending
 
@@ -119,6 +122,34 @@ export function KbPage() {
     cancelDelete()
   }
 
+  async function handleToggleEnabled(kb: Kb) {
+    if (kb.enabled) {
+      // Disabling: check linked assistants first
+      setCheckingLinked(true)
+      try {
+        const linked = await getKbLinkedAssistants(kb.id)
+        if (linked.length) {
+          setDisablingKb({ kb, linked })
+        } else {
+          setEnabled.mutate({ id: kb.id, enabled: false })
+        }
+      } catch {
+        // If check fails, still allow disabling
+        setEnabled.mutate({ id: kb.id, enabled: false })
+      } finally {
+        setCheckingLinked(false)
+      }
+    } else {
+      setEnabled.mutate({ id: kb.id, enabled: true })
+    }
+  }
+
+  async function confirmDisable() {
+    if (!disablingKb) return
+    setEnabled.mutate({ id: disablingKb.kb.id, enabled: false })
+    setDisablingKb(null)
+  }
+
   const filteredList = useMemo(() => {
     const list = kbList.data ?? []
     const q = debouncedQuery.trim().toLowerCase()
@@ -147,12 +178,19 @@ export function KbPage() {
     setSort({ sortBy: "createdAt", sortDir: "desc" })
   }
 
+  const countLabel = useMemo(() => {
+    const total = kbList.data?.length ?? 0
+    const filtered = filteredList.length
+    const q = debouncedQuery.trim()
+    if (q) return `${filtered}/${total} 个知识库`
+    return `${total} 个知识库`
+  }, [kbList.data?.length, filteredList.length, debouncedQuery])
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">知识库</h1>
-        </div>
+    <div className="space-y-2">
+      <div>
+        <h1 className="text-lg font-semibold">知识库</h1>
+        <p className="mt-1 text-sm text-muted-foreground">创建、编辑、删除、启停知识库（停用后在所有配置中不可选）。</p>
       </div>
 
       <Dialog
@@ -211,32 +249,82 @@ export function KbPage() {
         confirming={deleteKb.isPending}
       />
 
-      <div className="rounded-lg border bg-background">
-        <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
-          <div className="text-sm font-medium">知识库列表</div>
-          <div className="flex items-center gap-2">
-            <input
-              className="w-64 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜索名称/描述"
-            />
+      <Dialog
+        open={!!disablingKb}
+        onOpenChange={(open) => {
+          if (!open) setDisablingKb(null)
+        }}
+        title="确认停用知识库"
+      >
+        {disablingKb ? (
+          <>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                以下问答助手正在关联知识库「{disablingKb.kb.name}」，停用后将<b>取消发布</b>这些助手：
+              </p>
+              <ul className="max-h-36 overflow-auto rounded-md border bg-muted/30 p-2 text-sm">
+                {disablingKb.linked.map((a) => (
+                  <li key={a.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5">
+                    <span className="truncate">{a.name}</span>
+                    {a.published ? (
+                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">已发布</span>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">未发布</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm text-muted-foreground">确定要继续停用吗？</p>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
+                onClick={() => setDisablingKb(null)}
+                disabled={setEnabled.isPending}
+              >
+                取消
+              </button>
+              <button
+                className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground disabled:opacity-50"
+                onClick={confirmDisable}
+                disabled={setEnabled.isPending}
+              >
+                {setEnabled.isPending ? "处理中..." : "确认停用"}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </Dialog>
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="text-sm text-muted-foreground">{countLabel}</div>
+        <div className="flex items-center gap-2">
+          <input
+            className="w-56 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索名称/描述"
+          />
+          {debouncedQuery || sort.sortBy !== "createdAt" || sort.sortDir !== "desc" ? (
             <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={resetListState}>
               重置
             </button>
-            <button className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={startCreate}>
-              新建知识库
-            </button>
-          </div>
+          ) : null}
+          <button className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={startCreate}>
+            新建知识库
+          </button>
         </div>
+      </div>
+
+      <div className="rounded-lg border bg-background">
         {kbList.isLoading ? (
-          <div className="px-4 py-6 text-sm text-muted-foreground">加载中...</div>
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
         ) : kbList.isError ? (
-          <div className="px-4 py-6 text-sm text-destructive">加载失败：请确认后端服务可用。</div>
+          <div className="px-4 py-10 text-center text-sm text-destructive">加载失败：请确认后端服务可用。</div>
         ) : filteredList.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-muted-foreground">
+              <thead className="bg-muted/40">
                 <tr className="border-b">
                   <th className="px-4 py-3 font-medium">
                     <button
@@ -306,8 +394,8 @@ export function KbPage() {
                         </button>
                         <button
                           className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60 disabled:opacity-50"
-                          onClick={() => setEnabled.mutate({ id: kb.id, enabled: !kb.enabled })}
-                          disabled={setEnabled.isPending}
+                          onClick={() => handleToggleEnabled(kb)}
+                          disabled={setEnabled.isPending || checkingLinked}
                         >
                           {kb.enabled ? "停用" : "启用"}
                         </button>

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Ban, Bot, CheckCircle2, Clock, MessageCircle, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react"
+import { Ban, Bot, CheckCircle2, Clock, MessageCircle, MoreHorizontal, Pencil, Plus, Rocket, Trash2 } from "lucide-react"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import type { Assistant } from "@/api/assistants"
-import { useAssistantList, useDeleteAssistant } from "@/features/assistants/queries"
+import { useAssistantList, useDeleteAssistant, usePublishAssistant, useUnpublishAssistant } from "@/features/assistants/queries"
 
 function yyyyMmDd(iso: string) {
   const d = new Date(iso)
@@ -17,6 +17,8 @@ export function AssistantListPage() {
   const navigate = useNavigate()
   const assistants = useAssistantList()
   const deleteAssistant = useDeleteAssistant()
+  const publishAssistant = usePublishAssistant()
+  const unpublishAssistant = useUnpublishAssistant()
 
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -62,6 +64,18 @@ export function AssistantListPage() {
     if (!deleting) return
     await deleteAssistant.mutateAsync({ id: deleting.id })
     cancelDelete()
+  }
+
+  function handlePublish(a: Assistant, e: React.MouseEvent) {
+    e.stopPropagation()
+    setMenuOpenFor(null)
+    publishAssistant.mutate({ id: a.id })
+  }
+
+  function handleUnpublish(a: Assistant, e: React.MouseEvent) {
+    e.stopPropagation()
+    setMenuOpenFor(null)
+    unpublishAssistant.mutate({ id: a.id })
   }
 
   return (
@@ -183,6 +197,25 @@ export function AssistantListPage() {
                         <Pencil className="h-4 w-4" />
                         编辑
                       </button>
+                      {a.publishedAt ? (
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+                          onClick={(e) => handleUnpublish(a, e)}
+                        >
+                          <Ban className="h-4 w-4" />
+                          取消发布
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted/60"
+                          onClick={(e) => handlePublish(a, e)}
+                        >
+                          <Rocket className="h-4 w-4" />
+                          发布
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
