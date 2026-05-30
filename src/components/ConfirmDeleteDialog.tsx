@@ -1,4 +1,4 @@
-import { Dialog } from "@/components/ui/dialog"
+﻿import { Dialog } from "@/components/ui/dialog"
 
 export type ConfirmDeleteDialogProps = {
   open: boolean
@@ -48,4 +48,3 @@ export function ConfirmDeleteDialog({
     </Dialog>
   )
 }
-

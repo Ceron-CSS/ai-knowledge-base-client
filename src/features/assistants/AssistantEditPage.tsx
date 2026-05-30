@@ -1,13 +1,18 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ChevronLeft } from "lucide-react"
-import { useKbList } from "@/features/kb/queries"
 import type { Assistant } from "@/api/assistants"
+import { Select } from "@/components/ui/select"
 import { useAssistant, useCreateAssistant, usePublishAssistant, useUpdateAssistant } from "@/features/assistants/queries"
+import { useKbList } from "@/features/kb/queries"
+import { useModelConfigList } from "@/features/search/queries"
 
-function isProvider(value: string): value is "aliyun-bailian" {
-  return value === "aliyun-bailian"
-}
+const BASE_MODEL_OPTIONS = [
+  { label: "qwen-plus", value: "qwen-plus" },
+  { label: "qwen-turbo", value: "qwen-turbo" },
+  { label: "qwen-max", value: "qwen-max" },
+  { label: "qwen-long", value: "qwen-long" },
+]
 
 export function AssistantEditPage() {
   const navigate = useNavigate()
@@ -19,25 +24,39 @@ export function AssistantEditPage() {
   const existing = existingQuery.data as Assistant | undefined
 
   const kbList = useKbList()
+  const modelConfigs = useModelConfigList()
   const createAssistant = useCreateAssistant()
   const updateAssistant = useUpdateAssistant()
   const publishAssistant = usePublishAssistant()
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [modelProvider, setModelProvider] = useState<"aliyun-bailian">("aliyun-bailian")
+  const [modelConfigId, setModelConfigId] = useState("")
+  const [baseModel, setBaseModel] = useState(BASE_MODEL_OPTIONS[0].value)
   const [systemPrompt, setSystemPrompt] = useState("")
   const [kbIds, setKbIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  const configOptions = useMemo(
+    () => (modelConfigs.data ?? []).map((x) => ({ label: `${x.name}（百炼）`, value: x.id })),
+    [modelConfigs.data],
+  )
 
   useEffect(() => {
     if (!existing) return
     setName(existing.name)
     setDescription(existing.description ?? "")
-    setModelProvider(isProvider(existing.modelProvider) ? existing.modelProvider : "aliyun-bailian")
+    setModelConfigId(existing.modelConfigId ?? "")
+    setBaseModel(existing.baseModel ?? BASE_MODEL_OPTIONS[0].value)
     setSystemPrompt(existing.systemPrompt ?? "")
     setKbIds(existing.kbIds ?? [])
   }, [existing])
+
+  useEffect(() => {
+    if (modelConfigId) return
+    if (!configOptions.length) return
+    setModelConfigId(configOptions[0].value)
+  }, [modelConfigId, configOptions])
 
   const title = isNew ? "创建问答助手" : "配置问答助手"
 
@@ -48,7 +67,14 @@ export function AssistantEditPage() {
   async function publish() {
     const trimmedName = name.trim()
     if (!trimmedName) return
-    if (!isProvider(modelProvider)) return
+    if (!modelConfigId) {
+      setError("请选择模型配置")
+      return
+    }
+    if (!baseModel) {
+      setError("请选择基础模型")
+      return
+    }
 
     setError(null)
     try {
@@ -56,7 +82,8 @@ export function AssistantEditPage() {
         const created = await createAssistant.mutateAsync({
           name: trimmedName,
           description: description.trim() ? description.trim() : undefined,
-          modelProvider,
+          modelConfigId,
+          baseModel,
           systemPrompt: systemPrompt.trim() ? systemPrompt.trim() : undefined,
           kbIds,
         })
@@ -75,7 +102,8 @@ export function AssistantEditPage() {
         body: {
           name: trimmedName,
           description: description.trim() ? description.trim() : null,
-          modelProvider,
+          modelConfigId,
+          baseModel,
           systemPrompt: systemPrompt.trim() ? systemPrompt.trim() : null,
           kbIds,
         },
@@ -99,7 +127,7 @@ export function AssistantEditPage() {
             </button>
             <h1 className="text-lg font-semibold">{title}</h1>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">填写配置后点击发布即可创建/更新问答助手。</p>
+          <p className="mt-1 text-sm text-muted-foreground">填写配置后点击发布即可创建或更新问答助手。</p>
         </div>
       </div>
 
@@ -142,18 +170,29 @@ export function AssistantEditPage() {
             <div className="text-sm font-medium">模型配置</div>
             <div className="mt-3 grid gap-4">
               <div>
-                <label className="block text-sm font-medium">AI模型选择</label>
-                <select
-                  className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
-                  value={modelProvider}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    if (isProvider(v)) setModelProvider(v)
-                  }}
-                >
-                  <option value="aliyun-bailian">阿里云百炼</option>
-                </select>
+                <label className="block text-sm font-medium">
+                  模型配置 <span className="text-destructive">*</span>
+                </label>
+                <Select
+                  className="mt-2"
+                  value={modelConfigId}
+                  onValueChange={setModelConfigId}
+                  options={configOptions}
+                  placeholder={modelConfigs.isLoading ? "加载模型配置中..." : "请选择模型配置"}
+                  disabled={!configOptions.length || modelConfigs.isLoading}
+                />
+                {!configOptions.length && !modelConfigs.isLoading ? (
+                  <div className="mt-2 text-xs text-muted-foreground">暂无可用模型配置，请先去“模型”页面添加供应商配置。</div>
+                ) : null}
               </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  基础模型 <span className="text-destructive">*</span>
+                </label>
+                <Select className="mt-2" value={baseModel} onValueChange={setBaseModel} options={BASE_MODEL_OPTIONS} />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium">提示词（System Prompt）</label>
                 <textarea
@@ -200,7 +239,7 @@ export function AssistantEditPage() {
             <button
               className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               onClick={publish}
-              disabled={!name.trim() || submitting}
+              disabled={!name.trim() || submitting || !modelConfigId || !baseModel}
             >
               {submitting ? "发布中..." : "发布"}
             </button>

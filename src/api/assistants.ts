@@ -5,6 +5,8 @@ export type Assistant = {
   name: string
   description: string | null
   modelProvider: string
+  modelConfigId: string | null
+  baseModel: string | null
   systemPrompt: string | null
   kbIds: string[]
   createdBy: string
@@ -23,7 +25,8 @@ export function getAssistant(id: string) {
 export function createAssistant(body: {
   name: string
   description?: string
-  modelProvider: string
+  modelConfigId: string
+  baseModel: string
   systemPrompt?: string
   kbIds: string[]
 }) {
@@ -32,7 +35,14 @@ export function createAssistant(body: {
 
 export function updateAssistant(
   id: string,
-  body: { name?: string; description?: string | null; modelProvider?: string; systemPrompt?: string | null; kbIds?: string[] },
+  body: {
+    name?: string
+    description?: string | null
+    modelConfigId?: string
+    baseModel?: string
+    systemPrompt?: string | null
+    kbIds?: string[]
+  },
 ) {
   return requestJson<Assistant>(`/assistants/${id}`, { method: "PATCH", body })
 }
@@ -44,4 +54,3 @@ export function publishAssistant(id: string) {
 export function deleteAssistant(id: string) {
   return requestJson<void>(`/assistants/${id}`, { method: "DELETE" })
 }
-

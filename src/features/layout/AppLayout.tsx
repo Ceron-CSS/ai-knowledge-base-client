@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+﻿import { useEffect, useMemo, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { BookOpen, Bot, ChevronLeft, ChevronRight, FileText, Import, MessageCircle, Search, Settings } from "lucide-react"
 
@@ -6,7 +6,7 @@ const navItems = [
   { to: "/kb", label: "知识库", Icon: BookOpen },
   { to: "/entry", label: "条目", Icon: FileText },
   { to: "/import", label: "导入", Icon: Import },
-  { to: "/search", label: "搜索", Icon: Search },
+  { to: "/search", label: "模型", Icon: Search },
   { to: "/chat", label: "问答", Icon: MessageCircle },
   { to: "/assistants", label: "问答助手", Icon: Bot },
   { to: "/settings", label: "设置", Icon: Settings },
@@ -51,8 +51,8 @@ export function AppLayout() {
       >
         <div className={["flex items-center gap-2", collapsed ? "justify-center px-1 py-2" : "justify-between px-2 py-2"].join(" ")}>
           {collapsed ? null : (
-            <div className="min-w-0 truncate text-l font-semibold" title="AI知识库管理平台">
-              AI知识库管理平台
+            <div className="min-w-0 truncate text-l font-semibold" title="AI 知识库管理平台">
+              AI 知识库管理平台
             </div>
           )}
           <button
@@ -93,4 +93,3 @@ export function AppLayout() {
     </div>
   )
 }
-
