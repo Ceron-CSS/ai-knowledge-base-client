@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import { AuthContext } from "@/features/auth/authContext"
 import { clearAccessToken, getAccessToken, setAccessToken } from "@/features/auth/authStorage"
+import { redirectToLogin } from "@/features/auth/redirectToLogin"
 
 export function AuthProvider(props: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getAccessToken())
@@ -16,9 +17,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
       logout: () => {
         clearAccessToken()
         setToken(null)
-        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-          window.location.assign("/login")
-        }
+        redirectToLogin("/")
       },
     }),
     [token]

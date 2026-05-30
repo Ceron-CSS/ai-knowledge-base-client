@@ -10,6 +10,9 @@ export type AssistantConversation = {
   updatedAt: string
 }
 
+export type AssistantConversationSortBy = "updatedAt" | "createdAt" | "title"
+export type SortDir = "asc" | "desc"
+
 export type AssistantMessage = {
   id: string
   conversationId: string
@@ -18,8 +21,17 @@ export type AssistantMessage = {
   createdAt: string
 }
 
-export function listAssistantConversations(assistantId: string) {
-  return requestJson<AssistantConversation[]>(`/assistants/${assistantId}/conversations`)
+export function listAssistantConversations(
+  assistantId: string,
+  params: { sortBy?: AssistantConversationSortBy; sortDir?: SortDir } = {},
+) {
+  return requestJson<AssistantConversation[]>(`/assistants/${assistantId}/conversations`, {
+    query: {
+      ...params,
+      sortBy: params.sortBy ?? "createdAt",
+      sortDir: params.sortDir ?? "desc",
+    },
+  })
 }
 
 export function createAssistantConversation(assistantId: string) {
@@ -28,6 +40,13 @@ export function createAssistantConversation(assistantId: string) {
 
 export function deleteAssistantConversation(assistantId: string, conversationId: string) {
   return requestJson<void>(`/assistants/${assistantId}/conversations/${conversationId}`, { method: "DELETE" })
+}
+
+export function renameAssistantConversation(assistantId: string, conversationId: string, title: string) {
+  return requestJson<AssistantConversation>(`/assistants/${assistantId}/conversations/${conversationId}`, {
+    method: "PATCH",
+    body: { title },
+  })
 }
 
 export function listAssistantMessages(assistantId: string, conversationId: string) {
@@ -109,4 +128,3 @@ export async function streamAssistantReply(args: {
 
   return readSseStream(response)
 }
-

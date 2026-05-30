@@ -1,14 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createKb, deleteKb, listKbs, setKbEnabled, updateKb } from "@/api/kb"
+import { createKb, deleteKb, listKbs, setKbEnabled, updateKb, type KbSortBy, type SortDir } from "@/api/kb"
 
 const kbKeys = {
   all: ["kb"] as const,
+  list: (params: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir }) => ["kb", "list", params] as const,
 }
 
-export function useKbList() {
+const EMPTY_LIST_PARAMS: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir } = {}
+
+export function useKbList(params?: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir }) {
+  const effectiveParams = params ?? EMPTY_LIST_PARAMS
   return useQuery({
-    queryKey: kbKeys.all,
-    queryFn: listKbs,
+    queryKey: kbKeys.list(effectiveParams),
+    queryFn: () => listKbs(effectiveParams),
   })
 }
 

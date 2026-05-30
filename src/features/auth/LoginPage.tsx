@@ -3,11 +3,14 @@ import { Navigate, useLocation } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { login } from "@/api/auth"
 import { useAuth } from "@/features/auth/authContext"
+import { consumePostLoginRedirect } from "@/features/auth/redirectToLogin"
 
 export function LoginPage() {
   const auth = useAuth()
   const location = useLocation()
   const from = useMemo(() => {
+    const stored = consumePostLoginRedirect()
+    if (stored) return stored
     const s = location.state as { from?: string } | null
     return s?.from ?? "/"
   }, [location.state])

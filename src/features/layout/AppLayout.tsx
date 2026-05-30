@@ -1,17 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
-import {
-  BookOpen,
-  Bot,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Import,
-  MessageCircle,
-  Search,
-  Settings,
-} from "lucide-react"
-import { useAuth } from "@/features/auth/authContext"
+import { BookOpen, Bot, ChevronLeft, ChevronRight, FileText, Import, MessageCircle, Search, Settings } from "lucide-react"
 
 const navItems = [
   { to: "/kb", label: "知识库", Icon: BookOpen },
@@ -26,7 +15,6 @@ const navItems = [
 const SIDEBAR_COLLAPSED_KEY = "app.sidebarCollapsed"
 
 export function AppLayout() {
-  const auth = useAuth()
   const location = useLocation()
 
   const [collapsed, setCollapsed] = useState(() => {
@@ -71,8 +59,8 @@ export function AppLayout() {
             type="button"
             className="inline-flex cursor-pointer items-center justify-center rounded-md border px-2 py-1.5 text-sm hover:bg-muted/60"
             onClick={() => setCollapsed((v) => !v)}
-            title={collapsed ? "展开侧边栏" : "折叠侧边栏"}
-            aria-label={collapsed ? "展开侧边栏" : "折叠侧边栏"}
+            title={collapsed ? "展开侧边栏" : "收起侧边栏"}
+            aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
@@ -97,16 +85,6 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
-
-        <div className={["mt-auto pt-4", collapsed ? "px-0" : "px-2"].join(" ")}>
-          <button
-            className={["w-full rounded-md border py-2 text-sm hover:bg-muted/60", collapsed ? "px-0" : "px-3"].join(" ")}
-            onClick={() => auth.logout()}
-            title={collapsed ? "退出登录" : undefined}
-          >
-            {collapsed ? "退" : "退出登录"}
-          </button>
-        </div>
       </aside>
 
       <main className="min-w-0 flex-1 p-6">

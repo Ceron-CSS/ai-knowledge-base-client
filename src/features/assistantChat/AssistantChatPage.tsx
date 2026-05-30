@@ -1,16 +1,37 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { MessageCirclePlus, Trash2 } from "lucide-react"
+import { Check, MessageCirclePlus, Pencil, Trash2, X } from "lucide-react"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
-import { streamAssistantReply, type AssistantMessage, type AssistantConversation } from "@/api/assistantChat"
+import {
+  streamAssistantReply,
+  type AssistantMessage,
+  type AssistantConversation,
+  type AssistantConversationSortBy,
+  type SortDir,
+} from "@/api/assistantChat"
 import { useAssistant } from "@/features/assistants/queries"
 import {
   useAssistantConversations,
   useAssistantMessages,
   useCreateAssistantConversation,
   useDeleteAssistantConversation,
+  useRenameAssistantConversation,
 } from "@/features/assistantChat/queries"
 import { useQueryClient } from "@tanstack/react-query"
+import { useDebouncedValue } from "@/lib/useDebouncedValue"
+
+const CONV_SORT_KEY = "assistantChat.conversationSort"
+
+function parseConversationSort(raw: string | null): { sortBy: AssistantConversationSortBy; sortDir: SortDir } {
+  if (!raw) return { sortBy: "createdAt", sortDir: "desc" }
+  const [sortByRaw, sortDirRaw] = raw.split(":")
+  const sortBy = sortByRaw as AssistantConversationSortBy
+  const sortDir = sortDirRaw as SortDir
+  const sortByOk = sortBy === "updatedAt" || sortBy === "createdAt" || sortBy === "title"
+  const sortDirOk = sortDir === "asc" || sortDir === "desc"
+  if (!sortByOk || !sortDirOk) return { sortBy: "createdAt", sortDir: "desc" }
+  return { sortBy, sortDir }
+}
 
 function formatTime(iso: string) {
   const d = new Date(iso)
@@ -28,9 +49,30 @@ export function AssistantChatPage() {
 
   const qc = useQueryClient()
   const assistant = useAssistant(assistantId, !!assistantId)
-  const conversations = useAssistantConversations(assistantId)
+
+  const [conversationSort, setConversationSort] = useState<{ sortBy: AssistantConversationSortBy; sortDir: SortDir }>(() => {
+    try {
+      return parseConversationSort(localStorage.getItem(CONV_SORT_KEY))
+    } catch {
+      return { sortBy: "createdAt", sortDir: "desc" }
+    }
+  })
+
+  const [conversationQuery, setConversationQuery] = useState("")
+  const debouncedConversationQuery = useDebouncedValue(conversationQuery, 250)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CONV_SORT_KEY, `${conversationSort.sortBy}:${conversationSort.sortDir}`)
+    } catch {
+      // ignore
+    }
+  }, [conversationSort.sortBy, conversationSort.sortDir])
+
+  const conversations = useAssistantConversations(assistantId, conversationSort)
   const createConversation = useCreateAssistantConversation(assistantId)
   const deleteConversation = useDeleteAssistantConversation(assistantId)
+  const renameConversation = useRenameAssistantConversation(assistantId)
 
   const messagesQuery = useAssistantMessages(assistantId, selectedConversationId, !!selectedConversationId)
   const baseMessages = messagesQuery.data ?? []
@@ -42,15 +84,22 @@ export function AssistantChatPage() {
   const [pendingAssistant, setPendingAssistant] = useState<AssistantMessage | null>(null)
 
   const [confirmDelete, setConfirmDelete] = useState<AssistantConversation | null>(null)
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState("")
 
   const typewriterQueueRef = useRef("")
   const typewriterTextRef = useRef("")
   const typewriterTimerRef = useRef<number | null>(null)
 
-  const list = conversations.data ?? []
+  const allList = conversations.data ?? []
+  const list = useMemo(() => {
+    const q = debouncedConversationQuery.trim().toLowerCase()
+    if (!q) return allList
+    return allList.filter((c) => (c.title ?? "").toLowerCase().includes(q))
+  }, [allList, debouncedConversationQuery])
   const selectedConversation = useMemo(
-    () => list.find((x) => x.id === selectedConversationId) ?? null,
-    [list, selectedConversationId],
+    () => allList.find((x) => x.id === selectedConversationId) ?? null,
+    [allList, selectedConversationId],
   )
 
   const combinedMessages = useMemo(() => {
@@ -104,9 +153,26 @@ export function AssistantChatPage() {
     if (!assistantId) return
     if (conversations.isLoading || createConversation.isPending) return
     if (selectedConversationId) return
-    if (!list.length) return
-    setSearchParams({ c: list[0].id }, { replace: true })
-  }, [assistantId, conversations.isLoading, createConversation.isPending, selectedConversationId, list, setSearchParams])
+    if (!allList.length) return
+    setSearchParams({ c: allList[0].id }, { replace: true })
+  }, [assistantId, conversations.isLoading, createConversation.isPending, selectedConversationId, allList, setSearchParams])
+
+  function toggleConversationSort(nextSortBy: AssistantConversationSortBy) {
+    setConversationSort((prev) => {
+      if (prev.sortBy !== nextSortBy) return { sortBy: nextSortBy, sortDir: "asc" }
+      return { sortBy: nextSortBy, sortDir: prev.sortDir === "asc" ? "desc" : "asc" }
+    })
+  }
+
+  function conversationSortIndicator(forSortBy: AssistantConversationSortBy) {
+    if (conversationSort.sortBy !== forSortBy) return "↑↓"
+    return conversationSort.sortDir === "asc" ? "↑" : "↓"
+  }
+
+  function resetConversationListState() {
+    setConversationQuery("")
+    setConversationSort({ sortBy: "createdAt", sortDir: "desc" })
+  }
 
   async function startNewConversation() {
     const created = await createConversation.mutateAsync()
@@ -116,11 +182,28 @@ export function AssistantChatPage() {
   async function onDeleteConversation() {
     if (!confirmDelete) return
     const idToDelete = confirmDelete.id
-    await deleteConversation.mutateAsync({ conversationId: idToDelete })
     setConfirmDelete(null)
+    await deleteConversation.mutateAsync({ conversationId: idToDelete })
     if (selectedConversationId === idToDelete) {
       setSearchParams({}, { replace: true })
     }
+  }
+
+  function startRenameConversation(c: AssistantConversation) {
+    setEditingConversationId(c.id)
+    setEditingTitle(c.title)
+  }
+
+  function cancelRenameConversation() {
+    setEditingConversationId(null)
+    setEditingTitle("")
+  }
+
+  async function submitRenameConversation(conversationId: string) {
+    const nextTitle = editingTitle.trim()
+    if (!nextTitle) return
+    await renameConversation.mutateAsync({ conversationId, title: nextTitle })
+    cancelRenameConversation()
   }
 
   async function send() {
@@ -203,27 +286,59 @@ export function AssistantChatPage() {
         <div className="flex items-center justify-between gap-2 border-b p-3">
           <div className="min-w-0">
             <div className="truncate text-sm font-medium" title={assistant.data?.name ?? ""}>
-              {assistant.isLoading ? "加载中…" : assistant.data?.name ?? "问答助手"}
+              {assistant.isLoading ? "加载中..." : assistant.data?.name ?? "问答助手"}
             </div>
             <div className="truncate text-xs text-muted-foreground">历史记录</div>
           </div>
-          <button
-            className="inline-flex items-center gap-2 rounded-md border px-2.5 py-2 text-sm hover:bg-muted/60"
-            onClick={startNewConversation}
-            disabled={createConversation.isPending}
-            title="新对话"
-          >
-            <MessageCirclePlus className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              className="w-32 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 sm:w-40"
+              value={conversationQuery}
+              onChange={(e) => setConversationQuery(e.target.value)}
+              placeholder="搜索标题"
+            />
+            <button
+              className="shrink-0 whitespace-nowrap rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
+              onClick={resetConversationListState}
+            >
+              重置
+            </button>
+            <button
+              className="inline-flex items-center gap-2 rounded-md border px-2.5 py-2 text-sm hover:bg-muted/60"
+              onClick={startNewConversation}
+              disabled={createConversation.isPending}
+              title="新对话"
+            >
+              <MessageCirclePlus className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
           {conversations.isLoading ? (
-            <div className="px-2 py-6 text-center text-sm text-muted-foreground">加载中…</div>
+            <div className="px-2 py-6 text-center text-sm text-muted-foreground">加载中...</div>
           ) : conversations.isError ? (
             <div className="px-2 py-6 text-center text-sm text-destructive">加载失败，请检查后端服务</div>
           ) : list.length ? (
             <div className="space-y-1">
+              <div className="mb-1 flex items-center justify-between px-2 py-1 text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 hover:text-foreground"
+                  onClick={() => toggleConversationSort("title")}
+                  title="按标题排序"
+                >
+                  标题 <span>{conversationSortIndicator("title")}</span>
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 hover:text-foreground"
+                  onClick={() => toggleConversationSort("createdAt")}
+                  title="按时间排序"
+                >
+                  时间 <span>{conversationSortIndicator("createdAt")}</span>
+                </button>
+              </div>
               {list.map((c) => {
                 const active = c.id === selectedConversationId
                 return (
@@ -241,7 +356,58 @@ export function AssistantChatPage() {
                     }}
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="truncate">{c.title}</div>
+                      {editingConversationId === c.id ? (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            className="w-full rounded border bg-background px-2 py-1 text-xs outline-none focus:ring-2"
+                            value={editingTitle}
+                            autoFocus
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                void submitRenameConversation(c.id)
+                              }
+                              if (e.key === "Escape") {
+                                e.preventDefault()
+                                cancelRenameConversation()
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="inline-flex rounded border px-1 py-1 hover:bg-muted/60"
+                            onClick={() => void submitRenameConversation(c.id)}
+                            disabled={renameConversation.isPending || !editingTitle.trim()}
+                            title="保存"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex rounded border px-1 py-1 hover:bg-muted/60"
+                            onClick={cancelRenameConversation}
+                            title="取消"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <div className="truncate">{c.title}</div>
+                          <button
+                            type="button"
+                            className="inline-flex rounded border px-1 py-1 text-xs opacity-0 transition-opacity hover:bg-muted/60 group-hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              startRenameConversation(c)
+                            }}
+                            title="重命名"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
                       <div className="mt-0.5 text-xs text-muted-foreground">{formatTime(c.updatedAt)}</div>
                     </div>
                     <button
@@ -258,6 +424,8 @@ export function AssistantChatPage() {
                 )
               })}
             </div>
+          ) : allList.length ? (
+            <div className="px-2 py-6 text-center text-sm text-muted-foreground">无匹配结果</div>
           ) : (
             <div className="px-2 py-6 text-center text-sm text-muted-foreground">暂无对话，点击右上角开始</div>
           )}
@@ -278,7 +446,7 @@ export function AssistantChatPage() {
 
         <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
           {messagesQuery.isLoading && selectedConversationId ? (
-            <div className="text-center text-sm text-muted-foreground">加载中…</div>
+            <div className="text-center text-sm text-muted-foreground">加载中...</div>
           ) : messagesQuery.isError ? (
             <div className="text-center text-sm text-destructive">加载失败，请检查后端服务</div>
           ) : combinedMessages.length ? (
@@ -290,7 +458,7 @@ export function AssistantChatPage() {
                     m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted",
                   ].join(" ")}
                 >
-                  {m.content || (m.role === "assistant" && sending ? "…" : "")}
+                  {m.content || (m.role === "assistant" && sending ? "..." : "")}
                 </div>
               </div>
             ))
@@ -321,7 +489,7 @@ export function AssistantChatPage() {
               onClick={() => void send()}
               disabled={sending || !input.trim()}
             >
-              {sending ? "发送中…" : "发送"}
+              {sending ? "发送中..." : "发送"}
             </button>
           </div>
         </div>

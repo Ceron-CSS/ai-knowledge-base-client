@@ -21,6 +21,7 @@ export function AssistantListPage() {
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const [deleting, setDeleting] = useState<Assistant | null>(null)
+  const [query, setQuery] = useState("")
 
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
@@ -41,7 +42,12 @@ export function AssistantListPage() {
   }, [menuOpenFor])
 
   const items = assistants.data ?? []
-  const countLabel = useMemo(() => `${items.length} 个助手`, [items.length])
+  const filteredItems = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return items
+    return items.filter((a) => a.name.toLowerCase().includes(q))
+  }, [items, query])
+  const countLabel = useMemo(() => `${filteredItems.length} 个助手`, [filteredItems.length])
 
   function startDelete(a: Assistant) {
     setDeleting(a)
@@ -59,32 +65,40 @@ export function AssistantListPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold">问答助手</h1>
-          <p className="mt-1 text-sm text-muted-foreground">管理问答助手的配置与发布状态（对话页面暂不实现）。</p>
+          <p className="mt-1 text-sm text-muted-foreground">管理问答助手的配置与发布状态。</p>
         </div>
-        <button
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-          onClick={() => navigate("/assistants/new")}
-        >
-          <Plus className="h-4 w-4" />
-          创建问答助手
-        </button>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
         <div>{countLabel}</div>
+        <div className="flex items-center gap-1.5">
+          <input
+            className="w-52 rounded-md border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索助手名称"
+          />
+          <button
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+            onClick={() => navigate("/assistants/new")}
+          >
+            <Plus className="h-4 w-4" />
+            创建问答助手
+          </button>
+        </div>
       </div>
 
       {assistants.isLoading ? (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
       ) : assistants.isError ? (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">加载失败，请检查后端服务。</div>
-      ) : items.length ? (
+      ) : filteredItems.length ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((a) => (
+          {filteredItems.map((a) => (
             <div
               key={a.id}
               className="rounded-lg border bg-background p-4 text-left shadow-sm transition hover:cursor-pointer hover:bg-muted/30 hover:shadow-md"
@@ -186,7 +200,7 @@ export function AssistantListPage() {
         </div>
       ) : (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">
-          暂无问答助手，先创建一个吧。
+          {items.length ? "没有匹配的问答助手" : "暂无问答助手，先创建一个吧。"}
         </div>
       )}
 

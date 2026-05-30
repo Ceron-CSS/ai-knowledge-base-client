@@ -10,8 +10,17 @@ export type Kb = {
   charCount: number
 }
 
-export function listKbs() {
-  return requestJson<Kb[]>("/kb")
+export type KbSortBy = "updatedAt" | "createdAt" | "name"
+export type SortDir = "asc" | "desc"
+
+export function listKbs(params: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir } = {}) {
+  return requestJson<Kb[]>("/kb", {
+    query: {
+      ...params,
+      sortBy: params.sortBy ?? "createdAt",
+      sortDir: params.sortDir ?? "desc",
+    },
+  })
 }
 
 export function createKb(body: { name: string; description?: string }) {

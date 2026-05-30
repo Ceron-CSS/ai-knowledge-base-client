@@ -13,3 +13,11 @@ export function login(body: LoginRequest) {
   return requestJson<LoginResponse>("/auth/login", { method: "POST", body })
 }
 
+export type ChangePasswordRequest = {
+  oldPassword: string
+  newPassword: string
+}
+
+export function changePassword(body: ChangePasswordRequest) {
+  return requestJson<void>("/auth/change-password", { method: "POST", body })
+}

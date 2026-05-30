@@ -1,22 +1,57 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import type { Kb } from "@/api/kb"
+import { ArrowUpDown } from "lucide-react"
+import type { Kb, KbSortBy, SortDir } from "@/api/kb"
 import { useCreateKb, useDeleteKb, useKbList, useSetKbEnabled, useUpdateKb } from "@/features/kb/queries"
 import { Dialog } from "@/components/ui/dialog"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
+import { useDebouncedValue } from "@/lib/useDebouncedValue"
 
 type EditingState =
   | { mode: "create" }
   | { mode: "edit"; kb: Kb }
   | { mode: "none" }
 
+const KB_SORT_KEY = "kb.listSort"
+
+function parseKbSort(raw: string | null): { sortBy: KbSortBy; sortDir: SortDir } {
+  if (!raw) return { sortBy: "createdAt", sortDir: "desc" }
+  const parts = raw.split(":")
+  const sortBy = parts[0] as KbSortBy
+  const sortDir = parts[1] as SortDir
+  const sortByOk = sortBy === "updatedAt" || sortBy === "createdAt" || sortBy === "name"
+  const sortDirOk = sortDir === "asc" || sortDir === "desc"
+  if (!sortByOk || !sortDirOk) return { sortBy: "createdAt", sortDir: "desc" }
+  return { sortBy, sortDir }
+}
+
 export function KbPage() {
   const navigate = useNavigate()
-  const kbList = useKbList()
+
+  const [sort, setSort] = useState<{ sortBy: KbSortBy; sortDir: SortDir }>(() => {
+    try {
+      return parseKbSort(localStorage.getItem(KB_SORT_KEY))
+    } catch {
+      return { sortBy: "createdAt", sortDir: "desc" }
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(KB_SORT_KEY, `${sort.sortBy}:${sort.sortDir}`)
+    } catch {
+      // ignore
+    }
+  }, [sort.sortBy, sort.sortDir])
+
+  const kbList = useKbList(sort)
   const createKb = useCreateKb()
   const updateKb = useUpdateKb()
   const setEnabled = useSetKbEnabled()
   const deleteKb = useDeleteKb()
+
+  const [query, setQuery] = useState("")
+  const debouncedQuery = useDebouncedValue(query, 250)
 
   const [editing, setEditing] = useState<EditingState>({ mode: "none" })
   const [name, setName] = useState("")
@@ -84,16 +119,40 @@ export function KbPage() {
     cancelDelete()
   }
 
+  const filteredList = useMemo(() => {
+    const list = kbList.data ?? []
+    const q = debouncedQuery.trim().toLowerCase()
+    if (!q) return list
+    return list.filter((kb) => {
+      const n = kb.name?.toLowerCase() ?? ""
+      const d = (kb.description ?? "").toLowerCase()
+      return n.includes(q) || d.includes(q)
+    })
+  }, [kbList.data, debouncedQuery])
+
+  function toggleSort(nextSortBy: KbSortBy) {
+    setSort((prev) => {
+      if (prev.sortBy !== nextSortBy) return { sortBy: nextSortBy, sortDir: "asc" }
+      return { sortBy: nextSortBy, sortDir: prev.sortDir === "asc" ? "desc" : "asc" }
+    })
+  }
+
+  function sortIndicator(forSortBy: KbSortBy) {
+    if (sort.sortBy !== forSortBy) return <ArrowUpDown className="h-3.5 w-3.5 opacity-70" />
+    return sort.sortDir === "asc" ? "↑" : "↓"
+  }
+
+  function resetListState() {
+    setQuery("")
+    setSort({ sortBy: "createdAt", sortDir: "desc" })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold">知识库</h1>
-          <p className="mt-1 text-sm text-muted-foreground">创建、编辑、删除、启停知识库（停用后在问答/检索中不可选）。</p>
         </div>
-        <button className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={startCreate}>
-          新建知识库
-        </button>
       </div>
 
       <Dialog
@@ -126,7 +185,7 @@ export function KbPage() {
         </div>
 
         {createKb.isError || updateKb.isError ? (
-          <div className="mt-3 text-sm text-destructive">操作失败，请检查后端接口或稍后重试。</div>
+          <div className="mt-3 text-sm text-destructive">操作失败，请稍后重试。</div>
         ) : null}
 
         <div className="mt-4 flex justify-end gap-2">
@@ -153,27 +212,63 @@ export function KbPage() {
       />
 
       <div className="rounded-lg border bg-background">
-        <div className="border-b px-4 py-3 text-sm font-medium">知识库列表</div>
+        <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
+          <div className="text-sm font-medium">知识库列表</div>
+          <div className="flex items-center gap-2">
+            <input
+              className="w-64 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索名称/描述"
+            />
+            <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={resetListState}>
+              重置
+            </button>
+            <button className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={startCreate}>
+              新建知识库
+            </button>
+          </div>
+        </div>
         {kbList.isLoading ? (
           <div className="px-4 py-6 text-sm text-muted-foreground">加载中...</div>
         ) : kbList.isError ? (
           <div className="px-4 py-6 text-sm text-destructive">加载失败：请确认后端服务可用。</div>
-        ) : kbList.data?.length ? (
+        ) : filteredList.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-muted-foreground">
                 <tr className="border-b">
-                  <th className="px-4 py-3 font-medium">名称</th>
+                  <th className="px-4 py-3 font-medium">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      onClick={() => toggleSort("name")}
+                      title="排序"
+                    >
+                      <span>名称</span>
+                      <span className="text-xs">{sortIndicator("name")}</span>
+                    </button>
+                  </th>
                   <th className="px-4 py-3 font-medium">描述</th>
                   <th className="px-4 py-3 font-medium">文档数</th>
                   <th className="px-4 py-3 font-medium">字符</th>
-                  <th className="px-4 py-3 font-medium">创建时间</th>
+                  <th className="px-4 py-3 font-medium">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      onClick={() => toggleSort("createdAt")}
+                      title="排序"
+                    >
+                      <span>创建时间</span>
+                      <span className="text-xs">{sortIndicator("createdAt")}</span>
+                    </button>
+                  </th>
                   <th className="px-4 py-3 font-medium">状态</th>
                   <th className="px-4 py-3 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
-                {kbList.data.map((kb) => (
+                {filteredList.map((kb) => (
                   <tr key={kb.id} className="border-b last:border-b-0">
                     <td className="px-4 py-3 font-medium">
                       <div className="max-w-[18rem] truncate" title={kb.name}>
@@ -238,6 +333,8 @@ export function KbPage() {
               </tbody>
             </table>
           </div>
+        ) : kbList.data?.length ? (
+          <div className="px-4 py-6 text-sm text-muted-foreground">无匹配结果</div>
         ) : (
           <div className="px-4 py-6 text-sm text-muted-foreground">暂无知识库，先创建一个吧。</div>
         )}
