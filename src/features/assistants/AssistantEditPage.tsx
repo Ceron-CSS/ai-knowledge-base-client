@@ -142,6 +142,7 @@ export function AssistantEditPage() {
           kbIds,
         },
       })
+      navigate("/assistants", { replace: true })
     } catch {
       setError("保存失败，请重试。")
     }
@@ -202,16 +203,14 @@ export function AssistantEditPage() {
     setError(null)
     try {
       await unpublishAssistant.mutateAsync({ id: existing.id })
+      navigate("/assistants", { replace: true })
     } catch {
       setError("取消发布失败，请重试。")
     }
   }
 
   const isPublished = !!existing?.publishedAt
-  const saving = createAssistant.isPending || updateAssistant.isPending
-  const publishing = publishAssistant.isPending
-  const unpublishing = unpublishAssistant.isPending
-  const submitting = saving || publishing || unpublishing
+  const submitting = createAssistant.isPending || updateAssistant.isPending || publishAssistant.isPending || unpublishAssistant.isPending
 
   return (
     <div className="space-y-2">
@@ -339,7 +338,7 @@ export function AssistantEditPage() {
                   onClick={handleUnpublish}
                   disabled={submitting}
                 >
-                  {unpublishing ? "处理中..." : "取消发布"}
+                  取消发布
                 </button>
               ) : null}
             </div>
@@ -352,14 +351,14 @@ export function AssistantEditPage() {
                 onClick={save}
                 disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
               >
-                {saving ? "保存中..." : "保存"}
+                保存
               </button>
               <button
                 className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
                 onClick={handlePublish}
                 disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
               >
-                {publishing ? "发布中..." : isPublished ? "重新发布" : "发布"}
+                {isPublished ? "重新发布" : "发布"}
               </button>
             </div>
           </div>
