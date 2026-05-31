@@ -21,6 +21,14 @@ export type AssistantMessage = {
   createdAt: string
 }
 
+export type AssistantCitation = {
+  kbId: string
+  itemId: string
+  fileName: string
+  snippet: string
+  score: number
+}
+
 export function listAssistantConversations(
   assistantId: string,
   params: { sortBy?: AssistantConversationSortBy; sortDir?: SortDir } = {},
@@ -55,7 +63,7 @@ export function listAssistantMessages(assistantId: string, conversationId: strin
 
 export type StreamEvent =
   | { type: "delta"; delta: string }
-  | { type: "done"; message: AssistantMessage }
+  | { type: "done"; message: AssistantMessage; citations?: AssistantCitation[] }
   | { type: "error"; message: string }
 
 export type AssistantImageAttachment = {

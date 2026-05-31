@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+﻿import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
 import { ArrowUp, Check, MessageCirclePlus, Pencil, Plus, Trash2, X } from "lucide-react"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
@@ -29,12 +29,15 @@ import { useMessage } from "@/hooks/use-message"
 const CONV_SORT_KEY = "assistantChat.conversationSort"
 const ATTACHMENT_META_SEPARATOR = "\n\n<assistant-attachments-meta>"
 const ATTACHMENT_META_END = "</assistant-attachments-meta>"
+const CITATION_META_SEPARATOR = "\n\n<assistant-citations-meta>"
+const CITATION_META_END = "</assistant-citations-meta>"
 const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024
 const MIN_COMPOSER_HEIGHT = 36
 const MAX_COMPOSER_HEIGHT = 160
 
 type ParsedImageAttachment = { kind: "image"; fileName?: string; dataUrl: string }
 type ParsedFileAttachment = { kind: "file"; fileName: string }
+type ParsedCitation = { kbId: string; itemId: string; fileName: string; snippet: string; score: number }
 
 function parseConversationSort(raw: string | null): { sortBy: AssistantConversationSortBy; sortDir: SortDir } {
   if (!raw) return { sortBy: "createdAt", sortDir: "desc" }
@@ -55,20 +58,56 @@ function formatTime(iso: string) {
 function normalizeConversationTitle(title: string): string {
   const value = title.trim()
   if (!value) return "新对话"
-  if (/[�Ãæçð]|鈫|鍔|闂|瀵|璇|鏂|鍙|寮|纭|€/.test(value)) return "新对话"
+  if (/\uFFFD/.test(value)) return "新对话"
   return value
 }
 
-function parseMessageContent(content: string): { text: string; images: ParsedImageAttachment[]; files: ParsedFileAttachment[] } {
-  const start = content.indexOf(ATTACHMENT_META_SEPARATOR)
-  if (start === -1) return { text: content, images: [], files: [] }
-  const end = content.indexOf(ATTACHMENT_META_END, start + ATTACHMENT_META_SEPARATOR.length)
-  if (end === -1) return { text: content, images: [], files: [] }
-  const text = content.slice(0, start)
-  const raw = content.slice(start + ATTACHMENT_META_SEPARATOR.length, end).trim()
+function parseMessageContent(content: string): {
+  text: string
+  images: ParsedImageAttachment[]
+  files: ParsedFileAttachment[]
+  citations: ParsedCitation[]
+} {
+  const citationStart = content.indexOf(CITATION_META_SEPARATOR)
+  let baseContent = content
+  let citations: ParsedCitation[] = []
+  if (citationStart !== -1) {
+    const citationEnd = content.indexOf(CITATION_META_END, citationStart + CITATION_META_SEPARATOR.length)
+    if (citationEnd !== -1) {
+      baseContent = content.slice(0, citationStart)
+      const citationRaw = content.slice(citationStart + CITATION_META_SEPARATOR.length, citationEnd).trim()
+      try {
+        const parsed = JSON.parse(citationRaw) as unknown
+        if (Array.isArray(parsed)) {
+          citations = parsed
+            .filter((item): item is ParsedCitation => {
+              if (!item || typeof item !== "object") return false
+              const v = item as Record<string, unknown>
+              return (
+                typeof v.kbId === "string" &&
+                typeof v.itemId === "string" &&
+                typeof v.fileName === "string" &&
+                typeof v.snippet === "string" &&
+                typeof v.score === "number"
+              )
+            })
+            .slice(0, 8)
+        }
+      } catch {
+        citations = []
+      }
+    }
+  }
+
+  const start = baseContent.indexOf(ATTACHMENT_META_SEPARATOR)
+  if (start === -1) return { text: baseContent, images: [], files: [], citations }
+  const end = baseContent.indexOf(ATTACHMENT_META_END, start + ATTACHMENT_META_SEPARATOR.length)
+  if (end === -1) return { text: baseContent, images: [], files: [], citations }
+  const text = baseContent.slice(0, start)
+  const raw = baseContent.slice(start + ATTACHMENT_META_SEPARATOR.length, end).trim()
   try {
     const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return { text, images: [], files: [] }
+    if (!Array.isArray(parsed)) return { text, images: [], files: [], citations }
     const images: ParsedImageAttachment[] = []
     const files: ParsedFileAttachment[] = []
     for (const item of parsed) {
@@ -85,9 +124,9 @@ function parseMessageContent(content: string): { text: string; images: ParsedIma
         files.push({ kind: "file", fileName: maybe.fileName })
       }
     }
-    return { text, images, files }
+    return { text, images, files, citations }
   } catch {
-    return { text, images: [], files: [] }
+    return { text, images: [], files: [], citations }
   }
 }
 
@@ -424,6 +463,18 @@ export function AssistantChatPage() {
                     <div>{parsed.text || (m.role === "assistant" && sending ? "..." : "")}</div>
                     {parsed.images.length ? <div className="mt-2 flex flex-wrap gap-2">{parsed.images.map((img, i) => <button key={`${img.fileName ?? "img"}-${i}`} type="button" className="overflow-hidden rounded-md border" onClick={() => setPreviewImage({ url: img.dataUrl, name: img.fileName })}><img src={img.dataUrl} alt={img.fileName ?? "图片"} className="h-20 w-20 object-cover" /></button>)}</div> : null}
                     {parsed.files.length ? <div className="mt-2 flex flex-wrap gap-1.5">{parsed.files.map((f, i) => <span key={`${f.fileName}-${i}`} className="rounded border px-2 py-0.5 text-xs opacity-90">{f.fileName}</span>)}</div> : null}
+                    {m.role === "assistant" && parsed.citations.length ? (
+                      <div className="mt-2 rounded-md border bg-background/60 px-2 py-1.5">
+                        <div className="mb-1 text-[11px] font-medium opacity-80">参考片段</div>
+                        <div className="space-y-1">
+                          {parsed.citations.map((c, i) => (
+                            <div key={`${c.itemId}-${i}`} className="text-[11px] opacity-80">
+                              [{i + 1}] {c.fileName}：{c.snippet}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )

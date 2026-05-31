@@ -5,6 +5,7 @@ import { MultiSelect } from "@/components/ui/multi-select"
 import {
   createKbItem,
   streamKbChunkPreview,
+  updateKbItem,
   type ChunkPreviewChunk,
   type ChunkPreviewMode,
   type ChunkPreviewSeparator,
@@ -29,13 +30,15 @@ export function KbUploadPreviewPage() {
   const { id = "" } = useParams()
   const [text, setText] = useState("")
   const [fileName, setFileName] = useState("")
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [mode, setMode] = useState<ChunkPreviewMode>("smart")
-  const [separators, setSeparators] = useState<ChunkPreviewSeparator[]>(["newline", "markdown_h2"])
+  const [separators, setSeparators] = useState<ChunkPreviewSeparator[]>([])
   const [maxLength, setMaxLength] = useState(500)
   const [trimSpaces, setTrimSpaces] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [chunks, setChunks] = useState<ChunkPreviewChunk[]>([])
+  const [previewGenerated, setPreviewGenerated] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -44,10 +47,28 @@ export function KbUploadPreviewPage() {
   const canPreview = useMemo(() => text.trim().length > 0 && !loading, [text, loading])
 
   useEffect(() => {
-    const state = location.state as { fileName?: string; text?: string; chunks?: string[] } | null
+    const state = location.state as {
+      itemId?: string
+      fileName?: string
+      text?: string
+      chunks?: string[]
+      chunkConfig?: {
+        mode: ChunkPreviewMode
+        separators: ChunkPreviewSeparator[]
+        maxLength: number
+        trimSpaces: boolean
+      }
+    } | null
     if (!state?.text) return
+    setEditingItemId(state.itemId ?? null)
     setText(state.text)
     setFileName(state.fileName ?? "")
+    if (state.chunkConfig) {
+      setMode(state.chunkConfig.mode)
+      setSeparators(state.chunkConfig.separators)
+      setMaxLength(state.chunkConfig.maxLength)
+      setTrimSpaces(state.chunkConfig.trimSpaces)
+    }
     if (Array.isArray(state.chunks) && state.chunks.length) {
       setChunks(
         state.chunks.map((chunk, index) => ({
@@ -57,10 +78,12 @@ export function KbUploadPreviewPage() {
         })),
       )
     }
+    setPreviewGenerated(false)
   }, [location.state])
 
   async function onGenerate() {
     setError(null)
+    setPreviewGenerated(false)
     setChunks([])
     abortRef.current?.abort()
     const controller = new AbortController()
@@ -73,6 +96,7 @@ export function KbUploadPreviewPage() {
         (chunk) => setChunks((prev) => [...prev, chunk]),
         controller.signal,
       )
+      setPreviewGenerated(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : "预览失败")
     } finally {
@@ -96,11 +120,21 @@ export function KbUploadPreviewPage() {
     setSaveError(null)
     setSaving(true)
     try {
-      await createKbItem(id, {
-        fileName,
-        content: text,
-        chunks: chunks.map((c) => c.text),
-      })
+      if (editingItemId) {
+        await updateKbItem(id, editingItemId, {
+          fileName,
+          content: text,
+          chunks: chunks.map((c) => c.text),
+          chunkConfig: { mode, separators, maxLength, trimSpaces },
+        })
+      } else {
+        await createKbItem(id, {
+          fileName,
+          content: text,
+          chunks: chunks.map((c) => c.text),
+          chunkConfig: { mode, separators, maxLength, trimSpaces },
+        })
+      }
       navigate(`/kb/${id}`)
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "保存失败")
@@ -201,7 +235,7 @@ export function KbUploadPreviewPage() {
             <button
               className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               onClick={onSave}
-              disabled={saving || loading || chunks.length === 0}
+              disabled={saving || loading || chunks.length === 0 || !previewGenerated}
             >
               保存到知识库
             </button>

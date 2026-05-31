@@ -49,9 +49,11 @@ export function KbDetailPage() {
       const detail = await getKbItemDetail(id, itemId)
       navigate(`/kb/${id}/upload`, {
         state: {
+          itemId,
           fileName: detail.fileName,
           text: detail.content,
           chunks: detail.chunks,
+          chunkConfig: detail.chunkConfig,
         },
       })
     } finally {

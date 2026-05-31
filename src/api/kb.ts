@@ -72,6 +72,12 @@ export type KbItemDetail = {
   fileName: string
   content: string
   chunks: string[]
+  chunkConfig?: {
+    mode: ChunkPreviewMode
+    separators: ChunkPreviewSeparator[]
+    maxLength: number
+    trimSpaces: boolean
+  }
 }
 
 export function getKbItemDetail(kbId: string, itemId: string) {
@@ -192,7 +198,35 @@ export async function extractKbFileText(kbId: string, file: File): Promise<Extra
 
 export function createKbItem(
   kbId: string,
-  body: { fileName: string; content: string; chunks: string[] },
+  body: {
+    fileName: string
+    content: string
+    chunks: string[]
+    chunkConfig?: {
+      mode: ChunkPreviewMode
+      separators: ChunkPreviewSeparator[]
+      maxLength: number
+      trimSpaces: boolean
+    }
+  },
 ) {
   return requestJson<{ id: string }>(`/kb/${kbId}/items`, { method: "POST", body })
+}
+
+export function updateKbItem(
+  kbId: string,
+  itemId: string,
+  body: {
+    fileName: string
+    content: string
+    chunks: string[]
+    chunkConfig?: {
+      mode: ChunkPreviewMode
+      separators: ChunkPreviewSeparator[]
+      maxLength: number
+      trimSpaces: boolean
+    }
+  },
+) {
+  return requestJson<void>(`/kb/${kbId}/items/${itemId}`, { method: "PATCH", body })
 }
