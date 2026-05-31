@@ -58,9 +58,21 @@ export function ModelProviderPage() {
   const [deletingLinked, setDeletingLinked] = useState<ModelConfigLinkedAssistant[]>([])
   const [checkingDeleteLinked, setCheckingDeleteLinked] = useState(false)
 
+  const [query, setQuery] = useState("")
+
   const submitting = createModel.isPending || updateModel.isPending
   const list = modelConfigs.data ?? []
-  const countLabel = useMemo(() => `${list.length} 个供应商配置`, [list.length])
+  const filteredList = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return list
+    return list.filter((x) => providerLabel(x.provider).toLowerCase().includes(q))
+  }, [list, query])
+  const countLabel = useMemo(() => {
+    const total = list.length
+    const filtered = filteredList.length
+    if (query.trim()) return `${filtered}/${total} 个供应商配置`
+    return `${total} 个供应商配置`
+  }, [list.length, filteredList.length, query])
   const loadErrorText = modelConfigs.error instanceof Error ? modelConfigs.error.message : ""
 
   const usedProviders = useMemo(() => new Set(list.map((x) => x.provider)), [list])
@@ -151,20 +163,34 @@ export function ModelProviderPage() {
 
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">{countLabel}</div>
-        <span className="group relative inline-flex">
+        <div className="flex items-center gap-1.5">
+          <input
+            className="w-44 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索供应商名称"
+          />
           <button
-            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            onClick={openCreate}
-            disabled={!canCreate}
+            className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
+            onClick={() => setQuery("")}
           >
-            添加供应商配置
+            重置
           </button>
-          {!canCreate ? (
-            <span className="pointer-events-none absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
-              所有供应商都已配置
-            </span>
-          ) : null}
-        </span>
+          <span className="group relative inline-flex">
+            <button
+              className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              onClick={openCreate}
+              disabled={!canCreate}
+            >
+              添加供应商配置
+            </button>
+            {!canCreate ? (
+              <span className="pointer-events-none absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
+                所有供应商都已配置
+              </span>
+            ) : null}
+          </span>
+        </div>
       </div>
 
       {modelConfigs.isLoading ? (
@@ -174,7 +200,7 @@ export function ModelProviderPage() {
           加载失败，请检查后端服务。
           {loadErrorText ? <div className="mt-2 text-xs text-muted-foreground">{loadErrorText}</div> : null}
         </div>
-      ) : list.length ? (
+      ) : filteredList.length ? (
         <div className="overflow-x-auto rounded-lg border">
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-muted/40">
@@ -186,7 +212,7 @@ export function ModelProviderPage() {
               </tr>
             </thead>
             <tbody>
-              {list.map((item) => (
+              {filteredList.map((item) => (
                 <tr key={item.id} className="border-t">
                   <td className="px-3 py-2">{providerLabel(item.provider)}</td>
                   <td className="max-w-72 truncate px-3 py-2" title={item.apiUrl}>
@@ -212,6 +238,8 @@ export function ModelProviderPage() {
             </tbody>
           </table>
         </div>
+      ) : list.length ? (
+        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">无匹配结果</div>
       ) : (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无供应商配置，先添加一个吧。</div>
       )}

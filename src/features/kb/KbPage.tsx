@@ -320,13 +320,12 @@ export function KbPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border bg-background">
-        {kbList.isLoading ? (
-          <div className="px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
-        ) : kbList.isError ? (
-          <div className="px-4 py-10 text-center text-sm text-destructive">加载失败：请确认后端服务可用。</div>
-        ) : filteredList.length ? (
-          <div className="overflow-x-auto">
+      {kbList.isLoading ? (
+        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
+      ) : kbList.isError ? (
+        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">加载失败：请确认后端服务可用。</div>
+      ) : filteredList.length ? (
+        <div className="overflow-x-auto rounded-lg border">
             <table className="w-full table-fixed text-left text-sm">
               <thead className="bg-muted/40">
                 <tr className="border-b">
@@ -440,11 +439,10 @@ export function KbPage() {
             </table>
           </div>
         ) : kbList.data?.length ? (
-          <div className="px-4 py-6 text-sm text-muted-foreground">无匹配结果</div>
+          <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">无匹配结果</div>
         ) : (
-          <div className="px-4 py-6 text-sm text-muted-foreground">暂无知识库，先创建一个吧。</div>
+          <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无知识库，先创建一个吧。</div>
         )}
-      </div>
     </div>
   )
 }

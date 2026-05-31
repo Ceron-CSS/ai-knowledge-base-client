@@ -235,7 +235,6 @@ export function AssistantEditPage() {
           ) : null}
 
           <div>
-            <div className="text-sm font-medium">基本信息</div>
             <div className="mt-3 grid gap-4">
               <div>
                 <label className="block text-sm font-medium">
@@ -262,7 +261,33 @@ export function AssistantEditPage() {
           </div>
 
           <div>
-            <div className="text-sm font-medium">模型配置</div>
+            <div className="text-sm font-medium">知识库关联</div>
+            <div className="mt-3">
+              {kbList.isLoading ? (
+                <div className="text-sm text-muted-foreground">加载知识库列表中...</div>
+              ) : kbList.isError ? (
+                <div className="text-sm text-destructive">加载失败：请确认后端服务可用。</div>
+              ) : kbList.data?.length ? (
+                <MultiSelect
+                  value={kbIds}
+                  onValueChange={setKbIds}
+                  options={kbList.data
+                    .map((kb) => ({
+                      label: kb.enabled ? kb.name : `${kb.name}（已停用）`,
+                      value: kb.id,
+                      disabled: !kb.enabled,
+                    }))}
+                  placeholder="选择关联的知识库"
+                  searchPlaceholder="搜索知识库..."
+                  emptyText="无匹配的知识库"
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground">暂无可关联的知识库，先去"知识库"创建。</div>
+              )}
+            </div>
+          </div>
+
+          <div>
             <div className="mt-3 grid gap-4">
               <div>
                 <label className="block text-sm font-medium">
@@ -298,33 +323,6 @@ export function AssistantEditPage() {
                   rows={8}
                 />
               </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="text-sm font-medium">知识库关联</div>
-            <div className="mt-3">
-              {kbList.isLoading ? (
-                <div className="text-sm text-muted-foreground">加载知识库列表中...</div>
-              ) : kbList.isError ? (
-                <div className="text-sm text-destructive">加载失败：请确认后端服务可用。</div>
-              ) : kbList.data?.length ? (
-                <MultiSelect
-                  value={kbIds}
-                  onValueChange={setKbIds}
-                  options={kbList.data
-                    .map((kb) => ({
-                      label: kb.enabled ? kb.name : `${kb.name}（已停用）`,
-                      value: kb.id,
-                      disabled: !kb.enabled,
-                    }))}
-                  placeholder="选择关联的知识库"
-                  searchPlaceholder="搜索知识库..."
-                  emptyText="无匹配的知识库"
-                />
-              ) : (
-                <div className="text-sm text-muted-foreground">暂无可关联的知识库，先去"知识库"创建。</div>
-              )}
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Ban, Bot, CheckCircle2, Clock, MoreHorizontal, Pencil, Plus, Rocket, Trash2 } from "lucide-react"
+import { Ban, Bot, CheckCircle2, Clock, MoreHorizontal, Pencil, Rocket, Trash2 } from "lucide-react"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import type { Assistant } from "@/api/assistants"
@@ -107,7 +107,6 @@ export function AssistantListPage() {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
             onClick={() => navigate("/assistants/new")}
           >
-            <Plus className="h-4 w-4" />
             创建问答助手
           </button>
         </div>
