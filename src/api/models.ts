@@ -33,3 +33,13 @@ export function updateModelConfig(
 export function deleteModelConfig(id: string) {
   return requestJson<void>(`/model-configs/${id}`, { method: "DELETE" })
 }
+
+export type ModelConfigLinkedAssistant = {
+  id: string
+  name: string
+  published: boolean
+}
+
+export function getModelConfigLinkedAssistants(id: string) {
+  return requestJson<ModelConfigLinkedAssistant[]>(`/model-configs/${id}/assistants`)
+}

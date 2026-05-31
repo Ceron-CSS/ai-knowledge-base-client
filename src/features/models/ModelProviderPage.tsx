@@ -1,9 +1,12 @@
 ﻿import { useMemo, useState } from "react"
-import type { ModelConfig, ModelProvider } from "@/api/models"
+import type { ModelConfig, ModelConfigLinkedAssistant, ModelProvider } from "@/api/models"
+import { getModelConfigLinkedAssistants } from "@/api/models"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Select } from "@/components/ui/select"
 import { useCreateModelConfig, useDeleteModelConfig, useModelConfigList, useUpdateModelConfig } from "@/features/models/queries"
+import { useQueryClient } from "@tanstack/react-query"
 
 type FormState = {
   provider: ModelProvider
@@ -45,12 +48,15 @@ export function ModelProviderPage() {
   const createModel = useCreateModelConfig()
   const updateModel = useUpdateModelConfig()
   const deleteModel = useDeleteModelConfig()
+  const qc = useQueryClient()
 
   const [editing, setEditing] = useState<ModelConfig | null>(null)
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<FormState>(initialFormState)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<ModelConfig | null>(null)
+  const [deletingLinked, setDeletingLinked] = useState<ModelConfigLinkedAssistant[]>([])
+  const [checkingDeleteLinked, setCheckingDeleteLinked] = useState(false)
 
   const submitting = createModel.isPending || updateModel.isPending
   const list = modelConfigs.data ?? []
@@ -111,16 +117,35 @@ export function ModelProviderPage() {
     }
   }
 
+  async function handleDelete(config: ModelConfig) {
+    setCheckingDeleteLinked(true)
+    try {
+      const linked = await getModelConfigLinkedAssistants(config.id)
+      if (linked.length) {
+        setDeleting(config)
+        setDeletingLinked(linked)
+      } else {
+        deleteModel.mutate({ id: config.id })
+      }
+    } catch {
+      deleteModel.mutate({ id: config.id })
+    } finally {
+      setCheckingDeleteLinked(false)
+    }
+  }
+
   async function confirmDelete() {
     if (!deleting) return
     await deleteModel.mutateAsync({ id: deleting.id })
     setDeleting(null)
+    setDeletingLinked([])
+    await qc.invalidateQueries({ queryKey: ["assistants"] })
   }
 
   return (
     <div className="space-y-2">
       <div>
-        <h1 className="text-lg font-semibold">模型供应商</h1>
+        <Breadcrumb items={[{ label: "模型供应商" }]} />
         <p className="mt-1 text-sm text-muted-foreground">管理模型供应商配置(每种供应商仅允许一个配置)。</p>
       </div>
 
@@ -175,7 +200,8 @@ export function ModelProviderPage() {
                       </button>
                       <button
                         className="rounded-md border border-destructive/40 px-2 py-1 text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleting(item)}
+                        onClick={() => handleDelete(item)}
+                        disabled={deleteModel.isPending || checkingDeleteLinked}
                       >
                         删除
                       </button>
@@ -260,8 +286,61 @@ export function ModelProviderPage() {
         </div>
       </Dialog>
 
+      <Dialog
+        open={!!deleting && deletingLinked.length > 0}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleting(null)
+            setDeletingLinked([])
+          }
+        }}
+        title="确认删除供应商配置"
+      >
+        {deleting && deletingLinked.length > 0 ? (
+          <>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                以下问答助手正在使用「{providerLabel(deleting.provider)}」配置，删除后将<b>取消发布</b>这些助手：
+              </p>
+              <ul className="max-h-36 overflow-auto rounded-md border bg-muted/30 p-2 text-sm">
+                {deletingLinked.map((a) => (
+                  <li key={a.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5">
+                    <span className="truncate">{a.name}</span>
+                    {a.published ? (
+                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">已发布</span>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">未发布</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm text-muted-foreground">确定要继续删除吗？</p>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
+                onClick={() => {
+                  setDeleting(null)
+                  setDeletingLinked([])
+                }}
+                disabled={deleteModel.isPending}
+              >
+                取消
+              </button>
+              <button
+                className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                onClick={confirmDelete}
+                disabled={deleteModel.isPending}
+              >
+                {deleteModel.isPending ? "删除中..." : "确认删除"}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </Dialog>
+
       <ConfirmDeleteDialog
-        open={!!deleting}
+        open={!!deleting && deletingLinked.length === 0}
         onCancel={() => setDeleting(null)}
         onConfirm={confirmDelete}
         description={deleting ? `将删除${providerLabel(deleting.provider)}供应商配置，此操作不可恢复。` : undefined}

@@ -1,9 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createKb, deleteKb, listKbs, setKbEnabled, updateKb, type KbSortBy, type SortDir } from "@/api/kb"
+import {
+  createKb,
+  deleteKb,
+  deleteKbItem,
+  listKbItems,
+  listKbs,
+  setKbEnabled,
+  setKbItemEnabled,
+  updateKb,
+  type KbSortBy,
+  type SortDir,
+} from "@/api/kb"
 
 const kbKeys = {
   all: ["kb"] as const,
   list: (params: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir }) => ["kb", "list", params] as const,
+  items: (kbId: string) => ["kb", "items", kbId] as const,
 }
 
 const EMPTY_LIST_PARAMS: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir } = {}
@@ -55,6 +67,36 @@ export function useDeleteKb() {
   return useMutation({
     mutationFn: ({ id }: { id: string }) => deleteKb(id),
     onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: kbKeys.all })
+    },
+  })
+}
+
+export function useKbItems(kbId: string) {
+  return useQuery({
+    queryKey: kbKeys.items(kbId),
+    queryFn: () => listKbItems(kbId),
+    enabled: !!kbId,
+  })
+}
+
+export function useSetKbItemEnabled() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ kbId, itemId, enabled }: { kbId: string; itemId: string; enabled: boolean }) =>
+      setKbItemEnabled(kbId, itemId, enabled),
+    onSuccess: async (_data, vars) => {
+      await qc.invalidateQueries({ queryKey: kbKeys.items(vars.kbId) })
+    },
+  })
+}
+
+export function useDeleteKbItem() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ kbId, itemId }: { kbId: string; itemId: string }) => deleteKbItem(kbId, itemId),
+    onSuccess: async (_data, vars) => {
+      await qc.invalidateQueries({ queryKey: kbKeys.items(vars.kbId) })
       await qc.invalidateQueries({ queryKey: kbKeys.all })
     },
   })

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Ban, Bot, CheckCircle2, Clock, MessageCircle, MoreHorizontal, Pencil, Plus, Rocket, Trash2 } from "lucide-react"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import type { Assistant } from "@/api/assistants"
 import { useAssistantList, useDeleteAssistant, usePublishAssistant, useUnpublishAssistant } from "@/features/assistants/queries"
@@ -82,7 +83,7 @@ export function AssistantListPage() {
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold">问答助手</h1>
+          <Breadcrumb items={[{ label: "问答助手" }]} />
           <p className="mt-1 text-sm text-muted-foreground">管理问答助手的配置与发布状态。</p>
         </div>
       </div>

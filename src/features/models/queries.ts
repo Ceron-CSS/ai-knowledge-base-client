@@ -38,6 +38,7 @@ export function useDeleteModelConfig() {
     mutationFn: ({ id }: { id: string }) => deleteModelConfig(id),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: modelKeys.all })
+      await qc.invalidateQueries({ queryKey: ["assistants"] })
     },
   })
 }

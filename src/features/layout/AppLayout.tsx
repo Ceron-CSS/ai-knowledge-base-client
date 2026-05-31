@@ -1,13 +1,10 @@
-﻿import { useEffect, useMemo, useState } from "react"
-import { NavLink, Outlet, useLocation } from "react-router-dom"
-import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, FileText, Import, MessageCircle, Settings } from "lucide-react"
+import { useState } from "react"
+import { NavLink, Outlet } from "react-router-dom"
+import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, Settings } from "lucide-react"
 
 const navItems = [
   { to: "/kb", label: "知识库", Icon: BookOpen },
-  { to: "/entry", label: "条目", Icon: FileText },
-  { to: "/import", label: "导入", Icon: Import },
   { to: "/models", label: "模型供应商", Icon: Cpu },
-  { to: "/chat", label: "问答", Icon: MessageCircle },
   { to: "/assistants", label: "问答助手", Icon: Bot },
   { to: "/settings", label: "设置", Icon: Settings },
 ]
@@ -15,8 +12,6 @@ const navItems = [
 const SIDEBAR_COLLAPSED_KEY = "app.sidebarCollapsed"
 
 export function AppLayout() {
-  const location = useLocation()
-
   const [collapsed, setCollapsed] = useState(() => {
     try {
       const raw = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
@@ -27,25 +22,23 @@ export function AppLayout() {
     }
   })
 
-  const isAssistantChatRoute = useMemo(() => /^\/assistants\/[^/]+\/chat\/?$/.test(location.pathname), [location.pathname])
-
-  useEffect(() => {
-    if (isAssistantChatRoute) setCollapsed(true)
-  }, [isAssistantChatRoute])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "true" : "false")
-    } catch {
-      // ignore
-    }
-  }, [collapsed])
+  function toggleCollapsed() {
+    setCollapsed((v) => {
+      const next = !v
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "true" : "false")
+      } catch {
+        // ignore
+      }
+      return next
+    })
+  }
 
   return (
-    <div className="flex min-h-svh">
+    <div className="flex h-svh overflow-hidden">
       <aside
         className={[
-          "shrink-0 overflow-hidden border-r bg-background p-3 transition-[width] duration-200 ease-in-out",
+          "flex shrink-0 flex-col overflow-hidden border-r bg-background p-3 transition-[width] duration-200 ease-in-out",
           collapsed ? "w-16" : "w-64",
         ].join(" ")}
       >
@@ -58,7 +51,7 @@ export function AppLayout() {
           <button
             type="button"
             className="inline-flex cursor-pointer items-center justify-center rounded-md border px-2 py-1.5 text-sm hover:bg-muted/60"
-            onClick={() => setCollapsed((v) => !v)}
+            onClick={toggleCollapsed}
             title={collapsed ? "展开侧边栏" : "收起侧边栏"}
             aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
           >
@@ -87,7 +80,7 @@ export function AppLayout() {
         </nav>
       </aside>
 
-      <main className="min-w-0 flex-1 p-6">
+      <main className="min-w-0 flex-1 overflow-auto p-6">
         <Outlet />
       </main>
     </div>

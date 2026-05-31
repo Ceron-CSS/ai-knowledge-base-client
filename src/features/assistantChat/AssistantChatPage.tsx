@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Check, MessageCirclePlus, Pencil, Trash2, X } from "lucide-react"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import {
   streamAssistantReply,
@@ -281,7 +282,15 @@ export function AssistantChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100svh-3rem)] min-h-[600px] gap-4">
+    <div className="flex h-[calc(100svh-3rem)] min-h-[600px] flex-col gap-2">
+      <Breadcrumb
+        items={[
+          { label: "问答助手", href: "/assistants" },
+          { label: assistant.data?.name ?? "问答助手", href: `/assistants/${assistantId}` },
+          { label: "对话" },
+        ]}
+      />
+      <div className="flex min-h-0 flex-1 gap-4">
       <aside className="flex w-72 shrink-0 flex-col rounded-lg border bg-background">
         <div className="flex items-center justify-between gap-2 border-b p-3">
           <div className="min-w-0">
@@ -431,11 +440,6 @@ export function AssistantChatPage() {
           )}
         </div>
 
-        <div className="border-t p-3">
-          <button className="w-full rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={() => navigate("/assistants")}>
-            返回问答助手
-          </button>
-        </div>
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col rounded-lg border bg-background">
@@ -504,6 +508,7 @@ export function AssistantChatPage() {
         errorText={deleteConversation.isError ? "删除失败，请重试" : null}
         confirming={deleteConversation.isPending}
       />
+      </div>
     </div>
   )
 }

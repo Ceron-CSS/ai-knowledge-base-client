@@ -128,6 +128,10 @@
     @apply font-sans;
     }
 
+  button {
+    cursor: pointer;
+  }
+
   ::placeholder {
     color: oklch(0.76 0 0);
   }

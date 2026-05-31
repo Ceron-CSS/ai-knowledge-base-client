@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { ChevronLeft } from "lucide-react"
 import type { Assistant } from "@/api/assistants"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { Select } from "@/components/ui/select"
 import { useAssistant, useCreateAssistant, usePublishAssistant, useUnpublishAssistant, useUpdateAssistant } from "@/features/assistants/queries"
@@ -216,12 +216,12 @@ export function AssistantEditPage() {
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <button className="rounded-md border px-2 py-1.5 text-sm hover:bg-muted/60" onClick={() => navigate("/assistants")}>
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <h1 className="text-lg font-semibold">{title}</h1>
-          </div>
+          <Breadcrumb
+            items={[
+              { label: "问答助手", href: "/assistants" },
+              { label: title },
+            ]}
+          />
           <p className="mt-1 text-sm text-muted-foreground">填写配置后点击保存或发布（发布后可在对话页面使用）。</p>
         </div>
       </div>
@@ -330,37 +330,33 @@ export function AssistantEditPage() {
 
           {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              {!isNew && isPublished ? (
-                <button
-                  className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                  onClick={handleUnpublish}
-                  disabled={submitting}
-                >
-                  取消发布
-                </button>
-              ) : null}
-            </div>
-            <div className="flex gap-2">
-              <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={() => navigate("/assistants")} disabled={submitting}>
-                取消
-              </button>
+          <div className="flex justify-end gap-2">
+            <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={() => navigate("/assistants")} disabled={submitting}>
+              取消
+            </button>
+            <button
+              className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60 disabled:opacity-50"
+              onClick={save}
+              disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
+            >
+              保存
+            </button>
+            {!isNew && isPublished ? (
               <button
-                className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60 disabled:opacity-50"
-                onClick={save}
-                disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
+                className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                onClick={handleUnpublish}
+                disabled={submitting}
               >
-                保存
+                取消发布
               </button>
-              <button
-                className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-                onClick={handlePublish}
-                disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
-              >
-                {isPublished ? "重新发布" : "发布"}
-              </button>
-            </div>
+            ) : null}
+            <button
+              className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              onClick={handlePublish}
+              disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
+            >
+              {isPublished ? "重新发布" : "发布"}
+            </button>
           </div>
         </div>
       </div>

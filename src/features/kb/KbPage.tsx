@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { ArrowUpDown } from "lucide-react"
 import type { Kb, KbLinkedAssistant, KbSortBy, SortDir } from "@/api/kb"
 import { getKbLinkedAssistants } from "@/api/kb"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { useCreateKb, useDeleteKb, useKbList, useSetKbEnabled, useUpdateKb } from "@/features/kb/queries"
 import { Dialog } from "@/components/ui/dialog"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
@@ -14,6 +15,11 @@ type EditingState =
   | { mode: "none" }
 
 const KB_SORT_KEY = "kb.listSort"
+
+function formatCharCountK(value: number) {
+  if (value <= 0) return "0K"
+  return `${(value / 1000).toFixed(value >= 1000 ? 1 : 2)}K`
+}
 
 function parseKbSort(raw: string | null): { sortBy: KbSortBy; sortDir: SortDir } {
   if (!raw) return { sortBy: "createdAt", sortDir: "desc" }
@@ -189,7 +195,7 @@ export function KbPage() {
   return (
     <div className="space-y-2">
       <div>
-        <h1 className="text-lg font-semibold">知识库</h1>
+        <Breadcrumb items={[{ label: "知识库" }]} />
         <p className="mt-1 text-sm text-muted-foreground">创建、编辑、删除、启停知识库（停用后在所有配置中不可选）。</p>
       </div>
 
@@ -305,11 +311,9 @@ export function KbPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索名称/描述"
           />
-          {debouncedQuery || sort.sortBy !== "createdAt" || sort.sortDir !== "desc" ? (
             <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={resetListState}>
               重置
             </button>
-          ) : null}
           <button className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={startCreate}>
             新建知识库
           </button>
@@ -323,10 +327,10 @@ export function KbPage() {
           <div className="px-4 py-10 text-center text-sm text-destructive">加载失败：请确认后端服务可用。</div>
         ) : filteredList.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full table-fixed text-left text-sm">
               <thead className="bg-muted/40">
                 <tr className="border-b">
-                  <th className="px-4 py-3 font-medium">
+                  <th className="w-[10%] px-4 py-3 font-medium">
                     <button
                       type="button"
                       className="inline-flex items-center gap-1 hover:text-foreground"
@@ -337,10 +341,10 @@ export function KbPage() {
                       <span className="text-xs">{sortIndicator("name")}</span>
                     </button>
                   </th>
-                  <th className="px-4 py-3 font-medium">描述</th>
-                  <th className="px-4 py-3 font-medium">文档数</th>
-                  <th className="px-4 py-3 font-medium">字符</th>
-                  <th className="px-4 py-3 font-medium">
+                  <th className="w-[18%] px-4 py-3 font-medium">描述</th>
+                  <th className="w-[6%] px-4 py-3 font-medium">文档数</th>
+                  <th className="w-[7%] px-4 py-3 font-medium">字符</th>
+                  <th className="w-[14%] px-4 py-3 font-medium">
                     <button
                       type="button"
                       className="inline-flex items-center gap-1 hover:text-foreground"
@@ -351,8 +355,19 @@ export function KbPage() {
                       <span className="text-xs">{sortIndicator("createdAt")}</span>
                     </button>
                   </th>
-                  <th className="px-4 py-3 font-medium">状态</th>
-                  <th className="px-4 py-3 font-medium">操作</th>
+                  <th className="w-[14%] px-4 py-3 font-medium">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      onClick={() => toggleSort("updatedAt")}
+                      title="排序"
+                    >
+                      <span>修改时间</span>
+                      <span className="text-xs">{sortIndicator("updatedAt")}</span>
+                    </button>
+                  </th>
+                  <th className="w-[6%] px-4 py-3 font-medium">状态</th>
+                  <th className="w-[25%] px-4 py-3 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -369,9 +384,12 @@ export function KbPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 tabular-nums">{kb.docCount}</td>
-                    <td className="px-4 py-3 tabular-nums">{kb.charCount}</td>
+                    <td className="px-4 py-3 tabular-nums">{formatCharCountK(kb.charCount)}</td>
                     <td className="px-4 py-3 tabular-nums text-muted-foreground">
                       {new Date(kb.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                      {new Date(kb.updatedAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -384,7 +402,7 @@ export function KbPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <button
                           className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60"
                           onClick={() => navigate(`/kb/${kb.id}`)}
