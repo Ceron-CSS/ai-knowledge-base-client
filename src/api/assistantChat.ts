@@ -58,6 +58,22 @@ export type StreamEvent =
   | { type: "done"; message: AssistantMessage }
   | { type: "error"; message: string }
 
+export type AssistantImageAttachment = {
+  kind: "image"
+  fileName?: string
+  mimeType?: string
+  dataUrl: string
+}
+
+export type AssistantFileAttachment = {
+  kind: "file"
+  fileName: string
+  fileType?: string
+  extractedText: string
+}
+
+export type AssistantAttachment = AssistantImageAttachment | AssistantFileAttachment
+
 function joinUrl(base: string, path: string) {
   const baseTrimmed = base.replace(/\/+$/, "")
   const pathTrimmed = path.replace(/^\/+/, "")
@@ -109,7 +125,8 @@ async function* readSseStream(response: Response): AsyncGenerator<StreamEvent> {
 export async function streamAssistantReply(args: {
   assistantId: string
   conversationId: string
-  message: string
+  text: string
+  attachments?: AssistantAttachment[]
   signal?: AbortSignal
 }): Promise<AsyncGenerator<StreamEvent>> {
   const baseUrl = getApiBaseUrl()
@@ -122,9 +139,57 @@ export async function streamAssistantReply(args: {
       "content-type": "application/json",
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ message: args.message }),
+    body: JSON.stringify({ text: args.text, attachments: args.attachments ?? [] }),
     signal: args.signal,
   })
 
   return readSseStream(response)
+}
+
+export async function uploadAssistantImageAttachment(args: {
+  assistantId: string
+  conversationId: string
+  file: File
+}): Promise<AssistantImageAttachment> {
+  const baseUrl = getApiBaseUrl()
+  const token = getAccessToken()
+  const url = joinUrl(baseUrl, `/assistants/${args.assistantId}/conversations/${args.conversationId}/attachments/image`)
+  const formData = new FormData()
+  formData.set("file", args.file)
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => "")
+    throw new Error(text || `Request failed (${response.status})`)
+  }
+  return (await response.json()) as AssistantImageAttachment
+}
+
+export async function uploadAssistantFileForExtraction(args: {
+  assistantId: string
+  conversationId: string
+  file: File
+}): Promise<AssistantFileAttachment> {
+  const baseUrl = getApiBaseUrl()
+  const token = getAccessToken()
+  const url = joinUrl(baseUrl, `/assistants/${args.assistantId}/conversations/${args.conversationId}/attachments/extract-file`)
+  const formData = new FormData()
+  formData.set("file", args.file)
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => "")
+    throw new Error(text || `Request failed (${response.status})`)
+  }
+  return (await response.json()) as AssistantFileAttachment
 }

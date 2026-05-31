@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
-import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, KeyRound, LogOut, Settings } from "lucide-react"
+import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, Home, KeyRound, LogOut, Settings } from "lucide-react"
 import { useMutation } from "@tanstack/react-query"
 import { changePassword } from "@/api/auth"
 import { useAuth } from "@/features/auth/authContext"
 import { Dialog } from "@/components/ui/dialog"
 
 const navItems = [
+  { to: "/home", label: "首页", Icon: Home },
   { to: "/kb", label: "知识库", Icon: BookOpen },
   { to: "/models", label: "模型供应商", Icon: Cpu },
   { to: "/assistants", label: "问答助手", Icon: Bot },
@@ -53,22 +54,20 @@ export function AppLayout() {
     })
   }
 
-  // Settings popup
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (!settingsOpen) return
-      const t = e.target as Node | null
-      if (t && settingsRef.current?.contains(t)) return
+      const target = e.target as Node | null
+      if (target && settingsRef.current?.contains(target)) return
       setSettingsOpen(false)
     }
     document.addEventListener("mousedown", onMouseDown)
     return () => document.removeEventListener("mousedown", onMouseDown)
   }, [settingsOpen])
 
-  // Change password dialog
   const [pwdOpen, setPwdOpen] = useState(false)
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -110,7 +109,7 @@ export function AppLayout() {
       >
         <div className={["flex items-center gap-2", collapsed ? "justify-center px-1 py-2" : "justify-between px-2 py-2"].join(" ")}>
           {collapsed ? null : (
-            <div className="min-w-0 truncate text-l font-semibold" title="AI 知识库管理平台">
+            <div className="min-w-0 truncate text-xl font-semibold" title="AI 知识库管理平台">
               AI 知识库管理平台
             </div>
           )}
@@ -145,7 +144,6 @@ export function AppLayout() {
           ))}
         </nav>
 
-        {/* Settings at bottom */}
         <div ref={settingsRef} className="relative">
           <button
             type="button"

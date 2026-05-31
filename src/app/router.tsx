@@ -7,6 +7,7 @@ import { AssistantEditPage } from "@/features/assistants/AssistantEditPage"
 import { KbPage } from "@/features/kb/KbPage"
 import { KbDetailPage } from "@/features/kb/KbDetailPage"
 import { KbUploadPreviewPage } from "@/features/kb/KbUploadPreviewPage"
+import { HomePage } from "@/features/home/HomePage"
 import { ModelProviderPage } from "@/features/models/ModelProviderPage"
 import { AssistantChatPage } from "@/features/assistantChat/AssistantChatPage"
 
@@ -23,7 +24,8 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <Navigate to="/kb" replace /> },
+      { index: true, element: <Navigate to="/home" replace /> },
+      { path: "home", element: <HomePage /> },
       { path: "kb", element: <KbPage /> },
       { path: "kb/:id", element: <KbDetailPage /> },
       { path: "kb/:id/upload", element: <KbUploadPreviewPage /> },

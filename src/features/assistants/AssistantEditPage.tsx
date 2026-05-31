@@ -22,6 +22,8 @@ const BASE_MODEL_OPTIONS_BY_PROVIDER: Record<string, Array<{ label: string; valu
     { label: "qwen3-max", value: "qwen3-max" },
     { label: "qwen3-coder-plus", value: "qwen3-coder-plus" },
     { label: "qwen3-coder-flash", value: "qwen3-coder-flash" },
+    { label: "qwen-vl-plus（支持图片）", value: "qwen-vl-plus" },
+    { label: "qwen-vl-max（支持图片）", value: "qwen-vl-max" },
   ],
   deepseek: [
     { label: "deepseek-v4-pro", value: "deepseek-v4-pro" },

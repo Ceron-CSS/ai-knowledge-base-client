@@ -5,6 +5,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import type { Assistant } from "@/api/assistants"
 import { useAssistantList, useDeleteAssistant, usePublishAssistant, useUnpublishAssistant } from "@/features/assistants/queries"
+import { useMessage } from "@/hooks/use-message"
 
 function yyyyMmDd(iso: string) {
   const d = new Date(iso)
@@ -16,6 +17,7 @@ function yyyyMmDd(iso: string) {
 
 export function AssistantListPage() {
   const navigate = useNavigate()
+  const { error } = useMessage()
   const assistants = useAssistantList()
   const deleteAssistant = useDeleteAssistant()
   const publishAssistant = usePublishAssistant()
@@ -79,6 +81,14 @@ export function AssistantListPage() {
     unpublishAssistant.mutate({ id: a.id })
   }
 
+  function goChat(a: Assistant) {
+    if (!a.publishedAt) {
+      error("该问答助手尚未发布，发布后才能进入对话。", 3000)
+      return
+    }
+    navigate(`/assistants/${a.id}/chat`)
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-4">
@@ -124,9 +134,9 @@ export function AssistantListPage() {
               className="rounded-lg border bg-background p-4 text-left shadow-sm transition hover:cursor-pointer hover:bg-muted/30 hover:shadow-md"
               role="button"
               tabIndex={0}
-              onClick={() => navigate(`/assistants/${a.id}/chat`)}
+              onClick={() => goChat(a)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") navigate(`/assistants/${a.id}/chat`)
+                if (e.key === "Enter" || e.key === " ") goChat(a)
               }}
             >
               <div className="flex items-start gap-3">
