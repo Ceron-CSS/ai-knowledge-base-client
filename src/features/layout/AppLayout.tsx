@@ -1,17 +1,23 @@
-import { useState } from "react"
-import { NavLink, Outlet } from "react-router-dom"
-import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, Settings } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, KeyRound, LogOut, Settings } from "lucide-react"
+import { useMutation } from "@tanstack/react-query"
+import { changePassword } from "@/api/auth"
+import { useAuth } from "@/features/auth/authContext"
+import { Dialog } from "@/components/ui/dialog"
 
 const navItems = [
   { to: "/kb", label: "知识库", Icon: BookOpen },
   { to: "/models", label: "模型供应商", Icon: Cpu },
   { to: "/assistants", label: "问答助手", Icon: Bot },
-  { to: "/settings", label: "设置", Icon: Settings },
 ]
 
 const SIDEBAR_COLLAPSED_KEY = "app.sidebarCollapsed"
 
 export function AppLayout() {
+  const auth = useAuth()
+  const location = useLocation()
+
   const [collapsed, setCollapsed] = useState(() => {
     try {
       const raw = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
@@ -21,6 +27,19 @@ export function AppLayout() {
       return false
     }
   })
+
+  const isAssistantChatRoute = useMemo(
+    () => /^\/assistants\/[^/]+\/chat\/?$/.test(location.pathname),
+    [location.pathname],
+  )
+
+  useEffect(() => {
+    if (isAssistantChatRoute) {
+      setCollapsed(true)
+    } else {
+      setCollapsed(false)
+    }
+  }, [isAssistantChatRoute])
 
   function toggleCollapsed() {
     setCollapsed((v) => {
@@ -32,6 +51,53 @@ export function AppLayout() {
       }
       return next
     })
+  }
+
+  // Settings popup
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (!settingsOpen) return
+      const t = e.target as Node | null
+      if (t && settingsRef.current?.contains(t)) return
+      setSettingsOpen(false)
+    }
+    document.addEventListener("mousedown", onMouseDown)
+    return () => document.removeEventListener("mousedown", onMouseDown)
+  }, [settingsOpen])
+
+  // Change password dialog
+  const [pwdOpen, setPwdOpen] = useState(false)
+  const [oldPassword, setOldPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  const canSubmit = useMemo(() => {
+    if (!oldPassword || !newPassword || !confirmPassword) return false
+    if (newPassword !== confirmPassword) return false
+    if (newPassword.length < 6) return false
+    return true
+  }, [oldPassword, newPassword, confirmPassword])
+
+  const pwdMutation = useMutation({
+    mutationFn: () => changePassword({ oldPassword, newPassword }),
+    onSuccess: () => {
+      setOldPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setPwdOpen(false)
+      auth.logout()
+    },
+  })
+
+  function openPwdDialog() {
+    setSettingsOpen(false)
+    setOldPassword("")
+    setNewPassword("")
+    setConfirmPassword("")
+    setPwdOpen(true)
   }
 
   return (
@@ -59,7 +125,7 @@ export function AppLayout() {
           </button>
         </div>
 
-        <nav className="mt-2 flex flex-col gap-1">
+        <nav className="mt-2 flex flex-1 flex-col gap-1">
           {navItems.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
@@ -78,11 +144,109 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Settings at bottom */}
+        <div ref={settingsRef} className="relative">
+          <button
+            type="button"
+            className={[
+              "flex w-full items-center rounded-md px-2 py-2 text-sm",
+              collapsed ? "justify-center" : "gap-2",
+              settingsOpen ? "bg-muted font-medium" : "hover:bg-muted/60",
+            ].join(" ")}
+            onClick={() => setSettingsOpen((v) => !v)}
+            title={collapsed ? "设置" : undefined}
+          >
+            <Settings className="h-4 w-4" />
+            {collapsed ? null : <span className="min-w-0 flex-1 truncate text-left whitespace-nowrap">设置</span>}
+          </button>
+          {settingsOpen ? (
+            <div className="absolute bottom-full left-0 mb-1 w-full min-w-36 rounded-md border bg-popover p-1 shadow-md">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-muted/60"
+                onClick={openPwdDialog}
+              >
+                <KeyRound className="h-4 w-4" />
+                修改密码
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  setSettingsOpen(false)
+                  auth.logout()
+                }}
+              >
+                <LogOut className="h-4 w-4" />
+                退出登录
+              </button>
+            </div>
+          ) : null}
+        </div>
       </aside>
 
       <main className="min-w-0 flex-1 overflow-auto p-6">
         <Outlet />
       </main>
+
+      <Dialog
+        open={pwdOpen}
+        onOpenChange={(open) => {
+          if (!open) setPwdOpen(false)
+        }}
+        title="修改密码"
+      >
+        <p className="text-sm text-muted-foreground">修改成功后会自动退出，需要重新登录。</p>
+        <div className="mt-3">
+          <label className="block text-sm font-medium">旧密码</label>
+          <input
+            className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            value={oldPassword}
+            onChange={(e) => setOldPassword(e.target.value)}
+            type="password"
+            autoComplete="current-password"
+            placeholder="请输入旧密码"
+          />
+        </div>
+        <div className="mt-3">
+          <label className="block text-sm font-medium">新密码</label>
+          <input
+            className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            type="password"
+            autoComplete="new-password"
+            placeholder="至少 6 位"
+          />
+        </div>
+        <div className="mt-3">
+          <label className="block text-sm font-medium">确认新密码</label>
+          <input
+            className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            type="password"
+            autoComplete="new-password"
+            placeholder="再次输入新密码"
+          />
+          {confirmPassword && newPassword !== confirmPassword ? (
+            <div className="mt-1.5 text-sm text-destructive">两次输入的新密码不一致。</div>
+          ) : null}
+        </div>
+        {pwdMutation.isError ? (
+          <div className="mt-3 text-sm text-destructive">
+            {pwdMutation.error instanceof Error ? pwdMutation.error.message : "修改失败"}
+          </div>
+        ) : null}
+        <button
+          className="mt-4 w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          disabled={!canSubmit || pwdMutation.isPending}
+          onClick={() => pwdMutation.mutate()}
+        >
+          {pwdMutation.isPending ? "提交中..." : "修改密码"}
+        </button>
+      </Dialog>
     </div>
   )
 }

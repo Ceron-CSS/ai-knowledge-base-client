@@ -309,7 +309,7 @@ export function KbPage() {
             className="w-56 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索名称/描述"
+            placeholder="搜索知识库名称/描述"
           />
             <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={resetListState}>
               重置
@@ -330,7 +330,7 @@ export function KbPage() {
             <table className="w-full table-fixed text-left text-sm">
               <thead className="bg-muted/40">
                 <tr className="border-b">
-                  <th className="w-[10%] px-4 py-3 font-medium">
+                  <th className="w-[10%] px-3 py-2 font-medium">
                     <button
                       type="button"
                       className="inline-flex items-center gap-1 hover:text-foreground"
@@ -341,10 +341,10 @@ export function KbPage() {
                       <span className="text-xs">{sortIndicator("name")}</span>
                     </button>
                   </th>
-                  <th className="w-[18%] px-4 py-3 font-medium">描述</th>
-                  <th className="w-[6%] px-4 py-3 font-medium">文档数</th>
-                  <th className="w-[7%] px-4 py-3 font-medium">字符</th>
-                  <th className="w-[14%] px-4 py-3 font-medium">
+                  <th className="w-[18%] px-3 py-2 font-medium">描述</th>
+                  <th className="w-[6%] px-3 py-2 font-medium">文档数</th>
+                  <th className="w-[7%] px-3 py-2 font-medium">字符</th>
+                  <th className="w-[14%] px-3 py-2 font-medium">
                     <button
                       type="button"
                       className="inline-flex items-center gap-1 hover:text-foreground"
@@ -355,7 +355,7 @@ export function KbPage() {
                       <span className="text-xs">{sortIndicator("createdAt")}</span>
                     </button>
                   </th>
-                  <th className="w-[14%] px-4 py-3 font-medium">
+                  <th className="w-[14%] px-3 py-2 font-medium">
                     <button
                       type="button"
                       className="inline-flex items-center gap-1 hover:text-foreground"
@@ -366,32 +366,32 @@ export function KbPage() {
                       <span className="text-xs">{sortIndicator("updatedAt")}</span>
                     </button>
                   </th>
-                  <th className="w-[6%] px-4 py-3 font-medium">状态</th>
-                  <th className="w-[25%] px-4 py-3 font-medium">操作</th>
+                  <th className="w-[6%] px-3 py-2 font-medium">状态</th>
+                  <th className="w-[25%] px-3 py-2 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredList.map((kb) => (
                   <tr key={kb.id} className="border-b last:border-b-0">
-                    <td className="px-4 py-3 font-medium">
+                    <td className="px-3 py-2 font-medium">
                       <div className="max-w-[18rem] truncate" title={kb.name}>
                         {kb.name}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-3 py-2 text-muted-foreground">
                       <div className="max-w-[28rem] truncate" title={kb.description || ""}>
                         {kb.description || "-"}
                       </div>
                     </td>
-                    <td className="px-4 py-3 tabular-nums">{kb.docCount}</td>
-                    <td className="px-4 py-3 tabular-nums">{formatCharCountK(kb.charCount)}</td>
-                    <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                    <td className="px-3 py-2 tabular-nums">{kb.docCount}</td>
+                    <td className="px-3 py-2 tabular-nums">{formatCharCountK(kb.charCount)}</td>
+                    <td className="px-3 py-2 tabular-nums text-muted-foreground">
                       {new Date(kb.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                    <td className="px-3 py-2 tabular-nums text-muted-foreground">
                       {new Date(kb.updatedAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <span
                         className={[
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
@@ -401,7 +401,7 @@ export function KbPage() {
                         {kb.enabled ? "启用" : "停用"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <button
                           className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60"

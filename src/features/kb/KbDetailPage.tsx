@@ -118,29 +118,29 @@ export function KbDetailPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/40">
                 <tr className="border-b">
-                  <th className="px-4 py-3 font-medium">文件名称</th>
-                  <th className="px-4 py-3 font-medium">字符数</th>
-                  <th className="px-4 py-3 font-medium">分段数</th>
-                  <th className="px-4 py-3 font-medium">启用状态</th>
-                  <th className="px-4 py-3 font-medium">创建时间</th>
-                  <th className="px-4 py-3 font-medium">更新时间</th>
-                  <th className="px-4 py-3 font-medium">操作</th>
+                  <th className="px-3 py-2 font-medium">文件名称</th>
+                  <th className="px-3 py-2 font-medium">字符数</th>
+                  <th className="px-3 py-2 font-medium">分段数</th>
+                  <th className="px-3 py-2 font-medium">启用状态</th>
+                  <th className="px-3 py-2 font-medium">创建时间</th>
+                  <th className="px-3 py-2 font-medium">更新时间</th>
+                  <th className="px-3 py-2 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {list.map((item) => (
                   <tr key={item.id} className="border-b last:border-b-0">
                     <td
-                      className="max-w-[18rem] truncate px-4 py-3"
+                      className="max-w-[18rem] truncate px-3 py-2"
                       title={item.fileName}
                     >
                       {item.fileName}
                     </td>
-                    <td className="px-4 py-3 tabular-nums">{formatCharCountK(item.charCount)}</td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="px-3 py-2 tabular-nums">{formatCharCountK(item.charCount)}</td>
+                    <td className="px-3 py-2 tabular-nums">
                       {item.chunkCount}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <span
                         className={[
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
@@ -152,13 +152,13 @@ export function KbDetailPage() {
                         {item.enabled ? "启用" : "禁用"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
+                    <td className="px-3 py-2 text-muted-foreground tabular-nums">
                       {new Date(item.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
+                    <td className="px-3 py-2 text-muted-foreground tabular-nums">
                       {new Date(item.updatedAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button
                           className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60"

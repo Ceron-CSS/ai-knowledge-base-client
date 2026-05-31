@@ -8,7 +8,6 @@ import { KbPage } from "@/features/kb/KbPage"
 import { KbDetailPage } from "@/features/kb/KbDetailPage"
 import { KbUploadPreviewPage } from "@/features/kb/KbUploadPreviewPage"
 import { ModelProviderPage } from "@/features/models/ModelProviderPage"
-import { SettingsPage } from "@/features/settings/SettingsPage"
 import { AssistantChatPage } from "@/features/assistantChat/AssistantChatPage"
 
 export const router = createBrowserRouter([
@@ -32,7 +31,6 @@ export const router = createBrowserRouter([
       { path: "assistants", element: <AssistantListPage /> },
       { path: "assistants/:id", element: <AssistantEditPage /> },
       { path: "assistants/:id/chat", element: <AssistantChatPage /> },
-      { path: "settings", element: <SettingsPage /> },
     ],
   },
   {

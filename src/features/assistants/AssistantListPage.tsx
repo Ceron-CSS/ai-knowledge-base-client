@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Ban, Bot, CheckCircle2, Clock, MessageCircle, MoreHorizontal, Pencil, Plus, Rocket, Trash2 } from "lucide-react"
+import { Ban, Bot, CheckCircle2, Clock, MoreHorizontal, Pencil, Plus, Rocket, Trash2 } from "lucide-react"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import type { Assistant } from "@/api/assistants"
@@ -98,6 +98,12 @@ export function AssistantListPage() {
             placeholder="搜索助手名称"
           />
           <button
+            className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
+            onClick={() => setQuery("")}
+          >
+            重置
+          </button>
+          <button
             className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
             onClick={() => navigate("/assistants/new")}
           >
@@ -119,9 +125,9 @@ export function AssistantListPage() {
               className="rounded-lg border bg-background p-4 text-left shadow-sm transition hover:cursor-pointer hover:bg-muted/30 hover:shadow-md"
               role="button"
               tabIndex={0}
-              onClick={() => navigate(`/assistants/${a.id}`)}
+              onClick={() => navigate(`/assistants/${a.id}/chat`)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") navigate(`/assistants/${a.id}`)
+                if (e.key === "Enter" || e.key === " ") navigate(`/assistants/${a.id}/chat`)
               }}
             >
               <div className="flex items-start gap-3">
@@ -163,12 +169,12 @@ export function AssistantListPage() {
                     className="inline-flex cursor-pointer items-center justify-center rounded-md border px-2.5 py-2 text-sm hover:bg-muted/60"
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate(`/assistants/${encodeURIComponent(a.id)}/chat`)
+                      navigate(`/assistants/${encodeURIComponent(a.id)}`)
                     }}
-                    title="对话"
-                    aria-label="对话"
+                    title="编辑"
+                    aria-label="编辑"
                   >
-                    <MessageCircle className="h-4 w-4" />
+                    <Pencil className="h-4 w-4" />
                   </button>
 
                   <button

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { useParams, useSearchParams } from "react-router-dom"
 import { Check, MessageCirclePlus, Pencil, Trash2, X } from "lucide-react"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
@@ -44,7 +44,6 @@ function formatTime(iso: string) {
 export function AssistantChatPage() {
   const params = useParams()
   const assistantId = params.id ?? ""
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedConversationId = searchParams.get("c") ?? ""
 
@@ -286,39 +285,38 @@ export function AssistantChatPage() {
       <Breadcrumb
         items={[
           { label: "问答助手", href: "/assistants" },
-          { label: assistant.data?.name ?? "问答助手", href: `/assistants/${assistantId}` },
           { label: "对话" },
         ]}
       />
       <div className="flex min-h-0 flex-1 gap-4">
       <aside className="flex w-72 shrink-0 flex-col rounded-lg border bg-background">
-        <div className="flex items-center justify-between gap-2 border-b p-3">
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium" title={assistant.data?.name ?? ""}>
+        <div className="border-b p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 truncate text-sm font-medium" title={assistant.data?.name ?? ""}>
               {assistant.isLoading ? "加载中..." : assistant.data?.name ?? "问答助手"}
             </div>
-            <div className="truncate text-xs text-muted-foreground">历史记录</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              className="w-32 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 sm:w-40"
-              value={conversationQuery}
-              onChange={(e) => setConversationQuery(e.target.value)}
-              placeholder="搜索标题"
-            />
             <button
-              className="shrink-0 whitespace-nowrap rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
-              onClick={resetConversationListState}
-            >
-              重置
-            </button>
-            <button
-              className="inline-flex items-center gap-2 rounded-md border px-2.5 py-2 text-sm hover:bg-muted/60"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm hover:bg-muted/60"
               onClick={startNewConversation}
               disabled={createConversation.isPending}
               title="新对话"
             >
               <MessageCirclePlus className="h-4 w-4" />
+              新对话
+            </button>
+          </div>
+          <div className="mt-2 flex items-center gap-1.5">
+            <input
+              className="min-w-0 flex-1 rounded-md border bg-background px-2.5 py-1.5 text-sm outline-none focus:ring-2"
+              value={conversationQuery}
+              onChange={(e) => setConversationQuery(e.target.value)}
+              placeholder="搜索标题"
+            />
+            <button
+              className="shrink-0 rounded-md border px-2.5 py-1.5 text-sm hover:bg-muted/60"
+              onClick={resetConversationListState}
+            >
+              重置
             </button>
           </div>
         </div>
