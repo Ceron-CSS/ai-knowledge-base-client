@@ -196,7 +196,7 @@ export function KbPage() {
     <div className="space-y-2">
       <div>
         <Breadcrumb items={[{ label: "知识库" }]} />
-        <p className="mt-1 text-sm text-muted-foreground">创建、编辑、删除、启停知识库（停用后在所有配置中不可选）。</p>
+        <p className="mt-1 text-sm text-muted-foreground">创建、编辑、删除、启停知识库（停用后在所有配置中不可选）</p>
       </div>
 
       <Dialog
@@ -229,7 +229,7 @@ export function KbPage() {
         </div>
 
         {createKb.isError || updateKb.isError ? (
-          <div className="mt-3 text-sm text-destructive">操作失败，请稍后重试。</div>
+          <div className="mt-3 text-sm text-destructive">操作失败，请稍后重试</div>
         ) : null}
 
         <div className="mt-4 flex justify-end gap-2">
@@ -250,8 +250,8 @@ export function KbPage() {
         open={!!deleting}
         onCancel={cancelDelete}
         onConfirm={confirmDelete}
-        description={deleting ? `将删除知识库「${deleting.name}」。该操作不可恢复，且会同时删除其下的知识项与问答日志。` : undefined}
-        errorText={deleteKb.isError ? "删除失败，请重试。" : null}
+        description={deleting ? `将删除知识库「${deleting.name}」该操作不可恢复，且会同时删除其下的知识项与问答日志` : undefined}
+        errorText={deleteKb.isError ? "删除失败，请重试" : null}
         confirming={deleteKb.isPending}
       />
 
@@ -323,7 +323,7 @@ export function KbPage() {
       {kbList.isLoading ? (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
       ) : kbList.isError ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">加载失败：请确认后端服务可用。</div>
+        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">加载失败：请确认后端服务可用</div>
       ) : filteredList.length ? (
         <div className="overflow-x-auto rounded-lg border">
             <table className="w-full table-fixed text-left text-sm">
@@ -431,7 +431,7 @@ export function KbPage() {
                           删除
                         </button>
                       </div>
-                      {setEnabled.isError ? <div className="mt-2 text-xs text-destructive">启停失败，请重试。</div> : null}
+                      {setEnabled.isError ? <div className="mt-2 text-xs text-destructive">启停失败，请重试</div> : null}
                     </td>
                   </tr>
                 ))}
@@ -441,7 +441,7 @@ export function KbPage() {
         ) : kbList.data?.length ? (
           <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">无匹配结果</div>
         ) : (
-          <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无知识库，先创建一个吧。</div>
+          <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无知识库，先创建一个吧</div>
         )}
     </div>
   )

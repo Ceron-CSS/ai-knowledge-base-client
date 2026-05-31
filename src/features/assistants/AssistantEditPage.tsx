@@ -129,7 +129,7 @@ export function AssistantEditPage() {
       }
 
       if (!existing) {
-        setError("未找到该助手，可能已被删除。")
+        setError("未找到该助手，可能已被删除")
         return
       }
 
@@ -146,7 +146,7 @@ export function AssistantEditPage() {
       })
       navigate("/assistants", { replace: true })
     } catch {
-      setError("保存失败，请重试。")
+      setError("保存失败，请重试")
     }
   }
 
@@ -196,7 +196,7 @@ export function AssistantEditPage() {
       await publishAssistant.mutateAsync({ id: assistantId })
       navigate("/assistants", { replace: true })
     } catch {
-      setError("发布失败，请重试。")
+      setError("发布失败，请重试")
     }
   }
 
@@ -207,7 +207,7 @@ export function AssistantEditPage() {
       await unpublishAssistant.mutateAsync({ id: existing.id })
       navigate("/assistants", { replace: true })
     } catch {
-      setError("取消发布失败，请重试。")
+      setError("取消发布失败，请重试")
     }
   }
 
@@ -224,7 +224,7 @@ export function AssistantEditPage() {
               { label: title },
             ]}
           />
-          <p className="mt-1 text-sm text-muted-foreground">填写配置后点击保存或发布（发布后可在对话页面使用）。</p>
+          <p className="mt-1 text-sm text-muted-foreground">填写配置后点击保存或发布（发布后可在对话页面使用）</p>
         </div>
       </div>
 
@@ -233,7 +233,7 @@ export function AssistantEditPage() {
           {!isNew && existingQuery.isLoading ? (
             <div className="text-sm text-muted-foreground">加载中...</div>
           ) : !isNew && existingQuery.isError ? (
-            <div className="text-sm text-destructive">加载失败：请检查后端服务。</div>
+            <div className="text-sm text-destructive">加载失败：请检查后端服务</div>
           ) : null}
 
           <div>
@@ -268,7 +268,7 @@ export function AssistantEditPage() {
               {kbList.isLoading ? (
                 <div className="text-sm text-muted-foreground">加载知识库列表中...</div>
               ) : kbList.isError ? (
-                <div className="text-sm text-destructive">加载失败：请确认后端服务可用。</div>
+                <div className="text-sm text-destructive">加载失败：请确认后端服务可用</div>
               ) : kbList.data?.length ? (
                 <MultiSelect
                   value={kbIds}
@@ -284,7 +284,7 @@ export function AssistantEditPage() {
                   emptyText="无匹配的知识库"
                 />
               ) : (
-                <div className="text-sm text-muted-foreground">暂无可关联的知识库，先去"知识库"创建。</div>
+                <div className="text-sm text-muted-foreground">暂无可关联的知识库，先去"知识库"创建</div>
               )}
             </div>
           </div>
@@ -304,7 +304,7 @@ export function AssistantEditPage() {
                   disabled={!configOptions.length || modelConfigs.isLoading}
                 />
                 {!configOptions.length && !modelConfigs.isLoading ? (
-                  <div className="mt-2 text-xs text-muted-foreground">暂无可用模型配置，请先去“模型”页面添加供应商配置。</div>
+                  <div className="mt-2 text-xs text-muted-foreground">暂无可用模型配置，请先去“模型”页面添加供应商配置</div>
                 ) : null}
               </div>
 

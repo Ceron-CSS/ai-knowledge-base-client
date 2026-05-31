@@ -84,7 +84,7 @@ export function KbDetailPage() {
           ]}
         />
         <p className="mt-1 text-sm text-muted-foreground">
-          查看文档列表，支持删除与启用/禁用。
+          查看文档列表，支持删除与启用/禁用
         </p>
       </div>
 
@@ -107,11 +107,11 @@ export function KbDetailPage() {
           </div>
         ) : items.isError ? (
           <div className="px-4 py-8 text-sm text-destructive">
-            加载失败，请稍后重试。
+            加载失败，请稍后重试
           </div>
         ) : list.length === 0 ? (
           <div className="px-4 py-8 text-sm text-muted-foreground">
-            暂无文档，先上传一个文件吧。
+            暂无文档，先上传一个文件吧
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -201,7 +201,7 @@ export function KbDetailPage() {
           if (!uploading) setUploadOpen(open)
         }}
         title="上传文件"
-        description="支持拖拽或点击选择文件。支持格式：TXT、Markdown、PDF、DOC、DOCX。"
+        description="支持拖拽或点击选择文件支持格式：TXT、Markdown、PDF、DOC、DOCX"
       >
         <input
           ref={fileInputRef}
@@ -249,8 +249,8 @@ export function KbDetailPage() {
         open={!!deleting}
         onCancel={() => setDeleting(null)}
         onConfirm={confirmDelete}
-        description={deleting ? `将删除文档「${deleting.fileName}」，该操作不可恢复。` : undefined}
-        errorText={deleteItem.isError ? "删除失败，请重试。" : null}
+        description={deleting ? `将删除文档「${deleting.fileName}」，该操作不可恢复` : undefined}
+        errorText={deleteItem.isError ? "删除失败，请重试" : null}
         confirming={deleteItem.isPending}
       />
     </div>

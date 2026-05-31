@@ -12,8 +12,10 @@ import {
 
 const separatorOptions = [
   { label: "换行符", value: "newline" },
-  { label: "Markdown标题", value: "markdown_header" },
-  { label: "空格", value: "space" },
+  { label: "#", value: "markdown_h1" },
+  { label: "##", value: "markdown_h2" },
+  { label: "###", value: "markdown_h3" },
+  { label: "####", value: "markdown_h4" },
 ]
 
 function formatCharCountK(value: number) {
@@ -28,7 +30,7 @@ export function KbUploadPreviewPage() {
   const [text, setText] = useState("")
   const [fileName, setFileName] = useState("")
   const [mode, setMode] = useState<ChunkPreviewMode>("smart")
-  const [separators, setSeparators] = useState<ChunkPreviewSeparator[]>(["newline", "markdown_header"])
+  const [separators, setSeparators] = useState<ChunkPreviewSeparator[]>(["newline", "markdown_h2"])
   const [maxLength, setMaxLength] = useState(500)
   const [trimSpaces, setTrimSpaces] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -117,7 +119,7 @@ export function KbUploadPreviewPage() {
             { label: "分段预览" },
           ]}
         />
-        <p className="mt-1 text-sm text-muted-foreground">左侧配置分段参数，右侧流式查看分片结果。</p>
+        <p className="mt-1 text-sm text-muted-foreground">左侧配置分段参数，右侧流式查看分片结果</p>
         {fileName ? <p className="mt-1 text-xs text-muted-foreground">当前文件：{fileName}</p> : null}
       </div>
 
@@ -156,19 +158,23 @@ export function KbUploadPreviewPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium">单片最大长度: {maxLength}</label>
+                  <label className="mb-2 block text-sm font-medium">单片最大长度</label>
                   <input
-                    type="range"
+                    type="number"
                     min={100}
                     max={2000}
-                    step={50}
+                    step={10}
                     value={maxLength}
-                    onChange={(e) => setMaxLength(Number(e.target.value))}
-                    className="w-full"
+                    onChange={(e) => {
+                      const next = Number(e.target.value)
+                      if (!Number.isFinite(next)) return
+                      setMaxLength(Math.min(2000, Math.max(100, Math.round(next))))
+                    }}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
                   />
                 </div>
                 <label className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                  <span>自动清空多余空格</span>
+                  <span>自动清洗（去重复符号/空格/空行/Tab）</span>
                   <input type="checkbox" checked={trimSpaces} onChange={(e) => setTrimSpaces(e.target.checked)} />
                 </label>
               </>

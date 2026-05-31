@@ -83,7 +83,7 @@ export function AssistantListPage() {
 
   function goChat(a: Assistant) {
     if (!a.publishedAt) {
-      error("该问答助手尚未发布，发布后才能进入对话。", 3000)
+      error("该问答助手尚未发布，发布后才能进入对话", 3000)
       return
     }
     navigate(`/assistants/${a.id}/chat`)
@@ -94,7 +94,7 @@ export function AssistantListPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <Breadcrumb items={[{ label: "问答助手" }]} />
-          <p className="mt-1 text-sm text-muted-foreground">管理问答助手的配置与发布状态。</p>
+          <p className="mt-1 text-sm text-muted-foreground">管理问答助手的配置与发布状态</p>
         </div>
       </div>
 
@@ -125,7 +125,7 @@ export function AssistantListPage() {
       {assistants.isLoading ? (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
       ) : assistants.isError ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">加载失败，请检查后端服务。</div>
+        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">加载失败，请检查后端服务</div>
       ) : filteredItems.length ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredItems.map((a) => (
@@ -249,7 +249,7 @@ export function AssistantListPage() {
         </div>
       ) : (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">
-          {items.length ? "没有匹配的问答助手" : "暂无问答助手，先创建一个吧。"}
+          {items.length ? "没有匹配的问答助手" : "暂无问答助手，先创建一个吧"}
         </div>
       )}
 
@@ -257,8 +257,8 @@ export function AssistantListPage() {
         open={!!deleting}
         onCancel={cancelDelete}
         onConfirm={confirmDelete}
-        description={deleting ? `将删除问答助手「${deleting.name}」，此操作不可恢复。` : undefined}
-        errorText={deleteAssistant.isError ? "删除失败，请重试。" : null}
+        description={deleting ? `将删除问答助手「${deleting.name}」，此操作不可恢复` : undefined}
+        errorText={deleteAssistant.isError ? "删除失败，请重试" : null}
         confirming={deleteAssistant.isPending}
       />
     </div>

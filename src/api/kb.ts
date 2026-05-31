@@ -87,7 +87,12 @@ export function deleteKbItem(kbId: string, itemId: string) {
 }
 
 export type ChunkPreviewMode = "smart" | "advanced"
-export type ChunkPreviewSeparator = "newline" | "markdown_header" | "space"
+export type ChunkPreviewSeparator =
+  | "newline"
+  | "markdown_h1"
+  | "markdown_h2"
+  | "markdown_h3"
+  | "markdown_h4"
 
 export type ChunkPreviewRequest = {
   text: string

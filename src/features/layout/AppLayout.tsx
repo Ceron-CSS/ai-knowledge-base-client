@@ -195,7 +195,7 @@ export function AppLayout() {
         }}
         title="修改密码"
       >
-        <p className="text-sm text-muted-foreground">修改成功后会自动退出，需要重新登录。</p>
+        <p className="text-sm text-muted-foreground">修改成功后会自动退出，需要重新登录</p>
         <div className="mt-3">
           <label className="block text-sm font-medium">旧密码</label>
           <input
@@ -229,7 +229,7 @@ export function AppLayout() {
             placeholder="再次输入新密码"
           />
           {confirmPassword && newPassword !== confirmPassword ? (
-            <div className="mt-1.5 text-sm text-destructive">两次输入的新密码不一致。</div>
+            <div className="mt-1.5 text-sm text-destructive">两次输入的新密码不一致</div>
           ) : null}
         </div>
         {pwdMutation.isError ? (

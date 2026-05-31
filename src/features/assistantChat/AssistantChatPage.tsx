@@ -239,7 +239,7 @@ export function AssistantChatPage() {
 
   async function startNewConversation() {
     if (blockedByUnpublished) {
-      error("该问答助手尚未发布，无法新建对话。", 3000)
+      error("该问答助手尚未发布，无法新建对话", 3000)
       return
     }
     const created = await createConversation.mutateAsync()
@@ -269,7 +269,7 @@ export function AssistantChatPage() {
 
   async function send() {
     if (blockedByUnpublished) {
-      error("该问答助手尚未发布，无法发送消息。", 3000)
+      error("该问答助手尚未发布，无法发送消息", 3000)
       return
     }
     const text = input.trim()
@@ -286,7 +286,7 @@ export function AssistantChatPage() {
     const isVisionModel = (assistant.data?.baseModel?.trim() ?? "").startsWith("qwen-vl-")
     if (imageFiles.length && !isVisionModel) {
       setSending(false)
-      setStreamError("当前模型不支持图片理解，请切换到 qwen-vl-* 模型。")
+      error("当前模型不支持图片理解，请切换到 qwen-vl-* 模型", 3000)
       return
     }
 
@@ -297,7 +297,7 @@ export function AssistantChatPage() {
       setSearchParams({ c: created.id }, { replace: true })
     }
 
-    const userText = text || "请分析我上传的附件。"
+    const userText = text || "请分析我上传的附件"
     const attachmentSummary = pendingFiles.length ? `\n\n[已上传附件 ${pendingFiles.length} 个：${pendingFiles.map((f) => f.name).join("、")}]` : ""
     setPendingUser({
       id: `temp-user-${Date.now()}`,
@@ -371,7 +371,7 @@ export function AssistantChatPage() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto p-2">
-            {conversations.isLoading ? <div className="px-2 py-6 text-center text-sm text-muted-foreground">加载中...</div> : conversations.isError ? <div className="px-2 py-6 text-center text-sm text-destructive">加载失败：请检查后端服务。</div> : list.length ? (
+            {conversations.isLoading ? <div className="px-2 py-6 text-center text-sm text-muted-foreground">加载中...</div> : conversations.isError ? <div className="px-2 py-6 text-center text-sm text-destructive">加载失败：请检查后端服务</div> : list.length ? (
               <div className="space-y-1">
                 <div className="mb-1 flex items-center justify-between px-2 py-1 text-xs text-muted-foreground">
                   <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleConversationSort("title")} title="按标题排序">标题 <span>{conversationSortIndicator("title")}</span></button>
@@ -529,7 +529,7 @@ export function AssistantChatPage() {
           onCancel={() => setConfirmDelete(null)}
           onConfirm={onDeleteConversation}
           title="确认删除对话"
-          description={confirmDelete ? `将删除对话「${normalizeConversationTitle(confirmDelete.title)}」，该操作不可恢复。` : undefined}
+          description={confirmDelete ? `将删除对话「${normalizeConversationTitle(confirmDelete.title)}」，该操作不可恢复` : undefined}
           errorText={deleteConversation.isError ? "删除失败，请重试" : null}
           confirming={deleteConversation.isPending}
         />

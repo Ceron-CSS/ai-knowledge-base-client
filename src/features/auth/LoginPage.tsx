@@ -60,7 +60,7 @@ export function LoginPage() {
             : registerMutation.error.code === "WEAK_PASSWORD"
               ? "密码至少 6 位"
               : registerMutation.error.code === "USERNAME_RESERVED"
-                ? "该用户名不可用。"
+                ? "该用户名不可用"
                 : registerMutation.error.message
           : registerMutation.error instanceof Error
             ? registerMutation.error.message

@@ -158,7 +158,7 @@ export function ModelProviderPage() {
     <div className="space-y-2">
       <div>
         <Breadcrumb items={[{ label: "模型供应商" }]} />
-        <p className="mt-1 text-sm text-muted-foreground">管理模型供应商配置(每种供应商仅允许一个配置)。</p>
+        <p className="mt-1 text-sm text-muted-foreground">管理模型供应商配置(每种供应商仅允许一个配置)</p>
       </div>
 
       <div className="flex items-center justify-between gap-4">
@@ -197,7 +197,7 @@ export function ModelProviderPage() {
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
       ) : modelConfigs.isError ? (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">
-          加载失败，请检查后端服务。
+          加载失败，请检查后端服务
           {loadErrorText ? <div className="mt-2 text-xs text-muted-foreground">{loadErrorText}</div> : null}
         </div>
       ) : filteredList.length ? (
@@ -241,7 +241,7 @@ export function ModelProviderPage() {
       ) : list.length ? (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">无匹配结果</div>
       ) : (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无供应商配置，先添加一个吧。</div>
+        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无供应商配置，先添加一个吧</div>
       )}
 
       <Dialog open={open} onOpenChange={(next) => !next && closeDialog()} title={editing ? "编辑供应商配置" : "添加供应商配置"}>
@@ -371,8 +371,8 @@ export function ModelProviderPage() {
         open={!!deleting && deletingLinked.length === 0}
         onCancel={() => setDeleting(null)}
         onConfirm={confirmDelete}
-        description={deleting ? `将删除${providerLabel(deleting.provider)}供应商配置，此操作不可恢复。` : undefined}
-        errorText={deleteModel.isError ? "删除失败，请重试。" : null}
+        description={deleting ? `将删除${providerLabel(deleting.provider)}供应商配置，此操作不可恢复` : undefined}
+        errorText={deleteModel.isError ? "删除失败，请重试" : null}
         confirming={deleteModel.isPending}
       />
     </div>
