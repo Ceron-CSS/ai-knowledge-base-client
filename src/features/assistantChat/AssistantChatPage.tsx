@@ -375,10 +375,11 @@ export function AssistantChatPage() {
           setStreamError(ev.message || "请求失败")
         } else {
           stopTypewriter()
-          setPendingAssistant(null)
-          setPendingUser(null)
+          setPendingAssistant(ev.message)
           await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })
           await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"] })
+          setPendingAssistant(null)
+          setPendingUser(null)
         }
       }
     } catch (e) {
