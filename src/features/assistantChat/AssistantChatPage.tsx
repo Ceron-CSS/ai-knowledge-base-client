@@ -4,6 +4,7 @@ import { ArrowUp, Check, MessageCirclePlus, Pencil, Plus, Trash2, X } from "luci
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
+import { MarkdownMessage } from "@/components/ui/markdown-message"
 import {
   streamAssistantReply,
   uploadAssistantFileForExtraction,
@@ -460,8 +461,17 @@ export function AssistantChatPage() {
               const parsed = parseMessageContent(m.content)
               return (
                 <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
-                  <div className={["max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm leading-relaxed", m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"].join(" ")}>
-                    <div>{parsed.text || (m.role === "assistant" && sending ? "..." : "")}</div>
+                  <div
+                    className={[
+                      "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed",
+                      m.role === "user" ? "whitespace-pre-wrap bg-primary text-primary-foreground" : "bg-muted",
+                    ].join(" ")}
+                  >
+                    {m.role === "assistant" ? (
+                      <MarkdownMessage content={parsed.text || (sending ? "..." : "")} />
+                    ) : (
+                      <div>{parsed.text}</div>
+                    )}
                     {parsed.images.length ? <div className="mt-2 flex flex-wrap gap-2">{parsed.images.map((img, i) => <button key={`${img.fileName ?? "img"}-${i}`} type="button" className="overflow-hidden rounded-md border" onClick={() => setPreviewImage({ url: img.dataUrl, name: img.fileName })}><img src={img.dataUrl} alt={img.fileName ?? "图片"} className="h-20 w-20 object-cover" /></button>)}</div> : null}
                     {parsed.files.length ? <div className="mt-2 flex flex-wrap gap-1.5">{parsed.files.map((f, i) => <span key={`${f.fileName}-${i}`} className="rounded border px-2 py-0.5 text-xs opacity-90">{f.fileName}</span>)}</div> : null}
                     {m.role === "assistant" && parsed.citations.length ? (

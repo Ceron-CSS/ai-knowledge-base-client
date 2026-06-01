@@ -140,3 +140,57 @@
     color: oklch(0.45 0 0);
   }
 }
+
+@layer components {
+  .chat-markdown {
+    @apply break-words text-sm leading-relaxed;
+  }
+
+  .chat-markdown > * + * {
+    @apply mt-2;
+  }
+
+  .chat-markdown h1,
+  .chat-markdown h2,
+  .chat-markdown h3,
+  .chat-markdown h4 {
+    @apply mt-3 font-semibold;
+  }
+
+  .chat-markdown ul {
+    @apply list-disc pl-5;
+  }
+
+  .chat-markdown ol {
+    @apply list-decimal pl-5;
+  }
+
+  .chat-markdown pre {
+    @apply overflow-x-auto rounded-md border bg-background/70 p-2;
+  }
+
+  .chat-markdown code {
+    @apply rounded bg-background/70 px-1 py-0.5 text-[0.92em];
+  }
+
+  .chat-markdown pre code {
+    @apply bg-transparent p-0;
+  }
+
+  .chat-markdown blockquote {
+    @apply border-l-2 pl-3 opacity-80;
+  }
+
+  .chat-markdown table {
+    @apply w-full border-collapse text-xs;
+  }
+
+  .chat-markdown th,
+  .chat-markdown td {
+    @apply border px-2 py-1 text-left;
+  }
+
+  .chat-markdown a {
+    @apply underline underline-offset-2;
+  }
+}
