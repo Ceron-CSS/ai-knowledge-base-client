@@ -5,8 +5,8 @@ export type DashboardStats = {
   itemCount: number
   assistantCount: { total: number; published: number }
   modelConfigCount: number
-  kbDocs: Array<{ name: string; docCount: number; charCount: number }>
-  recentKbs: Array<{ id: string; name: string; updatedAt: string }>
+  dailyRequests: Array<{ date: string; count: number }>
+  kbDocDist: Array<{ name: string; docCount: number }>
 }
 
 export function getDashboardStats() {
