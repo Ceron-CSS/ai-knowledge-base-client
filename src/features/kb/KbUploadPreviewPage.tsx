@@ -24,6 +24,10 @@ function formatCharCountK(value: number) {
   return `${(value / 1000).toFixed(value >= 1000 ? 1 : 2)}K`
 }
 
+function clampMaxLength(value: number) {
+  return Math.min(2000, Math.max(100, Math.round(value)))
+}
+
 export function KbUploadPreviewPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -34,6 +38,7 @@ export function KbUploadPreviewPage() {
   const [mode, setMode] = useState<ChunkPreviewMode>("smart")
   const [separators, setSeparators] = useState<ChunkPreviewSeparator[]>([])
   const [maxLength, setMaxLength] = useState(500)
+  const [maxLengthInput, setMaxLengthInput] = useState("500")
   const [trimSpaces, setTrimSpaces] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,7 +71,9 @@ export function KbUploadPreviewPage() {
     if (state.chunkConfig) {
       setMode(state.chunkConfig.mode)
       setSeparators(state.chunkConfig.separators)
-      setMaxLength(state.chunkConfig.maxLength)
+      const nextMaxLength = clampMaxLength(state.chunkConfig.maxLength)
+      setMaxLength(nextMaxLength)
+      setMaxLengthInput(String(nextMaxLength))
       setTrimSpaces(state.chunkConfig.trimSpaces)
     }
     if (Array.isArray(state.chunks) && state.chunks.length) {
@@ -89,10 +96,13 @@ export function KbUploadPreviewPage() {
     const controller = new AbortController()
     abortRef.current = controller
     setLoading(true)
+    const previewMaxLength = maxLengthInput === "" ? maxLength : clampMaxLength(Number(maxLengthInput))
+    setMaxLength(previewMaxLength)
+    setMaxLengthInput(String(previewMaxLength))
     try {
       await streamKbChunkPreview(
         id,
-        { text, mode, separators, maxLength, trimSpaces },
+        { text, mode, separators, maxLength: previewMaxLength, trimSpaces },
         (chunk) => setChunks((prev) => [...prev, chunk]),
         controller.signal,
       )
@@ -192,17 +202,25 @@ export function KbUploadPreviewPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium">单片最大长度</label>
+                  <label className="mb-2 block text-sm font-medium">单片最大长度(最小为100)</label>
                   <input
                     type="number"
                     min={100}
                     max={2000}
                     step={10}
-                    value={maxLength}
+                    value={maxLengthInput}
                     onChange={(e) => {
-                      const next = Number(e.target.value)
-                      if (!Number.isFinite(next)) return
-                      setMaxLength(Math.min(2000, Math.max(100, Math.round(next))))
+                      const next = e.target.value
+                      if (!/^\d*$/.test(next)) return
+                      setMaxLengthInput(next)
+                      if (next === "") return
+                      const parsed = Number(next)
+                      if (Number.isFinite(parsed)) setMaxLength(parsed)
+                    }}
+                    onBlur={() => {
+                      const next = maxLengthInput === "" ? maxLength : clampMaxLength(Number(maxLengthInput))
+                      setMaxLength(next)
+                      setMaxLengthInput(String(next))
                     }}
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
                   />
