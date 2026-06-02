@@ -18,6 +18,8 @@ const SIDEBAR_COLLAPSED_KEY = "app.sidebarCollapsed"
 export function AppLayout() {
   const auth = useAuth()
   const location = useLocation()
+  const canChangePassword = auth.provider !== "github"
+  const displayName = auth.displayName ?? auth.username ?? "未命名用户"
 
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -160,14 +162,22 @@ export function AppLayout() {
           </button>
           {settingsOpen ? (
             <div className="absolute bottom-full left-0 mb-1 w-full min-w-36 rounded-md border bg-popover p-1 shadow-md">
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-muted/60"
-                onClick={openPwdDialog}
-              >
-                <KeyRound className="h-4 w-4" />
-                修改密码
-              </button>
+              <div className="flex items-center gap-2 px-3 pt-2 pb-1 text-xs text-muted-foreground">
+                <svg aria-hidden="true" viewBox="0 0 16 16" className="h-3.5 w-3.5 fill-current">
+                  <path d="M8 8a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 1.5c-2.33 0-5 1.17-5 3.5V14h10v-.98c0-2.33-2.67-3.52-5-3.52Z" />
+                </svg>
+                <span className="min-w-0 truncate">{displayName}</span>
+              </div>
+              {canChangePassword && (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-muted/60"
+                  onClick={openPwdDialog}
+                >
+                  <KeyRound className="h-4 w-4" />
+                  修改密码
+                </button>
+              )}
               <button
                 type="button"
                 className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-destructive hover:bg-destructive/10"

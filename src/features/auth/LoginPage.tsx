@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Navigate, useLocation } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
-import { login, register } from "@/api/auth"
+import { getGithubLoginUrl, login, register } from "@/api/auth"
 import { HttpError } from "@/api/http"
 import { useAuth } from "@/features/auth/authContext"
 import { consumePostLoginRedirect } from "@/features/auth/redirectToLogin"
@@ -9,17 +9,41 @@ import { consumePostLoginRedirect } from "@/features/auth/redirectToLogin"
 export function LoginPage() {
   const auth = useAuth()
   const location = useLocation()
-  const from = useMemo(() => {
-    const stored = consumePostLoginRedirect()
-    if (stored) return stored
-    const s = location.state as { from?: string } | null
-    return s?.from ?? "/"
-  }, [location.state])
-
   const [mode, setMode] = useState<"login" | "register">("login")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [password2, setPassword2] = useState("")
+  const [oauthRedirect, setOauthRedirect] = useState<string | null>(null)
+  const [oauthError, setOauthError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash
+    if (!hash) return
+
+    const params = new URLSearchParams(hash)
+    const accessToken = params.get("accessToken")
+    const redirectTo = params.get("redirectTo")
+    const error = params.get("oauthError")
+
+    if (accessToken) {
+      auth.loginWithToken(accessToken)
+      setOauthRedirect(redirectTo || "/home")
+    } else if (error) {
+      setOauthError(error)
+    }
+
+    window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`)
+  }, [auth])
+
+  const from = useMemo(() => {
+    if (oauthRedirect) return oauthRedirect
+    const stored = consumePostLoginRedirect()
+    if (stored) return stored
+    const s = location.state as { from?: string } | null
+    return s?.from ?? "/"
+  }, [location.state, oauthRedirect])
 
   const loginMutation = useMutation({
     mutationFn: () => login({ username: username.trim(), password }),
@@ -46,30 +70,40 @@ export function LoginPage() {
       ? Boolean(trimmedUsername && password && !loginMutation.isPending)
       : Boolean(trimmedUsername && password && password2 && passwordsMatch && !registerMutation.isPending)
 
-  const errorText =
-    mode === "login"
-      ? loginMutation.isError
-        ? loginMutation.error instanceof Error
-          ? loginMutation.error.message
-          : "登录失败，请检查用户名和密码"
-        : null
-      : registerMutation.isError
-        ? registerMutation.error instanceof HttpError
-          ? registerMutation.error.code === "USERNAME_TAKEN"
-            ? "该用户名已被注册"
-            : registerMutation.error.code === "WEAK_PASSWORD"
-              ? "密码至少 6 位"
-              : registerMutation.error.code === "USERNAME_RESERVED"
-                ? "该用户名不可用"
-                : registerMutation.error.message
-          : registerMutation.error instanceof Error
-            ? registerMutation.error.message
-            : "注册失败，请稍后再试"
-        : null
+  const loginErrorText =
+    loginMutation.isError
+      ? loginMutation.error instanceof Error
+        ? loginMutation.error.message
+        : "登录失败，请检查用户名和密码"
+      : null
+
+  const registerErrorText = registerMutation.isError
+    ? registerMutation.error instanceof HttpError
+      ? registerMutation.error.code === "USERNAME_TAKEN"
+        ? "该用户名已被注册"
+        : registerMutation.error.code === "WEAK_PASSWORD"
+          ? "密码至少需要 6 位"
+          : registerMutation.error.code === "USERNAME_RESERVED"
+            ? "该用户名不可用"
+            : registerMutation.error.message
+      : registerMutation.error instanceof Error
+        ? registerMutation.error.message
+        : "注册失败，请稍后再试"
+    : null
+
+  const oauthErrorText = oauthError
+    ? oauthError === "GitHub login was cancelled"
+      ? "GitHub 登录已取消"
+      : oauthError === "GitHub login failed"
+        ? "GitHub 登录失败，请稍后重试"
+        : oauthError
+    : null
+
+  const errorText = mode === "login" ? loginErrorText : registerErrorText
 
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
-      <div className="w-full max-w-sm rounded-lg border bg-background p-6 flex flex-col" style={{ minHeight: 400 }}>
+      <div className="flex w-full max-w-sm flex-col rounded-lg border bg-background p-6" style={{ minHeight: 400 }}>
         <div className="flex items-center justify-center gap-2">
           <button
             className={`rounded-md px-3 py-1 text-sm ${mode === "login" ? "bg-primary text-primary-foreground" : "border"}`}
@@ -144,6 +178,7 @@ export function LoginPage() {
             ) : null}
 
             {errorText ? <div className="mt-2 text-sm text-destructive">{errorText}</div> : null}
+            {oauthErrorText ? <div className="mt-2 text-sm text-destructive">{oauthErrorText}</div> : null}
           </div>
 
           <button
@@ -162,6 +197,28 @@ export function LoginPage() {
                 ? "正在注册..."
                 : "注册"}
           </button>
+
+          {mode === "login" ? (
+            <>
+              <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                <span>或者</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <button
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#24292f] px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1f2428] focus:outline-none focus:ring-2 focus:ring-[#24292f]/30"
+                type="button"
+                onClick={() => {
+                  window.location.assign(getGithubLoginUrl(from))
+                }}
+              >
+                <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4 fill-current">
+                  <path d="M8 0C3.58 0 0 3.58 0 8.05c0 3.57 2.29 6.59 5.47 7.66.4.07.55-.18.55-.39 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.6 1.23.85.72 1.23 1.87.88 2.33.67.07-.52.28-.88.51-1.08-1.78-.2-3.64-.91-3.64-4.05 0-.9.32-1.64.85-2.22-.08-.2-.37-1.02.08-2.13 0 0 .69-.22 2.25.85.65-.18 1.34-.27 2.03-.27.69 0 1.38.09 2.03.27 1.56-1.07 2.25-.85 2.25-.85.45 1.11.16 1.93.08 2.13.53.58.85 1.32.85 2.22 0 3.15-1.86 3.85-3.64 4.05.29.25.54.73.54 1.48 0 1.08-.01 1.95-.01 2.22 0 .21.15.46.55.39A8.02 8.02 0 0 0 16 8.05C16 3.58 12.42 0 8 0Z" />
+                </svg>
+                使用 GitHub 登录
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
     </div>

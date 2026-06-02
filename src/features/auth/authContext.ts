@@ -3,6 +3,9 @@ import { createContext, useContext } from "react"
 type AuthContextValue = {
   isAuthed: boolean
   token: string | null
+  username: string | null
+  displayName: string | null
+  provider: "local" | "github" | null
   loginWithToken: (token: string) => void
   logout: () => void
 }
@@ -14,4 +17,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider")
   return ctx
 }
-

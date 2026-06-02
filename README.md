@@ -98,7 +98,7 @@ npm run dev
 
 ## Key Features
 
-- **Auth** — JWT login, token stored in localStorage, auto-attached to all API requests
+- **Auth** — JWT login, GitHub OAuth login, token stored in localStorage, auto-attached to all API requests
 - **Knowledge Bases** — Create, edit, enable/disable, delete with cascade warnings
 - **Model Providers** — Configure API credentials per provider (DashScope, DeepSeek), one config per provider
 - **Assistants** — Compose AI assistants with model selection, system prompt, multi-KB linking

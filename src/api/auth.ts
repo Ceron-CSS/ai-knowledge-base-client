@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from "@/app/env"
 import { requestJson } from "@/api/http"
 
 export type LoginRequest = {
@@ -29,4 +30,12 @@ export type ChangePasswordRequest = {
 
 export function changePassword(body: ChangePasswordRequest) {
   return requestJson<void>("/auth/change-password", { method: "POST", body })
+}
+
+export function getGithubLoginUrl(redirectTo?: string) {
+  const url = new URL("/auth/github", getApiBaseUrl())
+  if (redirectTo) {
+    url.searchParams.set("redirectTo", redirectTo)
+  }
+  return url.toString()
 }
