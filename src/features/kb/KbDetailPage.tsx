@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { LoaderCircle } from "lucide-react"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
@@ -212,36 +213,44 @@ export function KbDetailPage() {
           accept=".txt,.md,.markdown,.pdf,.doc,.docx,text/plain,text/markdown,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           onChange={(e) => void handlePickFile(e.target.files?.[0] ?? null)}
         />
-        <button
-          type="button"
-          className={[
-            "w-full rounded-lg border-2 border-dashed px-4 py-10 text-center transition",
-            dragOver
-              ? "border-primary bg-primary/5"
-              : "border-muted-foreground/30 hover:bg-muted/40",
-          ].join(" ")}
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={(e) => {
-            e.preventDefault()
-            setDragOver(true)
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setDragOver(false)
-            void handlePickFile(e.dataTransfer.files?.[0] ?? null)
-          }}
-          disabled={uploading}
-        >
-          <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">
-              {uploading ? "正在解析文件..." : "拖拽文件至此上传"}
+        <div className="relative">
+          <button
+            type="button"
+            className={[
+              "w-full rounded-lg border-2 border-dashed px-4 py-10 text-center transition",
+              dragOver
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/30 hover:bg-muted/40",
+            ].join(" ")}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault()
+              if (!uploading) setDragOver(true)
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragOver(false)
+              if (!uploading) void handlePickFile(e.dataTransfer.files?.[0] ?? null)
+            }}
+            disabled={uploading}
+          >
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">
+                {uploading ? "正在解析文件..." : "拖拽文件至此上传"}
+              </div>
+              <div className="text-sm">
+                或 <span className="text-primary underline">选择文件</span>
+              </div>
             </div>
-            <div className="text-sm">
-              或 <span className="text-primary underline">选择文件</span>
+          </button>
+          {uploading ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-lg border bg-background/85 text-sm text-muted-foreground backdrop-blur-sm">
+              <LoaderCircle className="mb-3 h-7 w-7 animate-spin text-primary" />
+              <span>正在上传并解析文件...</span>
             </div>
-          </div>
-        </button>
+          ) : null}
+        </div>
         {uploadError ? (
           <div className="mt-3 text-sm text-destructive">{uploadError}</div>
         ) : null}

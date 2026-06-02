@@ -264,20 +264,30 @@ export function KbUploadPreviewPage() {
 
         <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-background p-4">
           <div className="mb-3 text-sm text-muted-foreground">
-            {loading ? "正在流式返回分片..." : chunks.length ? `共 ${chunks.length} 个分片` : "点击左侧按钮开始预览"}
+            {loading ? "正在流式返回分片..." : chunks.length ? `共 ${chunks.length} 个分片` : text.trim() ? "原始内容预览" : "点击左侧按钮开始预览"}
           </div>
           {error ? <div className="mb-3 text-sm text-destructive">{error}</div> : null}
           {saveError ? <div className="mb-3 text-sm text-destructive">{saveError}</div> : null}
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-            {chunks.map((chunk) => (
-              <article key={chunk.index} className="rounded-md border p-3">
+            {chunks.length ? (
+              chunks.map((chunk) => (
+                <article key={chunk.index} className="rounded-md border p-3">
+                  <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>分片序号 #{chunk.index}</span>
+                    <span>当前分片字数 {formatCharCountK(chunk.charCount)}</span>
+                  </div>
+                  <pre className="whitespace-pre-wrap break-words text-sm">{chunk.text}</pre>
+                </article>
+              ))
+            ) : text.trim() ? (
+              <article className="rounded-md border p-3">
                 <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>分片序号 #{chunk.index}</span>
-                  <span>当前分片字数 {formatCharCountK(chunk.charCount)}</span>
+                  <span>原始内容</span>
+                  <span>当前字数 {formatCharCountK(text.length)}</span>
                 </div>
-                <pre className="whitespace-pre-wrap break-words text-sm">{chunk.text}</pre>
+                <pre className="whitespace-pre-wrap break-words text-sm">{text}</pre>
               </article>
-            ))}
+            ) : null}
           </div>
         </section>
       </div>
