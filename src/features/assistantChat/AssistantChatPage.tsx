@@ -39,6 +39,7 @@ const MAX_COMPOSER_HEIGHT = 160
 type ParsedImageAttachment = { kind: "image"; fileName?: string; dataUrl: string }
 type ParsedFileAttachment = { kind: "file"; fileName: string }
 type ParsedCitation = { kbId: string; itemId: string; fileName: string; snippet: string; score: number }
+type ActiveCitation = { index: number; citation: ParsedCitation; top: number; left: number }
 
 function parseConversationSort(raw: string | null): { sortBy: AssistantConversationSortBy; sortDir: SortDir } {
   if (!raw) return { sortBy: "createdAt", sortDir: "desc" }
@@ -158,6 +159,7 @@ export function AssistantChatPage() {
   const [pendingUser, setPendingUser] = useState<AssistantMessage | null>(null)
   const [pendingAssistant, setPendingAssistant] = useState<AssistantMessage | null>(null)
   const [previewImage, setPreviewImage] = useState<{ url: string; name?: string } | null>(null)
+  const [activeCitation, setActiveCitation] = useState<ActiveCitation | null>(null)
   const [composerExpanded, setComposerExpanded] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<AssistantConversation | null>(null)
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null)
@@ -273,6 +275,16 @@ export function AssistantChatPage() {
   function conversationSortIndicator(forSortBy: AssistantConversationSortBy) {
     if (conversationSort.sortBy !== forSortBy) return "↕"
     return conversationSort.sortDir === "asc" ? "↑" : "↓"
+  }
+
+  function openCitationPopover(index: number, citations: ParsedCitation[], event: React.MouseEvent<HTMLButtonElement>) {
+    const citation = citations[index]
+    if (!citation) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const width = 520
+    const left = Math.min(Math.max(12, rect.left), Math.max(12, window.innerWidth - width - 12))
+    const top = Math.min(rect.bottom + 8, Math.max(12, window.innerHeight - 480))
+    setActiveCitation({ index, citation, left, top })
   }
 
   const blockedByUnpublished = !assistant.isLoading && !!assistant.data && !assistant.data.publishedAt
@@ -468,24 +480,16 @@ export function AssistantChatPage() {
                     ].join(" ")}
                   >
                     {m.role === "assistant" ? (
-                      <MarkdownMessage content={parsed.text || (sending ? "..." : "")} />
+                      <MarkdownMessage
+                        content={parsed.text || (sending ? "..." : "")}
+                        citationCount={parsed.citations.length}
+                        onCitationClick={(index, event) => openCitationPopover(index, parsed.citations, event)}
+                      />
                     ) : (
                       <div>{parsed.text}</div>
                     )}
                     {parsed.images.length ? <div className="mt-2 flex flex-wrap gap-2">{parsed.images.map((img, i) => <button key={`${img.fileName ?? "img"}-${i}`} type="button" className="overflow-hidden rounded-md border" onClick={() => setPreviewImage({ url: img.dataUrl, name: img.fileName })}><img src={img.dataUrl} alt={img.fileName ?? "图片"} className="h-20 w-20 object-cover" /></button>)}</div> : null}
                     {parsed.files.length ? <div className="mt-2 flex flex-wrap gap-1.5">{parsed.files.map((f, i) => <span key={`${f.fileName}-${i}`} className="rounded border px-2 py-0.5 text-xs opacity-90">{f.fileName}</span>)}</div> : null}
-                    {m.role === "assistant" && parsed.citations.length ? (
-                      <div className="mt-2 rounded-md border bg-background/60 px-2 py-1.5">
-                        <div className="mb-1 text-[11px] font-medium opacity-80">参考片段</div>
-                        <div className="space-y-1">
-                          {parsed.citations.map((c, i) => (
-                            <div key={`${c.itemId}-${i}`} className="text-[11px] opacity-80">
-                              [{i + 1}] {c.fileName}：{c.snippet}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
                   </div>
                 </div>
               )
@@ -598,6 +602,37 @@ export function AssistantChatPage() {
         <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)} title={previewImage?.name ?? "图片预览"}>
           {previewImage ? <div className="max-h-[75svh] overflow-auto"><img src={previewImage.url} alt={previewImage.name ?? "图片预览"} className="mx-auto h-auto max-w-full rounded-md border" /></div> : null}
         </Dialog>
+        {activeCitation ? (
+          <div className="fixed inset-0 z-40" onClick={() => setActiveCitation(null)}>
+            <div
+              className="absolute w-[min(520px,calc(100vw-24px))] overflow-hidden rounded-lg border bg-popover text-sm text-popover-foreground shadow-xl"
+              style={{ left: activeCitation.left, top: activeCitation.top }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 border-b bg-muted/30 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-medium text-muted-foreground">参考片段 [{activeCitation.index + 1}]</div>
+                  <div className="mt-0.5 truncate text-sm font-medium" title={activeCitation.citation.fileName}>
+                    {activeCitation.citation.fileName}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-md border px-2 py-1 text-xs hover:bg-background"
+                  onClick={() => setActiveCitation(null)}
+                >
+                  关闭
+                </button>
+              </div>
+              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words bg-background/70 px-4 py-3 text-xs leading-relaxed">
+                {activeCitation.citation.snippet}
+              </pre>
+              <div className="border-t bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground">
+                相关度 {activeCitation.citation.score.toFixed(3)}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )
