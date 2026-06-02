@@ -56,7 +56,10 @@ export function HomePage() {
         <StatCard icon={<Cpu className="h-5 w-5" />} label="模型供应商" value={data ? String(data.modelConfigCount) : "-"} href="/models" />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[3fr_1fr]">
+      {(() => {
+        const hasDocData = data && data.kbDocDist.some((d) => d.docCount > 0)
+        return (
+          <div className={`grid gap-4 ${hasDocData ? "lg:grid-cols-[3fr_1fr]" : ""}`}>
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">每日问答请求数</CardTitle>
@@ -72,7 +75,7 @@ export function HomePage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} tickMargin={8} axisLine={false} tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="date" tickLine={false} tickMargin={8} axisLine={false} tick={{ fontSize: 11 }} interval={3} />
                   <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} allowDecimals={false} />
                   <ChartTooltip isAnimationActive={false} content={<ChartTooltipContent />} />
                   <Area
@@ -90,12 +93,12 @@ export function HomePage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">知识库文档数量统计</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data && data.kbDocDist.length ? (
+        {hasDocData ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">知识库文档数量统计</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="flex items-center justify-center gap-4">
                 <ChartContainer config={pieConfig} className="mt-2 h-48 w-48 shrink-0">
                   <PieChart>
@@ -126,12 +129,12 @@ export function HomePage() {
                   ))}
                 </div>
               </div>
-            ) : (
-              <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">暂无数据</div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        ) : null}
+          </div>
+        )
+      })()}
     </div>
   )
 }
