@@ -8,7 +8,7 @@ function readTokenPayload(token: string | null): {
   displayName: string | null
   provider: "local" | "github" | null
 } {
-  if (!token) return { username: null, provider: null }
+  if (!token) return { username: null, displayName: null, provider: null }
   try {
     const payload = JSON.parse(atob(token.split(".")[1] ?? "")) as {
       username?: unknown

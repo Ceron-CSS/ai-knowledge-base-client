@@ -33,7 +33,7 @@ export function changePassword(body: ChangePasswordRequest) {
 }
 
 export function getGithubLoginUrl(redirectTo?: string) {
-  const url = new URL("/auth/github", getApiBaseUrl())
+  const url = new URL("auth/github", `${getApiBaseUrl().replace(/\/+$/, "")}/`)
   if (redirectTo) {
     url.searchParams.set("redirectTo", redirectTo)
   }
