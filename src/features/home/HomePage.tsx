@@ -74,7 +74,7 @@ export function HomePage() {
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis dataKey="date" tickLine={false} tickMargin={8} axisLine={false} tick={{ fontSize: 11 }} />
                   <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip isAnimationActive={false} content={<ChartTooltipContent />} />
                   <Area
                     type="monotone"
                     dataKey="count"
@@ -113,7 +113,7 @@ export function HomePage() {
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+                    <ChartTooltip isAnimationActive={false} content={<ChartTooltipContent nameKey="name" />} />
                   </PieChart>
                 </ChartContainer>
                 <div className="space-y-1.5">

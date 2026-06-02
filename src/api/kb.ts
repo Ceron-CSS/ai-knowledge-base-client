@@ -99,6 +99,8 @@ export type ChunkPreviewSeparator =
   | "markdown_h2"
   | "markdown_h3"
   | "markdown_h4"
+  | "numbered_list"
+  | "chinese_numbered_list"
 
 export type ChunkPreviewRequest = {
   text: string
