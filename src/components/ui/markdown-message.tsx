@@ -12,7 +12,7 @@ function linkCitationMarkers(content: string, citationCount: number) {
   return content.replace(/\[(\d+)\](?!\()/g, (full, raw: string) => {
     const index = Number(raw)
     if (!Number.isInteger(index) || index < 1 || index > citationCount) return full
-    return `[[${index}]](#citation-${index})`
+    return `[${index}](#citation-${index})`
   })
 }
 

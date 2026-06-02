@@ -147,8 +147,10 @@ export function AssistantListPage() {
                   <div className="truncate text-sm font-semibold" title={a.name}>
                     {a.name}
                   </div>
-                  <div className="mt-1 truncate text-xs text-muted-foreground">
-                    {a.createdBy} 创建于 {yyyyMmDd(a.createdAt)}
+                  <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                    <div className="truncate">{a.createdBy}</div>
+                    <div className="truncate">创建于 {yyyyMmDd(a.createdAt)}</div>
+                    <div className="truncate">修改于 {yyyyMmDd(a.updatedAt)}</div>
                   </div>
                 </div>
               </div>

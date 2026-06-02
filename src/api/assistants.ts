@@ -11,6 +11,7 @@ export type Assistant = {
   kbIds: string[]
   createdBy: string
   createdAt: string
+  updatedAt: string
   publishedAt: string | null
 }
 

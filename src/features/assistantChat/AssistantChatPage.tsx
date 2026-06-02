@@ -54,7 +54,7 @@ function parseConversationSort(raw: string | null): { sortBy: AssistantConversat
 
 function formatTime(iso: string) {
   const d = new Date(iso)
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
 }
 
 function normalizeConversationTitle(title: string): string {
@@ -433,13 +433,13 @@ export function AssistantChatPage() {
                 {list.map((c) => {
                   const active = c.id === selectedConversationId
                   return (
-                    <div key={c.id} className={["group flex items-center justify-between gap-2 rounded-md px-2 py-2 text-sm", active ? "bg-muted font-medium" : "hover:bg-muted/60"].join(" ")} onClick={() => setSearchParams({ c: c.id }, { replace: false })}>
+                    <div key={c.id} className={["group flex items-center justify-between gap-2 rounded-md px-2 py-2 text-sm", active ? "bg-muted font-medium" : "hover:bg-muted/60"].join(" ")} onClick={() => editingConversationId !== c.id && setSearchParams({ c: c.id }, { replace: false })}>
                       <div className="min-w-0 flex-1">
                         {editingConversationId === c.id ? (
-                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            <input className="w-full rounded border bg-background px-2 py-1 text-xs outline-none focus:ring-2" value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} autoFocus />
-                            <button type="button" className="inline-flex rounded border px-1 py-1 hover:bg-muted/60" onClick={() => void submitRenameConversation(c.id)}><Check className="h-3.5 w-3.5" /></button>
-                            <button type="button" className="inline-flex rounded border px-1 py-1 hover:bg-muted/60" onClick={() => { setEditingConversationId(null); setEditingTitle("") }}><X className="h-3.5 w-3.5" /></button>
+                          <div className="flex w-full min-w-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <input className="min-w-0 flex-1 rounded border bg-background px-2 py-1 text-xs outline-none focus:ring-2" value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} autoFocus />
+                            <button type="button" className="inline-flex shrink-0 rounded border px-1 py-1 hover:bg-muted/60" onClick={() => void submitRenameConversation(c.id)}><Check className="h-3.5 w-3.5" /></button>
+                            <button type="button" className="inline-flex shrink-0 rounded border px-1 py-1 hover:bg-muted/60" onClick={() => { setEditingConversationId(null); setEditingTitle("") }}><X className="h-3.5 w-3.5" /></button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1">
@@ -451,9 +451,11 @@ export function AssistantChatPage() {
                         )}
                         <div className="mt-0.5 text-xs text-muted-foreground">{formatTime(c.updatedAt)}</div>
                       </div>
-                      <button className="hidden rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive/10 group-hover:inline-flex" onClick={(e) => { e.stopPropagation(); setConfirmDelete(c) }} title="删除">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {editingConversationId !== c.id ? (
+                        <button className="hidden rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive/10 group-hover:inline-flex" onClick={(e) => { e.stopPropagation(); setConfirmDelete(c) }} title="删除">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
                     </div>
                   )
                 })}
@@ -624,9 +626,9 @@ export function AssistantChatPage() {
                   关闭
                 </button>
               </div>
-              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words bg-background/70 px-4 py-3 text-xs leading-relaxed">
-                {activeCitation.citation.snippet}
-              </pre>
+              <div className="max-h-[420px] overflow-auto bg-background/70 px-4 py-3">
+                <MarkdownMessage content={activeCitation.citation.snippet} />
+              </div>
               <div className="border-t bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground">
                 相关度 {activeCitation.citation.score.toFixed(3)}
               </div>
