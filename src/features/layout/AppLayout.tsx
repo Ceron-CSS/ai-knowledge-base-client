@@ -1,26 +1,40 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
-import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, Home, KeyRound, LogOut, Settings } from "lucide-react"
+import { BookOpen, Bot, ChevronLeft, ChevronRight, CircleHelp, Cpu, Home, KeyRound, LogOut, Settings } from "lucide-react"
 import { useMutation } from "@tanstack/react-query"
 import { changePassword } from "@/api/auth"
 import { useAuth } from "@/features/auth/authContext"
+import { OnboardingGuide } from "@/features/onboarding/OnboardingGuide"
 import { Dialog } from "@/components/ui/dialog"
 
 const navItems = [
-  { to: "/home", label: "首页", Icon: Home },
-  { to: "/kb", label: "知识库", Icon: BookOpen },
-  { to: "/models", label: "模型供应商", Icon: Cpu },
-  { to: "/assistants", label: "问答助手", Icon: Bot },
+  { to: "/home", label: "首页", Icon: Home, onboardingTarget: "nav-home" },
+  { to: "/kb", label: "知识库", Icon: BookOpen, onboardingTarget: "nav-kb" },
+  { to: "/models", label: "模型供应商", Icon: Cpu, onboardingTarget: "nav-models" },
+  { to: "/assistants", label: "问答助手", Icon: Bot, onboardingTarget: "nav-assistants" },
 ]
 
 const SIDEBAR_COLLAPSED_KEY = "app.sidebarCollapsed"
+const ONBOARDING_VERSION = "v1"
+
+function getOnboardingStorageKey(username: string | null) {
+  return `app.onboarding.completed.${ONBOARDING_VERSION}.${username ?? "anonymous"}`
+}
 
 export function AppLayout() {
   const auth = useAuth()
   const location = useLocation()
   const canChangePassword = auth.provider !== "github"
   const displayName = auth.displayName ?? auth.username ?? "未命名用户"
+  const onboardingStorageKey = useMemo(() => getOnboardingStorageKey(auth.username), [auth.username])
+  const [onboardingOpen, setOnboardingOpen] = useState(() => {
+    try {
+      return !localStorage.getItem(getOnboardingStorageKey(auth.username))
+    } catch {
+      return true
+    }
+  })
 
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -132,6 +146,19 @@ export function AppLayout() {
     setPwdOpen(true)
   }
 
+  function completeOnboarding() {
+    try {
+      localStorage.setItem(onboardingStorageKey, new Date().toISOString())
+    } catch {
+      // ignore
+    }
+  }
+
+  function openOnboarding() {
+    setSettingsOpen(false)
+    setOnboardingOpen(true)
+  }
+
   return (
     <div className="flex h-svh overflow-hidden">
       <aside
@@ -158,10 +185,11 @@ export function AppLayout() {
         </div>
 
         <nav className="mt-2 flex flex-1 flex-col gap-1">
-          {navItems.map(({ to, label, Icon }) => (
+          {navItems.map(({ to, label, Icon, onboardingTarget }) => (
             <NavLink
               key={to}
               to={to}
+              data-onboarding-target={onboardingTarget}
               title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 [
@@ -180,6 +208,7 @@ export function AppLayout() {
         <div ref={settingsRef} className="relative">
           <button
             type="button"
+            data-onboarding-target="nav-settings"
             className={[
               "flex w-full items-center rounded-md px-2 py-2 text-sm",
               collapsed ? "justify-center" : "gap-2",
@@ -215,6 +244,14 @@ export function AppLayout() {
               )}
               <button
                 type="button"
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-muted/60"
+                onClick={openOnboarding}
+              >
+                <CircleHelp className="h-4 w-4" />
+                新手引导
+              </button>
+              <button
+                type="button"
                 className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
                 onClick={() => {
                   setSettingsOpen(false)
@@ -233,6 +270,12 @@ export function AppLayout() {
       <main className="min-w-0 flex-1 overflow-auto p-6">
         <Outlet />
       </main>
+
+      <OnboardingGuide
+        open={onboardingOpen}
+        onOpenChange={setOnboardingOpen}
+        onComplete={completeOnboarding}
+      />
 
       <Dialog
         open={pwdOpen}
