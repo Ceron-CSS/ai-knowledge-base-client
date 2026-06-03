@@ -37,6 +37,7 @@ type CardPosition = {
   left: number
   width: number
   arrow: "left" | "top"
+  arrowOffset: number
 }
 
 const steps: OnboardingStep[] = [
@@ -113,6 +114,7 @@ function getCardPosition(rect: Rect | null): CardPosition {
       left: Math.max(margin, (window.innerWidth - width) / 2),
       width,
       arrow: "top",
+      arrowOffset: 32,
     }
   }
 
@@ -121,19 +123,25 @@ function getCardPosition(rect: Rect | null): CardPosition {
   const top = Math.min(Math.max(rect.top - 8, margin), maxTop)
 
   if (hasRoomRight) {
+    const arrowOffset = Math.min(Math.max(rect.top + rect.height / 2 - top, 36), 324)
     return {
       top: Math.max(top, margin),
       left: rect.right + gap,
       width,
       arrow: "left",
+      arrowOffset,
     }
   }
 
+  const left = Math.min(Math.max(rect.left, margin), window.innerWidth - width - margin)
+  const arrowOffset = Math.min(Math.max(rect.left + rect.width / 2 - left, 32), width - 32)
+
   return {
     top: Math.min(Math.max(rect.bottom + gap, margin), maxTop),
-    left: Math.min(Math.max(rect.left, margin), window.innerWidth - width - margin),
+    left,
     width,
     arrow: "top",
+    arrowOffset,
   }
 }
 
@@ -240,12 +248,24 @@ export function OnboardingGuide({
         aria-label="新手引导"
       >
         <span
-          className={[
-            "absolute h-3 w-3 rotate-45 border bg-background",
+          className="absolute bg-background"
+          style={
             cardPosition.arrow === "left"
-              ? "-left-1.5 top-8 border-r-0 border-t-0"
-              : "-top-1.5 left-8 border-b-0 border-r-0",
-          ].join(" ")}
+              ? {
+                  left: -10,
+                  top: cardPosition.arrowOffset - 8,
+                  width: 10,
+                  height: 16,
+                  clipPath: "polygon(100% 0, 0 50%, 100% 100%)",
+                }
+              : {
+                  top: -10,
+                  left: cardPosition.arrowOffset - 8,
+                  width: 16,
+                  height: 10,
+                  clipPath: "polygon(0 100%, 50% 0, 100% 100%)",
+                }
+          }
         />
 
         <div className="flex items-start gap-3">
