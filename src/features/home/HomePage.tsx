@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts"
-import { BookOpen, Bot, Cpu, FileText } from "lucide-react"
+import { BookOpen, Bot, ChevronRight, Cpu, Database, FileText, Layers, Search, Send, Server, ShieldCheck, Sparkles } from "lucide-react"
 import { getDashboardStats } from "@/api/stats"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ChartContainer,
   ChartTooltip,
@@ -27,6 +27,49 @@ const PIE_COLORS = [
 const pieConfig = {
   docCount: { label: "文档数" },
 } satisfies ChartConfig
+
+const techStacks = [
+  {
+    title: "前端技术栈",
+    description: "负责交互界面、路由、数据请求与图表展示。",
+    Icon: Layers,
+    items: ["React 19 + TypeScript", "Vite 7 + Tailwind CSS 4", "React Router 7 + TanStack Query 5", "Recharts + lucide-react"],
+  },
+  {
+    title: "后端技术栈",
+    description: "负责认证、知识库数据、文件解析与问答流式响应。",
+    Icon: Server,
+    items: ["Node.js + Express 5", "Prisma 6 + SQLite", "JWT + bcryptjs + GitHub OAuth", "OpenAI-compatible API + SSE"],
+  },
+]
+
+const workflowSteps = [
+  {
+    title: "用户操作",
+    description: "管理知识、上传文档、发起问答",
+    Icon: Send,
+  },
+  {
+    title: "前端请求",
+    description: "API Client 携带 JWT 调用服务",
+    Icon: Layers,
+  },
+  {
+    title: "后端处理",
+    description: "鉴权、校验、业务编排与数据读写",
+    Icon: ShieldCheck,
+  },
+  {
+    title: "知识检索",
+    description: "查询知识库、文档切片与引用信息",
+    Icon: Search,
+  },
+  {
+    title: "AI 响应",
+    description: "调用模型并通过 SSE 流式返回",
+    Icon: Sparkles,
+  },
+]
 
 export function HomePage() {
   const stats = useQuery({
@@ -135,6 +178,63 @@ export function HomePage() {
           </div>
         )
       })()}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {techStacks.map(({ title, description, Icon, items }) => (
+          <Card key={title}>
+            <CardHeader className="gap-2">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <CardTitle className="text-sm">{title}</CardTitle>
+                  <CardDescription className="mt-1 text-xs leading-relaxed">{description}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {items.map((item) => (
+                  <div key={item} className="flex min-h-10 items-center gap-2 rounded-md border bg-muted/20 px-3 py-2 text-sm">
+                    <Database className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="leading-snug">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle className="text-sm">系统工作流程</CardTitle>
+          <CardDescription className="text-xs">从用户操作到 AI 流式响应的核心链路。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-5 md:gap-5">
+            {workflowSteps.map(({ title, description, Icon }, index) => (
+              <div key={title} className="relative">
+                <div className="mx-auto flex min-h-20 w-full max-w-[23rem] items-center gap-2.5 rounded-md border bg-muted/20 px-2.5 py-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary ring-1 ring-foreground/10">
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium leading-tight">{title}</div>
+                    <div className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</div>
+                  </div>
+                </div>
+                {index < workflowSteps.length - 1 ? (
+                  <div className="pointer-events-none absolute -right-[22px] top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border bg-card text-muted-foreground shadow-sm md:flex">
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

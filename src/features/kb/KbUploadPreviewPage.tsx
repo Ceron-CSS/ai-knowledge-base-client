@@ -234,26 +234,26 @@ export function KbUploadPreviewPage() {
               </>
             ) : null}
 
-            <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <label className="mb-2 shrink-0 text-sm font-medium">预览文本</label>
               <textarea
                 rows={16}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="粘贴待切分文档内容..."
-                className="min-h-[120px] flex-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+                className="min-h-0 w-full flex-1 resize-none overflow-y-auto rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </div>
 
             <button
-              className="mt-auto w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              className="w-full shrink-0 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               onClick={onGenerate}
               disabled={!canPreview}
             >
              生成预览
             </button>
             <button
-              className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              className="w-full shrink-0 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               onClick={onSave}
               disabled={saving || loading || chunks.length === 0 || !previewGenerated}
             >
