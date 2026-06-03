@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { BookOpen, Bot, ChevronLeft, ChevronRight, Cpu, Home, KeyRound, LogOut, Settings } from "lucide-react"
 import { useMutation } from "@tanstack/react-query"
@@ -58,17 +59,47 @@ export function AppLayout() {
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
+  const settingsMenuRef = useRef<HTMLDivElement>(null)
+  const [settingsMenuStyle, setSettingsMenuStyle] = useState<CSSProperties>({})
+
+  const updateSettingsMenuPosition = useCallback(() => {
+    const rect = settingsRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const width = Math.max(rect.width, 144)
+    const left = Math.min(Math.max(rect.left, 8), window.innerWidth - width - 8)
+
+    setSettingsMenuStyle({
+      position: "fixed",
+      left,
+      bottom: window.innerHeight - rect.top + 4,
+      width,
+    })
+  }, [])
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (!settingsOpen) return
       const target = e.target as Node | null
       if (target && settingsRef.current?.contains(target)) return
+      if (target && settingsMenuRef.current?.contains(target)) return
       setSettingsOpen(false)
     }
     document.addEventListener("mousedown", onMouseDown)
     return () => document.removeEventListener("mousedown", onMouseDown)
   }, [settingsOpen])
+
+  useEffect(() => {
+    if (!settingsOpen) return
+    updateSettingsMenuPosition()
+
+    window.addEventListener("resize", updateSettingsMenuPosition)
+    window.addEventListener("scroll", updateSettingsMenuPosition, true)
+    return () => {
+      window.removeEventListener("resize", updateSettingsMenuPosition)
+      window.removeEventListener("scroll", updateSettingsMenuPosition, true)
+    }
+  }, [settingsOpen, collapsed, updateSettingsMenuPosition])
 
   const [pwdOpen, setPwdOpen] = useState(false)
   const [oldPassword, setOldPassword] = useState("")
@@ -160,8 +191,12 @@ export function AppLayout() {
             <Settings className="h-4 w-4" />
             {collapsed ? null : <span className="min-w-0 flex-1 truncate text-left whitespace-nowrap">设置</span>}
           </button>
-          {settingsOpen ? (
-            <div className="absolute bottom-full left-0 mb-1 w-full min-w-36 rounded-md border bg-popover p-1 shadow-md">
+          {settingsOpen && typeof document !== "undefined" ? createPortal(
+            <div
+              ref={settingsMenuRef}
+              className="z-50 min-w-36 rounded-md border bg-popover p-1 shadow-md"
+              style={settingsMenuStyle}
+            >
               <div className="flex items-center gap-2 px-3 pt-2 pb-1 text-xs text-muted-foreground">
                 <svg aria-hidden="true" viewBox="0 0 16 16" className="h-3.5 w-3.5 fill-current">
                   <path d="M8 8a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 1.5c-2.33 0-5 1.17-5 3.5V14h10v-.98c0-2.33-2.67-3.52-5-3.52Z" />
@@ -189,7 +224,8 @@ export function AppLayout() {
                 <LogOut className="h-4 w-4" />
                 退出登录
               </button>
-            </div>
+            </div>,
+            document.body,
           ) : null}
         </div>
       </aside>
