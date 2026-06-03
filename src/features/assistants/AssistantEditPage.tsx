@@ -29,6 +29,17 @@ const BASE_MODEL_OPTIONS_BY_PROVIDER: Record<string, Array<{ label: string; valu
     { label: "deepseek-v4-pro", value: "deepseek-v4-pro" },
     { label: "deepseek-v4-flash", value: "deepseek-v4-flash" },
   ],
+  openai: [
+    { label: "gpt-5.5", value: "gpt-5.5" },
+    { label: "gpt-5.4", value: "gpt-5.4" },
+    { label: "gpt-5.4-mini", value: "gpt-5.4-mini" },
+    { label: "gpt-5.4-nano", value: "gpt-5.4-nano" },
+    { label: "gpt-5.2", value: "gpt-5.2" },
+    { label: "gpt-5.1", value: "gpt-5.1" },
+    { label: "gpt-5", value: "gpt-5" },
+    { label: "gpt-5-mini", value: "gpt-5-mini" },
+    { label: "gpt-5-nano", value: "gpt-5-nano" },
+  ],
 }
 
 export function AssistantEditPage() {
@@ -59,7 +70,7 @@ export function AssistantEditPage() {
   const configOptions = useMemo(
     () =>
       (modelConfigs.data ?? []).map((x) => ({
-        label: x.provider === "deepseek" ? "DeepSeek" : "百炼",
+        label: x.provider === "deepseek" ? "DeepSeek" : x.provider === "openai" ? "OpenAI" : "百炼",
         value: x.id,
       })),
     [modelConfigs.data],

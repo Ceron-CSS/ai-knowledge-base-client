@@ -64,7 +64,7 @@ export function listAssistantMessages(assistantId: string, conversationId: strin
 export type StreamEvent =
   | { type: "delta"; delta: string }
   | { type: "done"; message: AssistantMessage; citations?: AssistantCitation[] }
-  | { type: "error"; message: string }
+  | { type: "error"; message: string; saved?: AssistantMessage }
 
 export type AssistantImageAttachment = {
   kind: "image"

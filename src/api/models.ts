@@ -1,6 +1,6 @@
 import { requestJson } from "@/api/http"
 
-export type ModelProvider = "aliyun-bailian" | "deepseek"
+export type ModelProvider = "aliyun-bailian" | "deepseek" | "openai"
 
 export type ModelConfig = {
   id: string

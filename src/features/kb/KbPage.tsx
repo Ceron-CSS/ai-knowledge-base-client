@@ -6,7 +6,6 @@ import { getKbLinkedAssistants } from "@/api/kb"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { useCreateKb, useDeleteKb, useKbList, useSetKbEnabled, useUpdateKb } from "@/features/kb/queries"
 import { Dialog } from "@/components/ui/dialog"
-import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { useDebouncedValue } from "@/lib/useDebouncedValue"
 
 type EditingState =
@@ -64,6 +63,7 @@ export function KbPage() {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [deleting, setDeleting] = useState<Kb | null>(null)
+  const [deletingLinked, setDeletingLinked] = useState<KbLinkedAssistant[]>([])
   const [disablingKb, setDisablingKb] = useState<{ kb: Kb; linked: KbLinkedAssistant[] } | null>(null)
   const [checkingLinked, setCheckingLinked] = useState(false)
 
@@ -95,6 +95,7 @@ export function KbPage() {
 
   function cancelDelete() {
     setDeleting(null)
+    setDeletingLinked([])
   }
 
   async function submit() {
@@ -126,6 +127,20 @@ export function KbPage() {
     if (!deleting) return
     await deleteKb.mutateAsync({ id: deleting.id })
     cancelDelete()
+  }
+
+  async function handleDelete(kb: Kb) {
+    setCheckingLinked(true)
+    try {
+      const linked = await getKbLinkedAssistants(kb.id)
+      setDeleting(kb)
+      setDeletingLinked(linked)
+    } catch {
+      setDeleting(kb)
+      setDeletingLinked([])
+    } finally {
+      setCheckingLinked(false)
+    }
   }
 
   async function handleToggleEnabled(kb: Kb) {
@@ -246,14 +261,57 @@ export function KbPage() {
         </div>
       </Dialog>
 
-      <ConfirmDeleteDialog
+      <Dialog
         open={!!deleting}
-        onCancel={cancelDelete}
-        onConfirm={confirmDelete}
-        description={deleting ? `将删除知识库「${deleting.name}」该操作不可恢复，且会同时删除其下的知识项与问答日志` : undefined}
-        errorText={deleteKb.isError ? "删除失败，请重试" : null}
-        confirming={deleteKb.isPending}
-      />
+        onOpenChange={(open) => {
+          if (!open) cancelDelete()
+        }}
+        title="确认删除知识库"
+      >
+        {deleting ? (
+          <>
+            <div className="space-y-3">
+              {deletingLinked.length ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    以下问答助手正在关联知识库「{deleting.name}」，删除后将<b>取消发布</b>这些助手：
+                  </p>
+                  <ul className="max-h-36 overflow-auto rounded-md border bg-muted/30 p-2 text-sm">
+                    {deletingLinked.map((a) => (
+                      <li key={a.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5">
+                        <span className="truncate">{a.name}</span>
+                        {a.published ? (
+                          <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">已发布</span>
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">未发布</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  将删除知识库「{deleting.name}」，该操作不可恢复，且会同时删除其下的知识项。
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground">确定要继续删除吗？</p>
+              {deleteKb.isError ? <div className="text-sm text-destructive">删除失败，请重试</div> : null}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={cancelDelete} disabled={deleteKb.isPending}>
+                取消
+              </button>
+              <button
+                className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                onClick={confirmDelete}
+                disabled={deleteKb.isPending}
+              >
+                {deleteKb.isPending ? "删除中..." : "确认删除"}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </Dialog>
 
       <Dialog
         open={!!disablingKb}
@@ -291,7 +349,7 @@ export function KbPage() {
                 取消
               </button>
               <button
-                className="rounded-md bg-destructive px-3 py-2 text-sm font-medium text-destructive-foreground disabled:opacity-50"
+                className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
                 onClick={confirmDisable}
                 disabled={setEnabled.isPending}
               >
@@ -425,8 +483,8 @@ export function KbPage() {
                         </button>
                         <button
                           className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                          onClick={() => setDeleting(kb)}
-                          disabled={setEnabled.isPending || deleteKb.isPending}
+                          onClick={() => void handleDelete(kb)}
+                          disabled={setEnabled.isPending || deleteKb.isPending || checkingLinked}
                         >
                           删除
                         </button>

@@ -385,7 +385,15 @@ export function AssistantChatPage() {
           startTypewriter()
         } else if (ev.type === "error") {
           stopTypewriter()
-          setStreamError(ev.message || "请求失败")
+          if (ev.saved) {
+            await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })
+            await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"] })
+            setPendingAssistant(null)
+            setPendingUser(null)
+            setStreamError(null)
+          } else {
+            setStreamError(ev.message || "请求失败")
+          }
         } else {
           stopTypewriter()
           setPendingAssistant(ev.message)
@@ -467,7 +475,6 @@ export function AssistantChatPage() {
         <section className="flex min-w-0 flex-1 flex-col rounded-lg border bg-background">
           <div className="border-b p-3">
             <div className="text-sm font-medium">{selectedConversation ? normalizeConversationTitle(selectedConversation.title) : "对话"}</div>
-            {streamError ? <div className="mt-1 text-xs text-destructive">{streamError}</div> : null}
           </div>
 
           <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
@@ -496,6 +503,13 @@ export function AssistantChatPage() {
                 </div>
               )
             }) : <div className="text-center text-sm text-muted-foreground">开始提问吧</div>}
+            {streamError ? (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-lg bg-destructive/10 px-3 py-2 text-sm leading-relaxed text-destructive">
+                  {streamError}
+                </div>
+              </div>
+            ) : null}
             <div ref={bottomRef} />
           </div>
 
@@ -611,20 +625,13 @@ export function AssistantChatPage() {
               style={{ left: activeCitation.left, top: activeCitation.top }}
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="flex items-start justify-between gap-3 border-b bg-muted/30 px-4 py-3">
+              <div className="border-b bg-muted/30 px-4 py-3">
                 <div className="min-w-0">
                   <div className="text-xs font-medium text-muted-foreground">参考片段 [{activeCitation.index + 1}]</div>
                   <div className="mt-0.5 truncate text-sm font-medium" title={activeCitation.citation.fileName}>
                     {activeCitation.citation.fileName}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="rounded-md border px-2 py-1 text-xs hover:bg-background"
-                  onClick={() => setActiveCitation(null)}
-                >
-                  关闭
-                </button>
               </div>
               <div className="max-h-[420px] overflow-auto bg-background/70 px-4 py-3">
                 <MarkdownMessage content={activeCitation.citation.snippet} />

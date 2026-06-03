@@ -68,6 +68,7 @@ export function useDeleteKb() {
     mutationFn: ({ id }: { id: string }) => deleteKb(id),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: kbKeys.all })
+      await qc.invalidateQueries({ queryKey: ["assistants"] })
     },
   })
 }

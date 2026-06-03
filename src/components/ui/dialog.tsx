@@ -33,20 +33,11 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
       />
       <div className="relative w-full max-w-2xl rounded-lg border bg-background p-5 shadow-lg">
         {(title || description) && (
-          <div className="pr-10">
+          <div>
             {title ? <div className="text-base font-semibold">{title}</div> : null}
             {description ? <div className="mt-1 text-sm text-muted-foreground">{description}</div> : null}
           </div>
         )}
-
-        <button
-          aria-label="Close"
-          className="absolute right-3 top-3 rounded-md border px-2 py-1 text-sm hover:bg-muted/60"
-          onClick={() => onOpenChange(false)}
-          type="button"
-        >
-          关闭
-        </button>
 
         <div className="mt-4">{children}</div>
         {footer ? <div className="mt-4 flex justify-end gap-2">{footer}</div> : null}
