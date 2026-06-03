@@ -256,6 +256,14 @@ export function AssistantChatPage() {
     }
   }
 
+  function flushTypewriterQueue() {
+    const q = typewriterQueueRef.current
+    if (!q) return
+    typewriterQueueRef.current = ""
+    typewriterTextRef.current += q
+    setPendingAssistant((prev) => (prev ? { ...prev, content: typewriterTextRef.current } : prev))
+  }
+
   function startTypewriter() {
     if (typewriterTimerRef.current !== null) return
     typewriterTimerRef.current = window.setInterval(() => {
@@ -384,10 +392,13 @@ export function AssistantChatPage() {
           typewriterQueueRef.current += ev.delta
           startTypewriter()
         } else if (ev.type === "error") {
+          flushTypewriterQueue()
           stopTypewriter()
           if (ev.saved) {
-            await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })
-            await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"] })
+            await Promise.all([
+              qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] }),
+              qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"] }),
+            ])
             setPendingAssistant(null)
             setPendingUser(null)
             setStreamError(null)
@@ -395,10 +406,12 @@ export function AssistantChatPage() {
             setStreamError(ev.message || "请求失败")
           }
         } else {
+          flushTypewriterQueue()
           stopTypewriter()
-          setPendingAssistant(ev.message)
-          await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })
-          await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"] })
+          await Promise.all([
+            qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] }),
+            qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"] }),
+          ])
           setPendingAssistant(null)
           setPendingUser(null)
         }
