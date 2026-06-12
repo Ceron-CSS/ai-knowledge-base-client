@@ -1,5 +1,7 @@
 # AI Knowledge Base Client
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 React + TypeScript + Vite frontend for the AI knowledge base management platform.
 
 ## Tech Stack
