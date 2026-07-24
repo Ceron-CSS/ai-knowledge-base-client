@@ -4,15 +4,14 @@ import { ArrowUpDown } from "lucide-react"
 import type { Kb, KbLinkedAssistant, KbSortBy, SortDir } from "@/api/kb"
 import { getKbLinkedAssistants } from "@/api/kb"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { useCreateKb, useDeleteKb, useKbList, useSetKbEnabled, useUpdateKb } from "@/features/kb/queries"
+import { Button } from "@/components/ui/button"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Dialog } from "@/components/ui/dialog"
 import { DialogActions } from "@/components/ui/dialog-actions"
+import { useCreateKb, useDeleteKb, useKbList, useSetKbEnabled, useUpdateKb } from "@/features/kb/queries"
 import { useDebouncedValue } from "@/lib/useDebouncedValue"
 
-type EditingState =
-  | { mode: "create" }
-  | { mode: "edit"; kb: Kb }
-  | { mode: "none" }
+type EditingState = { mode: "create" } | { mode: "edit"; kb: Kb } | { mode: "none" }
 
 const KB_SORT_KEY = "kb.listSort"
 
@@ -47,7 +46,7 @@ export function KbPage() {
     try {
       localStorage.setItem(KB_SORT_KEY, `${sort.sortBy}:${sort.sortDir}`)
     } catch {
-      // ignore
+      // ignore localStorage failures
     }
   }, [sort.sortBy, sort.sortDir])
 
@@ -59,7 +58,6 @@ export function KbPage() {
 
   const [query, setQuery] = useState("")
   const debouncedQuery = useDebouncedValue(query, 250)
-
   const [editing, setEditing] = useState<EditingState>({ mode: "none" })
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -146,7 +144,6 @@ export function KbPage() {
 
   async function handleToggleEnabled(kb: Kb) {
     if (kb.enabled) {
-      // Disabling: check linked assistants first
       setCheckingLinked(true)
       try {
         const linked = await getKbLinkedAssistants(kb.id)
@@ -156,7 +153,6 @@ export function KbPage() {
           setEnabled.mutate({ id: kb.id, enabled: false })
         }
       } catch {
-        // If check fails, still allow disabling
         setEnabled.mutate({ id: kb.id, enabled: false })
       } finally {
         setCheckingLinked(false)
@@ -208,11 +204,131 @@ export function KbPage() {
     return `${total} 个知识库`
   }, [kbList.data?.length, filteredList.length, debouncedQuery])
 
+  function sortableHeader(label: string, sortBy: KbSortBy) {
+    return (
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 hover:text-foreground"
+        onClick={() => toggleSort(sortBy)}
+        title="排序"
+      >
+        <span>{label}</span>
+        <span className="text-xs">{sortIndicator(sortBy)}</span>
+      </button>
+    )
+  }
+
+  const columns = useMemo<Array<DataTableColumn<Kb>>>(
+    () => [
+      {
+        key: "name",
+        header: sortableHeader("名称", "name"),
+        className: "w-[10%]",
+        cellClassName: "font-medium",
+        render: (kb) => (
+          <div className="max-w-[18rem] truncate" title={kb.name}>
+            {kb.name}
+          </div>
+        ),
+      },
+      {
+        key: "description",
+        header: "描述",
+        className: "w-[18%]",
+        cellClassName: "text-muted-foreground",
+        render: (kb) => (
+          <div className="max-w-[28rem] truncate" title={kb.description || ""}>
+            {kb.description || "-"}
+          </div>
+        ),
+      },
+      {
+        key: "docCount",
+        header: "文档数",
+        className: "w-[6%]",
+        cellClassName: "tabular-nums",
+        render: (kb) => kb.docCount,
+      },
+      {
+        key: "charCount",
+        header: "字符",
+        className: "w-[7%]",
+        cellClassName: "tabular-nums",
+        render: (kb) => formatCharCountK(kb.charCount),
+      },
+      {
+        key: "createdAt",
+        header: sortableHeader("创建时间", "createdAt"),
+        className: "w-[14%]",
+        cellClassName: "tabular-nums text-muted-foreground",
+        render: (kb) => new Date(kb.createdAt).toLocaleString(),
+      },
+      {
+        key: "updatedAt",
+        header: sortableHeader("修改时间", "updatedAt"),
+        className: "w-[14%]",
+        cellClassName: "tabular-nums text-muted-foreground",
+        render: (kb) => new Date(kb.updatedAt).toLocaleString(),
+      },
+      {
+        key: "enabled",
+        header: "状态",
+        className: "w-[6%]",
+        render: (kb) => (
+          <span
+            className={[
+              "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
+              kb.enabled ? "bg-emerald-500/10 text-emerald-700" : "bg-zinc-500/10 text-zinc-700",
+            ].join(" ")}
+          >
+            {kb.enabled ? "启用" : "停用"}
+          </span>
+        ),
+      },
+      {
+        key: "actions",
+        header: "操作",
+        className: "w-[25%]",
+        render: (kb) => (
+          <>
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Button variant="outline" size="sm" onClick={() => navigate(`/kb/${kb.id}`)} disabled={deleteKb.isPending}>
+                管理
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleToggleEnabled(kb)}
+                disabled={setEnabled.isPending || checkingLinked}
+              >
+                {kb.enabled ? "停用" : "启用"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => startEdit(kb)} disabled={setEnabled.isPending}>
+                设置
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => void handleDelete(kb)}
+                disabled={setEnabled.isPending || deleteKb.isPending || checkingLinked}
+              >
+                删除
+              </Button>
+            </div>
+            {setEnabled.isError ? <div className="mt-2 text-xs text-destructive">启停失败，请重试</div> : null}
+          </>
+        ),
+      },
+    ],
+    [checkingLinked, deleteKb.isPending, navigate, setEnabled.isError, setEnabled.isPending, sort.sortBy, sort.sortDir],
+  )
   return (
     <div className="space-y-2">
       <div>
         <Breadcrumb items={[{ label: "知识库" }]} />
-        <p className="mt-1 text-sm text-muted-foreground">创建、编辑、删除、启停知识库（停用后在所有配置中不可选）</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          创建、编辑、删除、启停知识库（停用后在所有配置中不可选）
+        </p>
       </div>
 
       <Dialog
@@ -249,16 +365,12 @@ export function KbPage() {
         ) : null}
 
         <div className="mt-4 flex justify-end gap-2">
-          <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={cancelEdit} disabled={isSaving}>
+          <Button variant="outline" size="lg" onClick={cancelEdit} disabled={isSaving}>
             取消
-          </button>
-          <button
-            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            onClick={submit}
-            disabled={!name.trim() || isSaving}
-          >
-            {isSaving ? "处理中..." : submitLabel}
-          </button>
+          </Button>
+          <Button size="lg" onClick={submit} disabled={!name.trim()} loading={isSaving} loadingText="处理中">
+            {submitLabel}
+          </Button>
         </div>
       </Dialog>
 
@@ -282,9 +394,13 @@ export function KbPage() {
                       <li key={a.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5">
                         <span className="truncate">{a.name}</span>
                         {a.published ? (
-                          <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">已发布</span>
+                          <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">
+                            已发布
+                          </span>
                         ) : (
-                          <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">未发布</span>
+                          <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">
+                            未发布
+                          </span>
                         )}
                       </li>
                     ))}
@@ -326,9 +442,13 @@ export function KbPage() {
                   <li key={a.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5">
                     <span className="truncate">{a.name}</span>
                     {a.published ? (
-                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">已发布</span>
+                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">
+                        已发布
+                      </span>
                     ) : (
-                      <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">未发布</span>
+                      <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">
+                        未发布
+                      </span>
                     )}
                   </li>
                 ))}
@@ -354,138 +474,23 @@ export function KbPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索知识库名称/描述"
           />
-            <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={resetListState}>
-              重置
-            </button>
-          <button className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={startCreate}>
+          <Button variant="outline" size="lg" onClick={resetListState}>
+            重置
+          </Button>
+          <Button size="lg" onClick={startCreate}>
             新建知识库
-          </button>
+          </Button>
         </div>
       </div>
 
-      {kbList.isLoading ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
-      ) : kbList.isError ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">加载失败：请确认后端服务可用</div>
-      ) : filteredList.length ? (
-        <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full table-fixed text-left text-sm">
-              <thead className="bg-muted/40">
-                <tr className="border-b">
-                  <th className="w-[10%] px-3 py-2 font-medium">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 hover:text-foreground"
-                      onClick={() => toggleSort("name")}
-                      title="排序"
-                    >
-                      <span>名称</span>
-                      <span className="text-xs">{sortIndicator("name")}</span>
-                    </button>
-                  </th>
-                  <th className="w-[18%] px-3 py-2 font-medium">描述</th>
-                  <th className="w-[6%] px-3 py-2 font-medium">文档数</th>
-                  <th className="w-[7%] px-3 py-2 font-medium">字符</th>
-                  <th className="w-[14%] px-3 py-2 font-medium">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 hover:text-foreground"
-                      onClick={() => toggleSort("createdAt")}
-                      title="排序"
-                    >
-                      <span>创建时间</span>
-                      <span className="text-xs">{sortIndicator("createdAt")}</span>
-                    </button>
-                  </th>
-                  <th className="w-[14%] px-3 py-2 font-medium">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 hover:text-foreground"
-                      onClick={() => toggleSort("updatedAt")}
-                      title="排序"
-                    >
-                      <span>修改时间</span>
-                      <span className="text-xs">{sortIndicator("updatedAt")}</span>
-                    </button>
-                  </th>
-                  <th className="w-[6%] px-3 py-2 font-medium">状态</th>
-                  <th className="w-[25%] px-3 py-2 font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredList.map((kb) => (
-                  <tr key={kb.id} className="border-b last:border-b-0">
-                    <td className="px-3 py-2 font-medium">
-                      <div className="max-w-[18rem] truncate" title={kb.name}>
-                        {kb.name}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      <div className="max-w-[28rem] truncate" title={kb.description || ""}>
-                        {kb.description || "-"}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 tabular-nums">{kb.docCount}</td>
-                    <td className="px-3 py-2 tabular-nums">{formatCharCountK(kb.charCount)}</td>
-                    <td className="px-3 py-2 tabular-nums text-muted-foreground">
-                      {new Date(kb.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2 tabular-nums text-muted-foreground">
-                      {new Date(kb.updatedAt).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={[
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-                          kb.enabled ? "bg-emerald-500/10 text-emerald-700" : "bg-zinc-500/10 text-zinc-700",
-                        ].join(" ")}
-                      >
-                        {kb.enabled ? "启用" : "停用"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <button
-                          className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60"
-                          onClick={() => navigate(`/kb/${kb.id}`)}
-                          disabled={deleteKb.isPending}
-                        >
-                          管理
-                        </button>
-                        <button
-                          className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60 disabled:opacity-50"
-                          onClick={() => handleToggleEnabled(kb)}
-                          disabled={setEnabled.isPending || checkingLinked}
-                        >
-                          {kb.enabled ? "停用" : "启用"}
-                        </button>
-                        <button
-                          className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60"
-                          onClick={() => startEdit(kb)}
-                          disabled={setEnabled.isPending}
-                        >
-                          设置
-                        </button>
-                        <button
-                          className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                          onClick={() => void handleDelete(kb)}
-                          disabled={setEnabled.isPending || deleteKb.isPending || checkingLinked}
-                        >
-                          删除
-                        </button>
-                      </div>
-                      {setEnabled.isError ? <div className="mt-2 text-xs text-destructive">启停失败，请重试</div> : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : kbList.data?.length ? (
-          <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">无匹配结果</div>
-        ) : (
-          <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无知识库，先创建一个吧</div>
-        )}
+      <DataTable
+        columns={columns}
+        data={filteredList}
+        getRowKey={(kb) => kb.id}
+        loading={kbList.isLoading}
+        error={kbList.isError}
+        errorText="加载失败：请确认后端服务可用"
+      />
     </div>
   )
 }

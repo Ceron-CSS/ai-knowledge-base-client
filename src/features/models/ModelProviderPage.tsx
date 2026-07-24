@@ -5,6 +5,8 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
 import { DialogActions } from "@/components/ui/dialog-actions"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { Button } from "@/components/ui/button"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Select } from "@/components/ui/select"
 import { useCreateModelConfig, useDeleteModelConfig, useModelConfigList, useUpdateModelConfig } from "@/features/models/queries"
 import { useQueryClient } from "@tanstack/react-query"
@@ -63,7 +65,7 @@ export function ModelProviderPage() {
   const [query, setQuery] = useState("")
 
   const submitting = createModel.isPending || updateModel.isPending
-  const list = modelConfigs.data ?? []
+  const list = useMemo(() => modelConfigs.data ?? [], [modelConfigs.data])
   const filteredList = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return list
@@ -80,6 +82,51 @@ export function ModelProviderPage() {
   const usedProviders = useMemo(() => new Set(list.map((x) => x.provider)), [list])
   const availableProviders = useMemo(() => PROVIDERS.filter((p) => !usedProviders.has(p.value)), [usedProviders])
   const canCreate = availableProviders.length > 0
+
+  const columns = useMemo<Array<DataTableColumn<ModelConfig>>>(
+    () => [
+      {
+        key: "provider",
+        header: "供应商",
+        className: "w-[18%]",
+        render: (item) => providerLabel(item.provider),
+      },
+      {
+        key: "apiUrl",
+        header: "API URL",
+        className: "w-[42%]",
+        cellClassName: "truncate",
+        render: (item) => <span title={item.apiUrl}>{item.apiUrl}</span>,
+      },
+      {
+        key: "apiKey",
+        header: "API KEY",
+        className: "w-[22%]",
+        render: (item) => item.apiKeyMasked,
+      },
+      {
+        key: "actions",
+        header: "操作",
+        className: "w-[18%]",
+        render: (item) => (
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
+            <Button variant="outline" size="sm" onClick={() => openEdit(item)}>
+              编辑
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleDelete(item)}
+              disabled={deleteModel.isPending || checkingDeleteLinked}
+            >
+              删除
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [checkingDeleteLinked, deleteModel.isPending],
+  )
 
   function openCreate() {
     setEditing(null)
@@ -172,20 +219,13 @@ export function ModelProviderPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索供应商名称"
           />
-          <button
-            className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
-            onClick={() => setQuery("")}
-          >
+          <Button variant="outline" size="lg" onClick={() => setQuery("")}>
             重置
-          </button>
+          </Button>
           <span className="group relative inline-flex">
-            <button
-              className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-              onClick={openCreate}
-              disabled={!canCreate}
-            >
+            <Button size="lg" onClick={openCreate} disabled={!canCreate}>
               添加供应商配置
-            </button>
+            </Button>
             {!canCreate ? (
               <span className="pointer-events-none absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
                 所有供应商都已配置
@@ -195,56 +235,19 @@ export function ModelProviderPage() {
         </div>
       </div>
 
-      {modelConfigs.isLoading ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
-      ) : modelConfigs.isError ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">
-          加载失败，请检查后端服务
-          {loadErrorText ? <div className="mt-2 text-xs text-muted-foreground">{loadErrorText}</div> : null}
-        </div>
-      ) : filteredList.length ? (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-muted/40">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium">供应商</th>
-                <th className="px-3 py-2 text-left font-medium">API URL</th>
-                <th className="px-3 py-2 text-left font-medium">API KEY</th>
-                <th className="px-3 py-2 text-left font-medium">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredList.map((item) => (
-                <tr key={item.id} className="border-t">
-                  <td className="px-3 py-2">{providerLabel(item.provider)}</td>
-                  <td className="max-w-72 truncate px-3 py-2" title={item.apiUrl}>
-                    {item.apiUrl}
-                  </td>
-                  <td className="px-3 py-2">{item.apiKeyMasked}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <button className="rounded-md border px-2 py-1 hover:bg-muted/60" onClick={() => openEdit(item)}>
-                        编辑
-                      </button>
-                      <button
-                        className="rounded-md border border-destructive/40 px-2 py-1 text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(item)}
-                        disabled={deleteModel.isPending || checkingDeleteLinked}
-                      >
-                        删除
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : list.length ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">无匹配结果</div>
-      ) : (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">暂无供应商配置，先添加一个吧</div>
-      )}
+      <DataTable
+        columns={columns}
+        data={filteredList}
+        getRowKey={(item) => item.id}
+        loading={modelConfigs.isLoading}
+        error={modelConfigs.isError}
+        errorText={
+          <>
+            加载失败，请检查后端服务
+            {loadErrorText ? <div className="mt-2 text-xs text-muted-foreground">{loadErrorText}</div> : null}
+          </>
+        }
+      />
 
       <Dialog open={open} onOpenChange={(next) => !next && closeDialog()} title={editing ? "编辑供应商配置" : "添加供应商配置"}>
         <div className="grid gap-4">
@@ -302,16 +305,12 @@ export function ModelProviderPage() {
           {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
           <div className="flex justify-end gap-2">
-            <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={closeDialog} disabled={submitting}>
+            <Button variant="outline" size="lg" onClick={closeDialog} disabled={submitting}>
               取消
-            </button>
-            <button
-              className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-              onClick={submit}
-              disabled={submitting}
-            >
-              {submitting ? "保存中..." : "保存"}
-            </button>
+            </Button>
+            <Button size="lg" onClick={submit} loading={submitting} loadingText="保存中">
+              保存
+            </Button>
           </div>
         </div>
       </Dialog>

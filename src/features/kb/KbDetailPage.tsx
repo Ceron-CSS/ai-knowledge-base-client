@@ -1,16 +1,14 @@
 import { useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { LoaderCircle } from "lucide-react"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
-import { Dialog } from "@/components/ui/dialog"
 import type { KbItem } from "@/api/kb"
 import { extractKbFileText, getKbItemDetail } from "@/api/kb"
-import {
-  useDeleteKbItem,
-  useKbItems,
-  useSetKbItemEnabled,
-} from "@/features/kb/queries"
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { Button } from "@/components/ui/button"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { Dialog } from "@/components/ui/dialog"
+import { useDeleteKbItem, useKbItems, useSetKbItemEnabled } from "@/features/kb/queries"
 
 function formatCharCountK(value: number) {
   if (value <= 0) return "0K"
@@ -77,6 +75,97 @@ export function KbDetailPage() {
     }
   }
 
+  const columns = useMemo<Array<DataTableColumn<KbItem>>>(
+    () => [
+      {
+        key: "fileName",
+        header: "文件名称",
+        className: "w-[22%]",
+        cellClassName: "max-w-[18rem] truncate",
+        render: (item) => <span title={item.fileName}>{item.fileName}</span>,
+      },
+      {
+        key: "charCount",
+        header: "字符数",
+        className: "w-[9%]",
+        cellClassName: "tabular-nums",
+        render: (item) => formatCharCountK(item.charCount),
+      },
+      {
+        key: "chunkCount",
+        header: "分段数",
+        className: "w-[9%]",
+        cellClassName: "tabular-nums",
+        render: (item) => item.chunkCount,
+      },
+      {
+        key: "enabled",
+        header: "启用状态",
+        className: "w-[10%]",
+        render: (item) => (
+          <span
+            className={[
+              "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
+              item.enabled ? "bg-emerald-500/10 text-emerald-700" : "bg-zinc-500/10 text-zinc-700",
+            ].join(" ")}
+          >
+            {item.enabled ? "启用" : "禁用"}
+          </span>
+        ),
+      },
+      {
+        key: "createdAt",
+        header: "创建时间",
+        className: "w-[15%]",
+        cellClassName: "text-muted-foreground tabular-nums",
+        render: (item) => new Date(item.createdAt).toLocaleString(),
+      },
+      {
+        key: "updatedAt",
+        header: "更新时间",
+        className: "w-[15%]",
+        cellClassName: "text-muted-foreground tabular-nums",
+        render: (item) => new Date(item.updatedAt).toLocaleString(),
+      },
+      {
+        key: "actions",
+        header: "操作",
+        className: "w-[20%]",
+        render: (item) => (
+          <div className="flex gap-1.5 whitespace-nowrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void onEdit(item.id)}
+              disabled={setEnabled.isPending || deleteItem.isPending}
+              loading={editingItemId === item.id}
+              loadingText="加载中"
+            >
+              编辑
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onToggle(item.id, item.enabled)}
+              disabled={setEnabled.isPending || deleteItem.isPending}
+            >
+              {item.enabled ? "禁用" : "启用"}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setDeleting(item)}
+              disabled={setEnabled.isPending || deleteItem.isPending}
+            >
+              删除
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [deleteItem.isPending, editingItemId, setEnabled.isPending],
+  )
+
   return (
     <div className="space-y-2">
       <div>
@@ -86,117 +175,25 @@ export function KbDetailPage() {
             { label: "文档列表" },
           ]}
         />
-        <p className="mt-1 text-sm text-muted-foreground">
-          查看文档列表，支持删除与启用/禁用
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">查看文档列表，支持删除与启用/禁用</p>
       </div>
 
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">{countLabel}</div>
         <span className="group relative inline-flex">
-          <button
-            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            onClick={() => setUploadOpen(true)}
-          >
+          <Button size="lg" onClick={() => setUploadOpen(true)}>
             上传文件
-          </button>
+          </Button>
         </span>
       </div>
 
-      <div className="rounded-lg border bg-background">
-        {items.isLoading ? (
-          <div className="px-4 py-8 text-sm text-muted-foreground">
-            加载中...
-          </div>
-        ) : items.isError ? (
-          <div className="px-4 py-8 text-sm text-destructive">
-            加载失败，请稍后重试
-          </div>
-        ) : list.length === 0 ? (
-          <div className="px-4 py-8 text-sm text-muted-foreground">
-            暂无文档，先上传一个文件吧
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/40">
-                <tr className="border-b">
-                  <th className="px-3 py-2 font-medium">文件名称</th>
-                  <th className="px-3 py-2 font-medium">字符数</th>
-                  <th className="px-3 py-2 font-medium">分段数</th>
-                  <th className="px-3 py-2 font-medium">启用状态</th>
-                  <th className="px-3 py-2 font-medium">创建时间</th>
-                  <th className="px-3 py-2 font-medium">更新时间</th>
-                  <th className="px-3 py-2 font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((item) => (
-                  <tr key={item.id} className="border-b last:border-b-0">
-                    <td
-                      className="max-w-[18rem] truncate px-3 py-2"
-                      title={item.fileName}
-                    >
-                      {item.fileName}
-                    </td>
-                    <td className="px-3 py-2 tabular-nums">{formatCharCountK(item.charCount)}</td>
-                    <td className="px-3 py-2 tabular-nums">
-                      {item.chunkCount}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={[
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-                          item.enabled
-                            ? "bg-emerald-500/10 text-emerald-700"
-                            : "bg-zinc-500/10 text-zinc-700",
-                        ].join(" ")}
-                      >
-                        {item.enabled ? "启用" : "禁用"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground tabular-nums">
-                      {new Date(item.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground tabular-nums">
-                      {new Date(item.updatedAt).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex gap-2">
-                        <button
-                          className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60"
-                          onClick={() => void onEdit(item.id)}
-                          disabled={setEnabled.isPending || deleteItem.isPending || editingItemId === item.id}
-                        >
-                          {editingItemId === item.id ? "加载中..." : "编辑"}
-                        </button>
-                        <button
-                          className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted/60"
-                          onClick={() => onToggle(item.id, item.enabled)}
-                          disabled={
-                            setEnabled.isPending || deleteItem.isPending
-                          }
-                        >
-                          {item.enabled ? "禁用" : "启用"}
-                        </button>
-                        <button
-                          className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleting(item)}
-                          disabled={
-                            setEnabled.isPending || deleteItem.isPending
-                          }
-                        >
-                          删除
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={list}
+        getRowKey={(item) => item.id}
+        loading={items.isLoading}
+        error={items.isError}
+      />
 
       <Dialog
         open={uploadOpen}
@@ -204,7 +201,7 @@ export function KbDetailPage() {
           if (!uploading) setUploadOpen(open)
         }}
         title="上传文件"
-        description="支持拖拽或点击选择文件支持格式：TXT、Markdown、PDF、DOC、DOCX"
+        description="支持拖拽或点击选择文件。支持格式：TXT、Markdown、PDF、DOC、DOCX"
       >
         <input
           ref={fileInputRef}
@@ -218,9 +215,7 @@ export function KbDetailPage() {
             type="button"
             className={[
               "w-full rounded-lg border-2 border-dashed px-4 py-10 text-center transition",
-              dragOver
-                ? "border-primary bg-primary/5"
-                : "border-muted-foreground/30 hover:bg-muted/40",
+              dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:bg-muted/40",
             ].join(" ")}
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => {
@@ -237,7 +232,7 @@ export function KbDetailPage() {
           >
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">
-                {uploading ? "正在解析文件..." : "拖拽文件至此上传"}
+                {uploading ? "正在解析文件" : "拖拽文件至此上传"}
               </div>
               <div className="text-sm">
                 或 <span className="text-primary underline">选择文件</span>
@@ -247,13 +242,11 @@ export function KbDetailPage() {
           {uploading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-lg border bg-background/85 text-sm text-muted-foreground backdrop-blur-sm">
               <LoaderCircle className="mb-3 h-7 w-7 animate-spin text-primary" />
-              <span>正在上传并解析文件...</span>
+              <span>正在上传并解析文件</span>
             </div>
           ) : null}
         </div>
-        {uploadError ? (
-          <div className="mt-3 text-sm text-destructive">{uploadError}</div>
-        ) : null}
+        {uploadError ? <div className="mt-3 text-sm text-destructive">{uploadError}</div> : null}
       </Dialog>
 
       <ConfirmDeleteDialog
