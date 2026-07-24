@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Ban, Bot, CheckCircle2, Clock, MoreHorizontal, Pencil, Rocket, Trash2 } from "lucide-react"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
+import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import type { Assistant } from "@/api/assistants"
 import { useAssistantList, useDeleteAssistant, usePublishAssistant, useUnpublishAssistant } from "@/features/assistants/queries"
@@ -102,18 +103,12 @@ export function AssistantListPage() {
       <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
         <div>{countLabel}</div>
         <div className="flex items-center gap-1.5">
-          <input
-            className="w-52 rounded-md border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2"
+          <Input
+            clearable
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索助手名称"
           />
-          <button
-            className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
-            onClick={() => setQuery("")}
-          >
-            重置
-          </button>
           <button
             className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
             onClick={() => navigate("/assistants/new")}

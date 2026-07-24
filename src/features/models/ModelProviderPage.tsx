@@ -7,6 +7,7 @@ import { Dialog } from "@/components/ui/dialog"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { useCreateModelConfig, useDeleteModelConfig, useModelConfigList, useUpdateModelConfig } from "@/features/models/queries"
 import { useQueryClient } from "@tanstack/react-query"
@@ -87,7 +88,7 @@ export function ModelProviderPage() {
     () => [
       {
         key: "provider",
-        header: "供应商",
+        header: "名称",
         className: "w-[18%]",
         render: (item) => providerLabel(item.provider),
       },
@@ -218,15 +219,12 @@ export function ModelProviderPage() {
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">{countLabel}</div>
         <div className="flex items-center gap-1.5">
-          <input
-            className="w-44 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+          <Input
+            clearable
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索供应商名称"
           />
-          <Button variant="outline" size="lg" onClick={() => setQuery("")}>
-            重置
-          </Button>
           <span className="group relative inline-flex">
             <Button size="lg" onClick={openCreate} disabled={!canCreate}>
               添加供应商配置

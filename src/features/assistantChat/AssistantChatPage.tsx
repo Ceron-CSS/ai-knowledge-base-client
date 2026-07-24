@@ -4,6 +4,7 @@ import { ArrowUp, Check, MessageCirclePlus, Pencil, Plus, Trash2, X } from "luci
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { MarkdownMessage } from "@/components/ui/markdown-message"
 import { LoadingText } from "@/components/ui/loading-text"
 import {
@@ -441,9 +442,14 @@ export function AssistantChatPage() {
                 <MessageCirclePlus className="h-4 w-4" />新对话
               </button>
             </div>
-            <div className="mt-2 flex items-center gap-1.5">
-              <input className="min-w-0 flex-1 rounded-md border bg-background px-2.5 py-1.5 text-sm outline-none focus:ring-2" value={conversationQuery} onChange={(e) => setConversationQuery(e.target.value)} placeholder="搜索标题" />
-              <button className="shrink-0 rounded-md border px-2.5 py-1.5 text-sm hover:bg-muted/60" onClick={() => { setConversationQuery(""); setConversationSort({ sortBy: "createdAt", sortDir: "desc" }) }}>重置</button>
+            <div className="mt-2">
+              <Input
+                clearable
+                className="w-full min-w-0"
+                value={conversationQuery}
+                onChange={(e) => setConversationQuery(e.target.value)}
+                placeholder="搜索标题"
+              />
             </div>
           </div>
 

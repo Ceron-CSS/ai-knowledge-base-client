@@ -6,6 +6,7 @@ import { getKbLinkedAssistants } from "@/api/kb"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { Input } from "@/components/ui/input"
 import { Dialog } from "@/components/ui/dialog"
 import { DialogActions } from "@/components/ui/dialog-actions"
 import { Switch } from "@/components/ui/switch"
@@ -190,11 +191,6 @@ export function KbPage() {
   function sortIndicator(forSortBy: KbSortBy) {
     if (sort.sortBy !== forSortBy) return <ArrowUpDown className="h-3.5 w-3.5 opacity-70" />
     return sort.sortDir === "asc" ? "↑" : "↓"
-  }
-
-  function resetListState() {
-    setQuery("")
-    setSort({ sortBy: "createdAt", sortDir: "desc" })
   }
 
   const countLabel = useMemo(() => {
@@ -478,15 +474,12 @@ export function KbPage() {
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">{countLabel}</div>
         <div className="flex items-center gap-2">
-          <input
-            className="w-56 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+          <Input
+            clearable
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索知识库名称/描述"
           />
-          <Button variant="outline" size="lg" onClick={resetListState}>
-            重置
-          </Button>
           <Button size="lg" onClick={startCreate}>
             新建知识库
           </Button>
