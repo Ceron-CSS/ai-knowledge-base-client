@@ -13,9 +13,7 @@ import {
   uploadAssistantImageAttachment,
   type AssistantAttachment,
   type AssistantConversation,
-  type AssistantConversationSortBy,
   type AssistantMessage,
-  type SortDir,
 } from "@/api/assistantChat"
 import { useAssistant } from "@/features/assistants/queries"
 import {
@@ -29,7 +27,6 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useDebouncedValue } from "@/lib/useDebouncedValue"
 import { useMessage } from "@/hooks/use-message"
 
-const CONV_SORT_KEY = "assistantChat.conversationSort"
 const ATTACHMENT_META_SEPARATOR = "\n\n<assistant-attachments-meta>"
 const ATTACHMENT_META_END = "</assistant-attachments-meta>"
 const CITATION_META_SEPARATOR = "\n\n<assistant-citations-meta>"
@@ -42,17 +39,6 @@ type ParsedImageAttachment = { kind: "image"; fileName?: string; dataUrl: string
 type ParsedFileAttachment = { kind: "file"; fileName: string }
 type ParsedCitation = { kbId: string; itemId: string; fileName: string; snippet: string; score: number }
 type ActiveCitation = { index: number; citation: ParsedCitation; top: number; left: number }
-
-function parseConversationSort(raw: string | null): { sortBy: AssistantConversationSortBy; sortDir: SortDir } {
-  if (!raw) return { sortBy: "createdAt", sortDir: "desc" }
-  const [sortByRaw, sortDirRaw] = raw.split(":")
-  const sortBy = sortByRaw as AssistantConversationSortBy
-  const sortDir = sortDirRaw as SortDir
-  if (!["updatedAt", "createdAt", "title"].includes(sortBy) || !["asc", "desc"].includes(sortDir)) {
-    return { sortBy: "createdAt", sortDir: "desc" }
-  }
-  return { sortBy, sortDir }
-}
 
 function formatTime(iso: string) {
   const d = new Date(iso)
@@ -144,13 +130,6 @@ export function AssistantChatPage() {
   const { error } = useMessage()
   const assistant = useAssistant(assistantId, !!assistantId)
 
-  const [conversationSort, setConversationSort] = useState<{ sortBy: AssistantConversationSortBy; sortDir: SortDir }>(() => {
-    try {
-      return parseConversationSort(localStorage.getItem(CONV_SORT_KEY))
-    } catch {
-      return { sortBy: "createdAt", sortDir: "desc" }
-    }
-  })
   const [conversationQuery, setConversationQuery] = useState("")
   const debouncedConversationQuery = useDebouncedValue(conversationQuery, 250)
 
@@ -173,15 +152,7 @@ export function AssistantChatPage() {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(CONV_SORT_KEY, `${conversationSort.sortBy}:${conversationSort.sortDir}`)
-    } catch {
-      // ignore
-    }
-  }, [conversationSort.sortBy, conversationSort.sortDir])
-
-  const conversations = useAssistantConversations(assistantId, conversationSort)
+  const conversations = useAssistantConversations(assistantId)
   const createConversation = useCreateAssistantConversation(assistantId)
   const deleteConversation = useDeleteAssistantConversation(assistantId)
   const renameConversation = useRenameAssistantConversation(assistantId)
@@ -279,14 +250,6 @@ export function AssistantChatPage() {
       typewriterTextRef.current += chunk
       setPendingAssistant((prev) => (prev ? { ...prev, content: typewriterTextRef.current } : prev))
     }, 16)
-  }
-
-  function toggleConversationSort(nextSortBy: AssistantConversationSortBy) {
-    setConversationSort((prev) => (prev.sortBy !== nextSortBy ? { sortBy: nextSortBy, sortDir: "asc" } : { sortBy: nextSortBy, sortDir: prev.sortDir === "asc" ? "desc" : "asc" }))
-  }
-  function conversationSortIndicator(forSortBy: AssistantConversationSortBy) {
-    if (conversationSort.sortBy !== forSortBy) return "↕"
-    return conversationSort.sortDir === "asc" ? "↑" : "↓"
   }
 
   function openCitationPopover(index: number, citations: ParsedCitation[], event: React.MouseEvent<HTMLButtonElement>) {
@@ -456,10 +419,6 @@ export function AssistantChatPage() {
           <div className="min-h-0 flex-1 overflow-auto p-2">
             {conversations.isLoading ? <LoadingText className="flex px-2 py-6">加载中</LoadingText> : conversations.isError ? <div className="px-2 py-6 text-center text-sm text-destructive">加载失败：请检查后端服务</div> : list.length ? (
               <div className="space-y-1">
-                <div className="mb-1 flex items-center justify-between px-2 py-1 text-xs text-muted-foreground">
-                  <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleConversationSort("title")} title="按标题排序">标题 <span>{conversationSortIndicator("title")}</span></button>
-                  <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleConversationSort("createdAt")} title="按时间排序">时间 <span>{conversationSortIndicator("createdAt")}</span></button>
-                </div>
                 {list.map((c) => {
                   const active = c.id === selectedConversationId
                   return (

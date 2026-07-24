@@ -41,20 +41,29 @@ function DataTable<T>({
   return (
     <DataTableContainer className={containerClassName}>
       <table className={cn("w-full table-fixed text-left text-sm", tableClassName)}>
-        <thead className="bg-muted/40">
-          <tr className="border-b">
+        <thead>
+          <tr className="border-b bg-muted">
             {columns.map((column) => (
-              <th key={column.key} className={cn("px-3 py-2 align-middle font-medium", column.className)}>
+              <th
+                key={column.key}
+                className={cn(
+                  "px-4 py-3 align-middle text-sm font-bold text-foreground",
+                  column.className,
+                )}
+              >
                 {column.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="font-normal">
           {data.map((item) => (
-            <tr key={getRowKey(item)} className="border-b last:border-b-0">
+            <tr key={getRowKey(item)} className="border-b font-normal last:border-b-0">
               {columns.map((column) => (
-                <td key={column.key} className={cn("px-3 py-2 align-middle", column.cellClassName)}>
+                <td
+                  key={column.key}
+                  className={cn("px-4 py-2.5 align-middle", column.cellClassName, "font-normal")}
+                >
                   {column.render(item)}
                 </td>
               ))}

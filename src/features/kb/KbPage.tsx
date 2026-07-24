@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowUpDown, FolderOpen, Pencil, Trash2 } from "lucide-react"
-import type { Kb, KbLinkedAssistant, KbSortBy, SortDir } from "@/api/kb"
+import { FolderOpen, Pencil, Trash2 } from "lucide-react"
+import type { Kb, KbLinkedAssistant } from "@/api/kb"
 import { getKbLinkedAssistants } from "@/api/kb"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
@@ -15,44 +15,15 @@ import { useDebouncedValue } from "@/lib/useDebouncedValue"
 
 type EditingState = { mode: "create" } | { mode: "edit"; kb: Kb } | { mode: "none" }
 
-const KB_SORT_KEY = "kb.listSort"
-
 function formatCharCountK(value: number) {
   if (value <= 0) return "0K"
   return `${(value / 1000).toFixed(value >= 1000 ? 1 : 2)}K`
 }
 
-function parseKbSort(raw: string | null): { sortBy: KbSortBy; sortDir: SortDir } {
-  if (!raw) return { sortBy: "createdAt", sortDir: "desc" }
-  const parts = raw.split(":")
-  const sortBy = parts[0] as KbSortBy
-  const sortDir = parts[1] as SortDir
-  const sortByOk = sortBy === "updatedAt" || sortBy === "createdAt" || sortBy === "name"
-  const sortDirOk = sortDir === "asc" || sortDir === "desc"
-  if (!sortByOk || !sortDirOk) return { sortBy: "createdAt", sortDir: "desc" }
-  return { sortBy, sortDir }
-}
-
 export function KbPage() {
   const navigate = useNavigate()
 
-  const [sort, setSort] = useState<{ sortBy: KbSortBy; sortDir: SortDir }>(() => {
-    try {
-      return parseKbSort(localStorage.getItem(KB_SORT_KEY))
-    } catch {
-      return { sortBy: "createdAt", sortDir: "desc" }
-    }
-  })
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(KB_SORT_KEY, `${sort.sortBy}:${sort.sortDir}`)
-    } catch {
-      // ignore localStorage failures
-    }
-  }, [sort.sortBy, sort.sortDir])
-
-  const kbList = useKbList(sort)
+  const kbList = useKbList()
   const createKb = useCreateKb()
   const updateKb = useUpdateKb()
   const setEnabled = useSetKbEnabled()
@@ -181,18 +152,6 @@ export function KbPage() {
     })
   }, [kbList.data, debouncedQuery])
 
-  function toggleSort(nextSortBy: KbSortBy) {
-    setSort((prev) => {
-      if (prev.sortBy !== nextSortBy) return { sortBy: nextSortBy, sortDir: "asc" }
-      return { sortBy: nextSortBy, sortDir: prev.sortDir === "asc" ? "desc" : "asc" }
-    })
-  }
-
-  function sortIndicator(forSortBy: KbSortBy) {
-    if (sort.sortBy !== forSortBy) return <ArrowUpDown className="h-3.5 w-3.5 opacity-70" />
-    return sort.sortDir === "asc" ? "↑" : "↓"
-  }
-
   const countLabel = useMemo(() => {
     const total = kbList.data?.length ?? 0
     const filtered = filteredList.length
@@ -201,27 +160,12 @@ export function KbPage() {
     return `${total} 个知识库`
   }, [kbList.data?.length, filteredList.length, debouncedQuery])
 
-  function sortableHeader(label: string, sortBy: KbSortBy) {
-    return (
-      <button
-        type="button"
-        className="inline-flex items-center gap-1 hover:text-foreground"
-        onClick={() => toggleSort(sortBy)}
-        title="排序"
-      >
-        <span>{label}</span>
-        <span className="text-xs">{sortIndicator(sortBy)}</span>
-      </button>
-    )
-  }
-
   const columns = useMemo<Array<DataTableColumn<Kb>>>(
     () => [
       {
         key: "name",
-        header: sortableHeader("名称", "name"),
+        header: "名称",
         className: "w-[10%]",
-        cellClassName: "font-medium",
         render: (kb) => (
           <div className="max-w-[18rem] truncate" title={kb.name}>
             {kb.name}
@@ -255,14 +199,14 @@ export function KbPage() {
       },
       {
         key: "createdAt",
-        header: sortableHeader("创建时间", "createdAt"),
+        header: "创建时间",
         className: "w-[14%]",
         cellClassName: "tabular-nums text-muted-foreground",
         render: (kb) => new Date(kb.createdAt).toLocaleString(),
       },
       {
         key: "updatedAt",
-        header: sortableHeader("修改时间", "updatedAt"),
+        header: "修改时间",
         className: "w-[14%]",
         cellClassName: "tabular-nums text-muted-foreground",
         render: (kb) => new Date(kb.updatedAt).toLocaleString(),
@@ -326,7 +270,7 @@ export function KbPage() {
         ),
       },
     ],
-    [checkingLinked, deleteKb.isPending, navigate, setEnabled.isError, setEnabled.isPending, sort.sortBy, sort.sortDir],
+    [checkingLinked, deleteKb.isPending, navigate, setEnabled.isError, setEnabled.isPending],
   )
   return (
     <div className="space-y-2">
