@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { LoaderCircle } from "lucide-react"
+import { LoaderCircle, Pencil, Trash2 } from "lucide-react"
 import type { KbItem } from "@/api/kb"
 import { extractKbFileText, getKbItemDetail } from "@/api/kb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
@@ -8,6 +8,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Dialog } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
 import { useDeleteKbItem, useKbItems, useSetKbItemEnabled } from "@/features/kb/queries"
 
 function formatCharCountK(value: number) {
@@ -103,14 +104,14 @@ export function KbDetailPage() {
         header: "启用状态",
         className: "w-[10%]",
         render: (item) => (
-          <span
-            className={[
-              "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-              item.enabled ? "bg-emerald-500/10 text-emerald-700" : "bg-zinc-500/10 text-zinc-700",
-            ].join(" ")}
-          >
-            {item.enabled ? "启用" : "禁用"}
-          </span>
+          <Switch
+            checked={item.enabled}
+            size="sm"
+            disabled={setEnabled.isPending || deleteItem.isPending}
+            aria-label={item.enabled ? "禁用文档" : "启用文档"}
+            title={item.enabled ? "禁用" : "启用"}
+            onCheckedChange={() => void onToggle(item.id, item.enabled)}
+          />
         ),
       },
       {
@@ -130,34 +131,30 @@ export function KbDetailPage() {
       {
         key: "actions",
         header: "操作",
-        className: "w-[20%]",
+        className: "w-[10%] text-center",
+        cellClassName: "text-center",
         render: (item) => (
-          <div className="flex gap-1.5 whitespace-nowrap">
+          <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => void onEdit(item.id)}
-              disabled={setEnabled.isPending || deleteItem.isPending}
+              disabled={setEnabled.isPending || deleteItem.isPending || editingItemId === item.id}
               loading={editingItemId === item.id}
-              loadingText="加载中"
+              title="编辑"
+              aria-label="编辑"
             >
-              编辑
+              <Pencil />
             </Button>
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onToggle(item.id, item.enabled)}
-              disabled={setEnabled.isPending || deleteItem.isPending}
-            >
-              {item.enabled ? "禁用" : "启用"}
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => setDeleting(item)}
               disabled={setEnabled.isPending || deleteItem.isPending}
+              title="删除"
+              aria-label="删除"
             >
-              删除
+              <Trash2 />
             </Button>
           </div>
         ),

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowUpDown } from "lucide-react"
+import { ArrowUpDown, FolderOpen, Pencil, Trash2 } from "lucide-react"
 import type { Kb, KbLinkedAssistant, KbSortBy, SortDir } from "@/api/kb"
 import { getKbLinkedAssistants } from "@/api/kb"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Dialog } from "@/components/ui/dialog"
 import { DialogActions } from "@/components/ui/dialog-actions"
+import { Switch } from "@/components/ui/switch"
 import { useCreateKb, useDeleteKb, useKbList, useSetKbEnabled, useUpdateKb } from "@/features/kb/queries"
 import { useDebouncedValue } from "@/lib/useDebouncedValue"
 
@@ -273,46 +274,55 @@ export function KbPage() {
       {
         key: "enabled",
         header: "状态",
-        className: "w-[6%]",
+        className: "w-[8%]",
         render: (kb) => (
-          <span
-            className={[
-              "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-              kb.enabled ? "bg-emerald-500/10 text-emerald-700" : "bg-zinc-500/10 text-zinc-700",
-            ].join(" ")}
-          >
-            {kb.enabled ? "启用" : "停用"}
-          </span>
+          <Switch
+            checked={kb.enabled}
+            size="sm"
+            disabled={setEnabled.isPending || checkingLinked}
+            aria-label={kb.enabled ? "停用知识库" : "启用知识库"}
+            title={kb.enabled ? "停用" : "启用"}
+            onCheckedChange={() => void handleToggleEnabled(kb)}
+          />
         ),
       },
       {
         key: "actions",
         header: "操作",
-        className: "w-[25%]",
+        className: "w-[12%] text-center",
+        cellClassName: "text-center",
         render: (kb) => (
           <>
-            <div className="flex items-center gap-1.5 whitespace-nowrap">
-              <Button variant="outline" size="sm" onClick={() => navigate(`/kb/${kb.id}`)} disabled={deleteKb.isPending}>
-                管理
-              </Button>
+            <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleToggleEnabled(kb)}
-                disabled={setEnabled.isPending || checkingLinked}
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => navigate(`/kb/${kb.id}`)}
+                disabled={deleteKb.isPending}
+                title="管理"
+                aria-label="管理"
               >
-                {kb.enabled ? "停用" : "启用"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => startEdit(kb)} disabled={setEnabled.isPending}>
-                设置
+                <FolderOpen />
               </Button>
               <Button
-                variant="destructive"
-                size="sm"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => startEdit(kb)}
+                disabled={setEnabled.isPending}
+                title="设置"
+                aria-label="设置"
+              >
+                <Pencil />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => void handleDelete(kb)}
                 disabled={setEnabled.isPending || deleteKb.isPending || checkingLinked}
+                title="删除"
+                aria-label="删除"
               >
-                删除
+                <Trash2 />
               </Button>
             </div>
             {setEnabled.isError ? <div className="mt-2 text-xs text-destructive">启停失败，请重试</div> : null}

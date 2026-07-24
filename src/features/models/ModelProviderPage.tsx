@@ -1,4 +1,5 @@
 ﻿import { useMemo, useState } from "react"
+import { Pencil, Trash2 } from "lucide-react"
 import type { ModelConfig, ModelConfigLinkedAssistant, ModelProvider } from "@/api/models"
 import { getModelConfigLinkedAssistants } from "@/api/models"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
@@ -106,19 +107,22 @@ export function ModelProviderPage() {
       {
         key: "actions",
         header: "操作",
-        className: "w-[18%]",
+        className: "w-[10%] text-center",
+        cellClassName: "text-center",
         render: (item) => (
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <Button variant="outline" size="sm" onClick={() => openEdit(item)}>
-              编辑
+          <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
+            <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)} title="编辑" aria-label="编辑">
+              <Pencil />
             </Button>
             <Button
-              variant="destructive"
-              size="sm"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => handleDelete(item)}
               disabled={deleteModel.isPending || checkingDeleteLinked}
+              title="删除"
+              aria-label="删除"
             >
-              删除
+              <Trash2 />
             </Button>
           </div>
         ),
