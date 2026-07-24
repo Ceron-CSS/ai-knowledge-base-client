@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import { RequireAuth } from "@/features/auth/RequireAuth"
 import { LoginPage } from "@/features/auth/LoginPage"
-import { AppLayout } from "@/features/layout/AppLayout"
+import { AppLayout } from "@/features/layout"
 import { AssistantListPage } from "@/features/assistants/AssistantListPage"
 import { AssistantEditPage } from "@/features/assistants/AssistantEditPage"
 import { KbPage } from "@/features/kb/KbPage"
