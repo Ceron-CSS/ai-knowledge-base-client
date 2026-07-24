@@ -3,6 +3,7 @@ import type { ModelConfig, ModelConfigLinkedAssistant, ModelProvider } from "@/a
 import { getModelConfigLinkedAssistants } from "@/api/models"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
+import { DialogActions } from "@/components/ui/dialog-actions"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Select } from "@/components/ui/select"
 import { useCreateModelConfig, useDeleteModelConfig, useModelConfigList, useUpdateModelConfig } from "@/features/models/queries"
@@ -345,25 +346,15 @@ export function ModelProviderPage() {
               </ul>
               <p className="text-sm text-muted-foreground">确定要继续删除吗？</p>
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
-                onClick={() => {
-                  setDeleting(null)
-                  setDeletingLinked([])
-                }}
-                disabled={deleteModel.isPending}
-              >
-                取消
-              </button>
-              <button
-                className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                onClick={confirmDelete}
-                disabled={deleteModel.isPending}
-              >
-                {deleteModel.isPending ? "删除中..." : "确认删除"}
-              </button>
-            </div>
+            <DialogActions
+              confirmLabel="确认删除"
+              pending={deleteModel.isPending}
+              onCancel={() => {
+                setDeleting(null)
+                setDeletingLinked([])
+              }}
+              onConfirm={confirmDelete}
+            />
           </>
         ) : null}
       </Dialog>

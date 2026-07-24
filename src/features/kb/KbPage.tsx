@@ -6,6 +6,7 @@ import { getKbLinkedAssistants } from "@/api/kb"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { useCreateKb, useDeleteKb, useKbList, useSetKbEnabled, useUpdateKb } from "@/features/kb/queries"
 import { Dialog } from "@/components/ui/dialog"
+import { DialogActions } from "@/components/ui/dialog-actions"
 import { useDebouncedValue } from "@/lib/useDebouncedValue"
 
 type EditingState =
@@ -297,18 +298,12 @@ export function KbPage() {
               <p className="text-sm text-muted-foreground">确定要继续删除吗？</p>
               {deleteKb.isError ? <div className="text-sm text-destructive">删除失败，请重试</div> : null}
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={cancelDelete} disabled={deleteKb.isPending}>
-                取消
-              </button>
-              <button
-                className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                onClick={confirmDelete}
-                disabled={deleteKb.isPending}
-              >
-                {deleteKb.isPending ? "删除中..." : "确认删除"}
-              </button>
-            </div>
+            <DialogActions
+              confirmLabel="确认删除"
+              pending={deleteKb.isPending}
+              onCancel={cancelDelete}
+              onConfirm={confirmDelete}
+            />
           </>
         ) : null}
       </Dialog>
@@ -340,22 +335,12 @@ export function KbPage() {
               </ul>
               <p className="text-sm text-muted-foreground">确定要继续停用吗？</p>
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
-                onClick={() => setDisablingKb(null)}
-                disabled={setEnabled.isPending}
-              >
-                取消
-              </button>
-              <button
-                className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                onClick={confirmDisable}
-                disabled={setEnabled.isPending}
-              >
-                {setEnabled.isPending ? "处理中..." : "确认停用"}
-              </button>
-            </div>
+            <DialogActions
+              confirmLabel="确认停用"
+              pending={setEnabled.isPending}
+              onCancel={() => setDisablingKb(null)}
+              onConfirm={confirmDisable}
+            />
           </>
         ) : null}
       </Dialog>

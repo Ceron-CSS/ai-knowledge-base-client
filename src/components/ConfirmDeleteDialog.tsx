@@ -1,4 +1,5 @@
-﻿import { Dialog } from "@/components/ui/dialog"
+import { DialogActions } from "@/components/ui/dialog-actions"
+import { Dialog } from "@/components/ui/dialog"
 
 export type ConfirmDeleteDialogProps = {
   open: boolean
@@ -33,18 +34,13 @@ export function ConfirmDeleteDialog({
       description={description}
     >
       {errorText ? <div className="text-sm text-destructive">{errorText}</div> : null}
-      <div className="mt-4 flex justify-end gap-2">
-        <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={onCancel} disabled={confirming}>
-          {cancelLabel}
-        </button>
-        <button
-          className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
-          onClick={onConfirm}
-          disabled={confirming}
-        >
-          {confirming ? "删除中..." : confirmLabel}
-        </button>
-      </div>
+      <DialogActions
+        cancelLabel={cancelLabel}
+        confirmLabel={confirmLabel}
+        pending={confirming}
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      />
     </Dialog>
   )
 }
