@@ -2,6 +2,8 @@
 import { useNavigate, useParams } from "react-router-dom"
 import type { Assistant } from "@/api/assistants"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { Button } from "@/components/ui/button"
+import { LoadingText } from "@/components/ui/loading-text"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { Select } from "@/components/ui/select"
 import { useAssistant, useCreateAssistant, usePublishAssistant, useUnpublishAssistant, useUpdateAssistant } from "@/features/assistants/queries"
@@ -242,7 +244,7 @@ export function AssistantEditPage() {
       <div className="rounded-lg border bg-background p-4">
         <div className="grid gap-6">
           {!isNew && existingQuery.isLoading ? (
-            <div className="text-sm text-muted-foreground">加载中...</div>
+            <LoadingText className="justify-start">加载中</LoadingText>
           ) : !isNew && existingQuery.isError ? (
             <div className="text-sm text-destructive">加载失败：请检查后端服务</div>
           ) : null}
@@ -277,7 +279,7 @@ export function AssistantEditPage() {
             <div className="text-sm font-medium">知识库关联</div>
             <div className="mt-3">
               {kbList.isLoading ? (
-                <div className="text-sm text-muted-foreground">加载知识库列表中...</div>
+                <LoadingText className="justify-start">加载知识库列表中</LoadingText>
               ) : kbList.isError ? (
                 <div className="text-sm text-destructive">加载失败：请确认后端服务可用</div>
               ) : kbList.data?.length ? (
@@ -311,7 +313,7 @@ export function AssistantEditPage() {
                   value={modelConfigId}
                   onValueChange={setModelConfigId}
                   options={configOptions}
-                  placeholder={modelConfigs.isLoading ? "加载模型配置中..." : "请选择模型配置"}
+                  placeholder={modelConfigs.isLoading ? "加载模型配置中" : "请选择模型配置"}
                   disabled={!configOptions.length || modelConfigs.isLoading}
                 />
                 {!configOptions.length && !modelConfigs.isLoading ? (
@@ -342,32 +344,40 @@ export function AssistantEditPage() {
           {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
           <div className="flex justify-end gap-2">
-            <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60" onClick={() => navigate("/assistants")} disabled={submitting}>
+            <Button variant="outline" size="lg" onClick={() => navigate("/assistants")} disabled={submitting}>
               取消
-            </button>
-            <button
-              className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60 disabled:opacity-50"
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
               onClick={save}
               disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
+              loading={createAssistant.isPending || updateAssistant.isPending}
+              loadingText="保存中"
             >
               保存
-            </button>
+            </Button>
             {!isNew && isPublished ? (
-              <button
-                className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
+              <Button
+                variant="destructive"
+                size="lg"
                 onClick={handleUnpublish}
                 disabled={submitting}
+                loading={unpublishAssistant.isPending}
+                loadingText="取消发布中"
               >
                 取消发布
-              </button>
+              </Button>
             ) : null}
-            <button
-              className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            <Button
+              size="lg"
               onClick={handlePublish}
               disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
+              loading={submitting && !unpublishAssistant.isPending}
+              loadingText={isPublished ? "重新发布中" : "发布中"}
             >
               {isPublished ? "重新发布" : "发布"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

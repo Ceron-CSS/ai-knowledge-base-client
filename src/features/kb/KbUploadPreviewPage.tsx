@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { Button } from "@/components/ui/button"
+import { LoadingText } from "@/components/ui/loading-text"
 import { MultiSelect } from "@/components/ui/multi-select"
 import {
   createKbItem,
@@ -245,26 +247,32 @@ export function KbUploadPreviewPage() {
               />
             </div>
 
-            <button
-              className="w-full shrink-0 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            <Button
+              className="w-full shrink-0"
+              size="lg"
               onClick={onGenerate}
-              disabled={!canPreview}
+              disabled={!canPreview && !loading}
+              loading={loading}
+              loadingText="生成中"
             >
-             生成预览
-            </button>
-            <button
-              className="w-full shrink-0 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              生成预览
+            </Button>
+            <Button
+              className="w-full shrink-0"
+              size="lg"
               onClick={onSave}
-              disabled={saving || loading || chunks.length === 0 || !previewGenerated}
+              disabled={loading || chunks.length === 0 || !previewGenerated}
+              loading={saving}
+              loadingText="保存中"
             >
               保存到知识库
-            </button>
+            </Button>
           </div>
         </section>
 
         <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-background p-4">
           <div className="mb-3 text-sm text-muted-foreground">
-            {loading ? "正在流式返回分片..." : chunks.length ? `共 ${chunks.length} 个分片` : text.trim() ? "原始内容预览" : "点击左侧按钮开始预览"}
+            {loading ? <LoadingText className="justify-start">{"\u6b63\u5728\u751f\u6210\u5206\u7247"}</LoadingText> : chunks.length ? `${"\u5171"} ${chunks.length} ${"\u4e2a\u5206\u7247"}` : text.trim() ? "\u539f\u59cb\u5185\u5bb9\u9884\u89c8" : "\u70b9\u51fb\u5de6\u4fa7\u6309\u94ae\u5f00\u59cb\u9884\u89c8"}
           </div>
           {error ? <div className="mb-3 text-sm text-destructive">{error}</div> : null}
           {saveError ? <div className="mb-3 text-sm text-destructive">{saveError}</div> : null}

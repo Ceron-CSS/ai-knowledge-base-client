@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { getGithubLoginUrl, login, register } from "@/api/auth"
 import { HttpError } from "@/api/http"
+import { Button } from "@/components/ui/button"
 import { useAuth } from "@/features/auth/authContext"
 import { consumePostLoginRedirect } from "@/features/auth/redirectToLogin"
 
@@ -181,22 +182,19 @@ export function LoginPage() {
             {oauthErrorText ? <div className="mt-2 text-sm text-destructive">{oauthErrorText}</div> : null}
           </div>
 
-          <button
-            className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          <Button
+            className="mt-4 w-full"
+            size="lg"
             disabled={!canSubmit}
+            loading={mode === "login" ? loginMutation.isPending : registerMutation.isPending}
+            loadingText={mode === "login" ? "正在登录" : "正在注册"}
             onClick={() => {
               if (mode === "login") loginMutation.mutate()
               if (mode === "register") registerMutation.mutate()
             }}
           >
-            {mode === "login"
-              ? loginMutation.isPending
-                ? "正在登录..."
-                : "登录"
-              : registerMutation.isPending
-                ? "正在注册..."
-                : "注册"}
-          </button>
+            {mode === "login" ? "登录" : "注册"}
+          </Button>
 
           {mode === "login" ? (
             <>

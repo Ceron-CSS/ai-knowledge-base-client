@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query"
 import { changePassword } from "@/api/auth"
 import { useAuth } from "@/features/auth/authContext"
 import { OnboardingGuide } from "@/features/onboarding/OnboardingGuide"
+import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 
 const navItems = [
@@ -326,13 +327,16 @@ export function AppLayout() {
             {pwdMutation.error instanceof Error ? pwdMutation.error.message : "修改失败"}
           </div>
         ) : null}
-        <button
-          className="mt-4 w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-          disabled={!canSubmit || pwdMutation.isPending}
+        <Button
+          className="mt-4 w-full"
+          size="lg"
+          disabled={!canSubmit}
+          loading={pwdMutation.isPending}
+          loadingText="提交中"
           onClick={() => pwdMutation.mutate()}
         >
-          {pwdMutation.isPending ? "提交中..." : "修改密码"}
-        </button>
+          修改密码
+        </Button>
       </Dialog>
     </div>
   )

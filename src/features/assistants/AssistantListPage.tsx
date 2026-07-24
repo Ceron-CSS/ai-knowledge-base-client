@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Ban, Bot, CheckCircle2, Clock, MoreHorizontal, Pencil, Rocket, Trash2 } from "lucide-react"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
+import { LoadingText } from "@/components/ui/loading-text"
 import type { Assistant } from "@/api/assistants"
 import { useAssistantList, useDeleteAssistant, usePublishAssistant, useUnpublishAssistant } from "@/features/assistants/queries"
 import { useMessage } from "@/hooks/use-message"
@@ -123,7 +124,7 @@ export function AssistantListPage() {
       </div>
 
       {assistants.isLoading ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
+        <div className="flex rounded-lg border bg-background px-4 py-10"><LoadingText className="mx-auto">加载中</LoadingText></div>
       ) : assistants.isError ? (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">加载失败，请检查后端服务</div>
       ) : filteredItems.length ? (

@@ -5,6 +5,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
 import { MarkdownMessage } from "@/components/ui/markdown-message"
+import { LoadingText } from "@/components/ui/loading-text"
 import {
   streamAssistantReply,
   uploadAssistantFileForExtraction,
@@ -432,7 +433,7 @@ export function AssistantChatPage() {
           <div className="border-b p-3">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 truncate text-sm font-medium" title={assistant.data?.name ?? ""}>
-                {assistant.isLoading ? "加载中..." : assistant.data?.name ?? "问答助手"}
+                {assistant.isLoading ? <LoadingText className="justify-start">加载中</LoadingText> : assistant.data?.name ?? "问答助手"}
               </div>
               <button className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm hover:bg-muted/60" onClick={startNewConversation} disabled={createConversation.isPending} title="新对话">
                 <MessageCirclePlus className="h-4 w-4" />新对话
@@ -445,7 +446,7 @@ export function AssistantChatPage() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto p-2">
-            {conversations.isLoading ? <div className="px-2 py-6 text-center text-sm text-muted-foreground">加载中...</div> : conversations.isError ? <div className="px-2 py-6 text-center text-sm text-destructive">加载失败：请检查后端服务</div> : list.length ? (
+            {conversations.isLoading ? <LoadingText className="flex px-2 py-6">加载中</LoadingText> : conversations.isError ? <div className="px-2 py-6 text-center text-sm text-destructive">加载失败：请检查后端服务</div> : list.length ? (
               <div className="space-y-1">
                 <div className="mb-1 flex items-center justify-between px-2 py-1 text-xs text-muted-foreground">
                   <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleConversationSort("title")} title="按标题排序">标题 <span>{conversationSortIndicator("title")}</span></button>
@@ -491,7 +492,7 @@ export function AssistantChatPage() {
           </div>
 
           <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
-            {messagesQuery.isLoading && selectedConversationId ? <div className="text-center text-sm text-muted-foreground">加载中...</div> : messagesQuery.isError ? <div className="text-center text-sm text-destructive">加载失败，请检查后端服务</div> : combinedMessages.length ? combinedMessages.map((m) => {
+            {messagesQuery.isLoading && selectedConversationId ? <LoadingText className="flex w-full">加载中</LoadingText> : messagesQuery.isError ? <div className="text-center text-sm text-destructive">加载失败，请检查后端服务</div> : combinedMessages.length ? combinedMessages.map((m) => {
               const parsed = parseMessageContent(m.content)
               return (
                 <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>

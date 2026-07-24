@@ -5,6 +5,7 @@ import { BookOpen, Bot, ChevronRight, Cpu, Database, FileText, Layers, Search, S
 import { getDashboardStats } from "@/api/stats"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoadingText } from "@/components/ui/loading-text"
 import {
   ChartContainer,
   ChartTooltip,
@@ -83,7 +84,7 @@ export function HomePage() {
     return (
       <div className="space-y-2">
         <Breadcrumb items={[{ label: "主页" }]} />
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">加载中...</div>
+        <div className="flex rounded-lg border bg-background px-4 py-10"><LoadingText className="mx-auto">加载中</LoadingText></div>
       </div>
     )
   }
