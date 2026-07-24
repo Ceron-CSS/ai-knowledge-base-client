@@ -1,6 +1,12 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { AuthContext } from "@/features/auth/authContext"
-import { clearAccessToken, getAccessToken, setAccessToken } from "@/features/auth/authStorage"
+import {
+  AUTH_STORAGE_EVENT,
+  clearAccessToken,
+  getAccessToken,
+  readAccessTokenPayload,
+  setAccessToken,
+} from "@/features/auth/authStorage"
 import { redirectToLogin } from "@/features/auth/redirectToLogin"
 
 function readTokenPayload(token: string | null): {
@@ -9,25 +15,32 @@ function readTokenPayload(token: string | null): {
   provider: "local" | "github" | null
 } {
   if (!token) return { username: null, displayName: null, provider: null }
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1] ?? "")) as {
-      username?: unknown
-      displayName?: unknown
-      provider?: unknown
-    }
-    return {
-      username: typeof payload.username === "string" ? payload.username : null,
-      displayName: typeof payload.displayName === "string" ? payload.displayName : null,
-      provider: payload.provider === "github" ? "github" : "local",
-    }
-  } catch {
+  const payload = readAccessTokenPayload(token)
+  if (!payload) {
     return { username: null, displayName: null, provider: "local" }
+  }
+  return {
+    username: typeof payload.username === "string" ? payload.username : null,
+    displayName: typeof payload.displayName === "string" ? payload.displayName : null,
+    provider: payload.provider === "github" ? "github" : "local",
   }
 }
 
 export function AuthProvider(props: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getAccessToken())
   const { username, displayName, provider } = readTokenPayload(token)
+
+  useEffect(() => {
+    const syncToken = () => setToken(getAccessToken())
+
+    window.addEventListener(AUTH_STORAGE_EVENT, syncToken)
+    window.addEventListener("storage", syncToken)
+
+    return () => {
+      window.removeEventListener(AUTH_STORAGE_EVENT, syncToken)
+      window.removeEventListener("storage", syncToken)
+    }
+  }, [])
 
   const value = useMemo(
     () => ({
