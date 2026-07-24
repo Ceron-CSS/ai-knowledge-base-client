@@ -218,7 +218,9 @@ export function AssistantChatPage() {
   }, [pendingFilePreviews])
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
-  useEffect(() => bottomRef.current?.scrollIntoView({ block: "end" }), [combinedMessages.length, pendingAssistant?.content])
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" })
+  }, [combinedMessages.length, pendingAssistant?.content])
 
   useEffect(
     () => () => {

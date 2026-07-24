@@ -3,7 +3,6 @@ import type { ModelConfig, ModelConfigLinkedAssistant, ModelProvider } from "@/a
 import { getModelConfigLinkedAssistants } from "@/api/models"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
-import { DialogActions } from "@/components/ui/dialog-actions"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
@@ -186,10 +185,12 @@ export function ModelProviderPage() {
         setDeleting(config)
         setDeletingLinked(linked)
       } else {
-        deleteModel.mutate({ id: config.id })
+        setDeleting(config)
+        setDeletingLinked([])
       }
     } catch {
-      deleteModel.mutate({ id: config.id })
+      setDeleting(config)
+      setDeletingLinked([])
     } finally {
       setCheckingDeleteLinked(false)
     }
@@ -315,48 +316,38 @@ export function ModelProviderPage() {
         </div>
       </Dialog>
 
-      <Dialog
+      <ConfirmDeleteDialog
         open={!!deleting && deletingLinked.length > 0}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleting(null)
-            setDeletingLinked([])
-          }
+        onCancel={() => {
+          setDeleting(null)
+          setDeletingLinked([])
         }}
+        onConfirm={confirmDelete}
         title="确认删除供应商配置"
+        errorText={deleteModel.isError ? "删除失败，请重试" : null}
+        confirming={deleteModel.isPending}
       >
         {deleting && deletingLinked.length > 0 ? (
-          <>
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                以下问答助手正在使用「{providerLabel(deleting.provider)}」配置，删除后将<b>取消发布</b>这些助手：
-              </p>
-              <ul className="max-h-36 overflow-auto rounded-md border bg-muted/30 p-2 text-sm">
-                {deletingLinked.map((a) => (
-                  <li key={a.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5">
-                    <span className="truncate">{a.name}</span>
-                    {a.published ? (
-                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">已发布</span>
-                    ) : (
-                      <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">未发布</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <p className="text-sm text-muted-foreground">确定要继续删除吗？</p>
-            </div>
-            <DialogActions
-              confirmLabel="确认删除"
-              pending={deleteModel.isPending}
-              onCancel={() => {
-                setDeleting(null)
-                setDeletingLinked([])
-              }}
-              onConfirm={confirmDelete}
-            />
-          </>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              以下问答助手正在使用「{providerLabel(deleting.provider)}」配置，删除后将<b>取消发布</b>这些助手：
+            </p>
+            <ul className="max-h-36 overflow-auto rounded-md border bg-muted/30 p-2 text-sm">
+              {deletingLinked.map((a) => (
+                <li key={a.id} className="flex items-center gap-2 rounded-sm px-2 py-1.5">
+                  <span className="truncate">{a.name}</span>
+                  {a.published ? (
+                    <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">已发布</span>
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-700">未发布</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="text-sm text-muted-foreground">确定要继续删除吗？</p>
+          </div>
         ) : null}
-      </Dialog>
+      </ConfirmDeleteDialog>
 
       <ConfirmDeleteDialog
         open={!!deleting && deletingLinked.length === 0}

@@ -9,6 +9,7 @@ export type ConfirmDeleteDialogProps = {
   confirmLabel?: string
   cancelLabel?: string
   confirming?: boolean
+  children?: React.ReactNode
   onCancel: () => void
   onConfirm: () => void
 }
@@ -21,6 +22,7 @@ export function ConfirmDeleteDialog({
   confirmLabel = "确认删除",
   cancelLabel = "取消",
   confirming = false,
+  children,
   onCancel,
   onConfirm,
 }: ConfirmDeleteDialogProps) {
@@ -31,9 +33,10 @@ export function ConfirmDeleteDialog({
         if (!next) onCancel()
       }}
       title={title}
-      description={description}
+      description={children ? undefined : description}
     >
-      {errorText ? <div className="text-sm text-destructive">{errorText}</div> : null}
+      {children ?? null}
+      {errorText ? <div className={children ? "mt-3 text-sm text-destructive" : "text-sm text-destructive"}>{errorText}</div> : null}
       <DialogActions
         cancelLabel={cancelLabel}
         confirmLabel={confirmLabel}
