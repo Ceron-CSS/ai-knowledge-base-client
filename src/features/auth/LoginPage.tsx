@@ -4,8 +4,11 @@ import { useMutation } from "@tanstack/react-query"
 import { getGithubLoginUrl, login, register } from "@/api/auth"
 import { HttpError } from "@/api/http"
 import { Button } from "@/components/ui/button"
+import { Field } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import { useAuth } from "@/features/auth/authContext"
 import { consumePostLoginRedirect } from "@/features/auth/redirectToLogin"
+import { cn } from "@/lib/utils"
 
 export function LoginPage() {
   const auth = useAuth()
@@ -102,49 +105,68 @@ export function LoginPage() {
 
   const errorText = mode === "login" ? loginErrorText : registerErrorText
 
+  const switchMode = (next: "login" | "register") => {
+    setMode(next)
+    if (next === "login") registerMutation.reset()
+    else loginMutation.reset()
+  }
+
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
-      <div className="flex w-full max-w-sm flex-col rounded-lg border bg-background p-6" style={{ minHeight: 400 }}>
-        <div className="flex items-center justify-center gap-2">
-          <button
-            className={`rounded-md px-3 py-1 text-sm ${mode === "login" ? "bg-primary text-primary-foreground" : "border"}`}
-            type="button"
-            onClick={() => {
-              setMode("login")
-              registerMutation.reset()
-            }}
-          >
-            登录
-          </button>
-          <button
-            className={`rounded-md px-3 py-1 text-sm ${mode === "register" ? "bg-primary text-primary-foreground" : "border"}`}
-            type="button"
-            onClick={() => {
-              setMode("register")
-              loginMutation.reset()
-            }}
-          >
-            注册
-          </button>
+    <div className="relative flex min-h-svh items-center justify-center p-6 sm:p-10">
+      <img
+        src="/login-bg.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+      />
+
+      <div className="relative w-full max-w-md -translate-y-2.5">
+        <div className="mb-4 flex flex-col items-center text-center">
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight">AI 知识库管理平台</h1>
         </div>
 
-        <div className="flex flex-1 flex-col justify-center">
-          <div className="flex flex-col gap-2">
-            <div>
-              <label className="block text-sm font-medium">用户名</label>
-              <input
-                className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+        <div className="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur-sm ring-1 ring-foreground/5 sm:p-8">
+          <div
+            className="relative grid grid-cols-2 rounded-lg bg-[#F0F5FF] p-1"
+            role="tablist"
+            aria-label="登录或注册"
+          >
+            <div
+              aria-hidden="true"
+              className={cn(
+                "absolute top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-md bg-white shadow-[0_0_6px_rgba(0,0,0,0.08)] transition-[left] duration-200 ease-out",
+                mode === "login" ? "left-1" : "left-1/2",
+              )}
+            />
+            {(["login", "register"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={mode === tab}
+                className={cn(
+                  "relative z-10 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  mode === tab ? "text-[#4a8ef6]" : "text-muted-foreground hover:text-[#4a8ef6]/70",
+                )}
+                onClick={() => switchMode(tab)}
+              >
+                {tab === "login" ? "登录" : "注册"}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 space-y-4">
+            <Field label="用户名">
+              <Input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="请输入用户名"
                 autoComplete="username"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium">密码</label>
-              <input
-                className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            <Field label="密码">
+              <Input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="请输入密码"
@@ -156,13 +178,14 @@ export function LoginPage() {
                   if (mode === "register") registerMutation.mutate()
                 }}
               />
-            </div>
+            </Field>
 
             {mode === "register" ? (
-              <div>
-                <label className="block text-sm font-medium">确认密码</label>
-                <input
-                  className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+              <Field
+                label="确认密码"
+                error={password && password2 && password !== password2 ? "两次密码不一致" : undefined}
+              >
+                <Input
                   value={password2}
                   onChange={(e) => setPassword2(e.target.value)}
                   placeholder="请再次输入密码"
@@ -172,18 +195,15 @@ export function LoginPage() {
                     if (e.key === "Enter") registerMutation.mutate()
                   }}
                 />
-                {password && password2 && password !== password2 ? (
-                  <div className="mt-2 text-sm text-destructive">两次密码不一致</div>
-                ) : null}
-              </div>
+              </Field>
             ) : null}
 
-            {errorText ? <div className="mt-2 text-sm text-destructive">{errorText}</div> : null}
-            {oauthErrorText ? <div className="mt-2 text-sm text-destructive">{oauthErrorText}</div> : null}
+            {errorText ? <div className="text-sm text-destructive">{errorText}</div> : null}
+            {oauthErrorText ? <div className="text-sm text-destructive">{oauthErrorText}</div> : null}
           </div>
 
           <Button
-            className="mt-4 w-full"
+            className="mt-6 h-10 w-full bg-[#4a8ef6] text-white hover:bg-[#4083e8] disabled:bg-[rgb(148,191,255)] disabled:text-white disabled:opacity-100"
             size="lg"
             disabled={!canSubmit}
             loading={mode === "login" ? loginMutation.isPending : registerMutation.isPending}
@@ -198,13 +218,13 @@ export function LoginPage() {
 
           {mode === "login" ? (
             <>
-              <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="h-px flex-1 bg-border" />
                 <span>或者</span>
                 <span className="h-px flex-1 bg-border" />
               </div>
               <button
-                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#24292f] px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1f2428] focus:outline-none focus:ring-2 focus:ring-[#24292f]/30"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#383E4A] px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1f2428] focus:outline-none focus-visible:ring-3 focus-visible:ring-[#24292f]/30"
                 type="button"
                 onClick={() => {
                   window.location.assign(getGithubLoginUrl(from))
