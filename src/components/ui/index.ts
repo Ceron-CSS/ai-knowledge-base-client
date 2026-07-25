@@ -16,11 +16,10 @@ export { Field } from "./field"
 export { Input } from "./input"
 export { LoadingText } from "./loading-text"
 export { MarkdownMessage } from "./markdown-message"
-export { MessageCenter } from "./message"
+export { MessageCenter, message } from "./message"
 export { MultiSelect, type MultiSelectOption } from "./multi-select"
 export { Select, type SelectOption } from "./select"
 export { Switch } from "./switch"
-export { Toaster } from "./toaster"
 export {
   ChartContainer,
   ChartLegend,

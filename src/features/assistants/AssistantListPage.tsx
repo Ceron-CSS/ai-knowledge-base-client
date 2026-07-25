@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import type { Assistant } from "@/api/assistants"
 import { useAssistantList, useDeleteAssistant, usePublishAssistant, useUnpublishAssistant } from "@/features/assistants/queries"
-import { useMessage } from "@/hooks/use-message"
+import { message } from "@/components/ui/message"
 
 function yyyyMmDd(iso: string) {
   const d = new Date(iso)
@@ -19,7 +19,6 @@ function yyyyMmDd(iso: string) {
 
 export function AssistantListPage() {
   const navigate = useNavigate()
-  const { error } = useMessage()
   const assistants = useAssistantList()
   const deleteAssistant = useDeleteAssistant()
   const publishAssistant = usePublishAssistant()
@@ -85,7 +84,7 @@ export function AssistantListPage() {
 
   function goChat(a: Assistant) {
     if (!a.publishedAt) {
-      error("该问答助手尚未发布，发布后才能进入对话", 3000)
+      message.error("该问答助手尚未发布，发布后才能进入对话", 3000)
       return
     }
     navigate(`/assistants/${a.id}/chat`)

@@ -25,7 +25,7 @@ import {
 } from "@/features/assistantChat/queries"
 import { useQueryClient } from "@tanstack/react-query"
 import { useDebouncedValue } from "@/lib/useDebouncedValue"
-import { useMessage } from "@/hooks/use-message"
+import { message } from "@/components/ui/message"
 
 const ATTACHMENT_META_SEPARATOR = "\n\n<assistant-attachments-meta>"
 const ATTACHMENT_META_END = "</assistant-attachments-meta>"
@@ -127,7 +127,6 @@ export function AssistantChatPage() {
   const selectedConversationId = searchParams.get("c") ?? ""
 
   const qc = useQueryClient()
-  const { error } = useMessage()
   const assistant = useAssistant(assistantId, !!assistantId)
 
   const [conversationQuery, setConversationQuery] = useState("")
@@ -266,7 +265,7 @@ export function AssistantChatPage() {
 
   async function startNewConversation() {
     if (blockedByUnpublished) {
-      error("该问答助手尚未发布，无法新建对话", 3000)
+      message.error("该问答助手尚未发布，无法新建对话", 3000)
       return
     }
     const created = await createConversation.mutateAsync()
@@ -296,7 +295,7 @@ export function AssistantChatPage() {
 
   async function send() {
     if (blockedByUnpublished) {
-      error("该问答助手尚未发布，无法发送消息", 3000)
+      message.error("该问答助手尚未发布，无法发送消息", 3000)
       return
     }
     const text = input.trim()
@@ -313,7 +312,7 @@ export function AssistantChatPage() {
     const isVisionModel = (assistant.data?.baseModel?.trim() ?? "").startsWith("qwen-vl-")
     if (imageFiles.length && !isVisionModel) {
       setSending(false)
-      error("当前模型不支持图片理解，请切换到 qwen-vl-* 模型", 3000)
+      message.error("当前模型不支持图片理解，请切换到 qwen-vl-* 模型", 3000)
       return
     }
 
@@ -531,7 +530,7 @@ export function AssistantChatPage() {
                   if (!files.length) return
                   const accepted = files.filter((f) => f.size <= MAX_ATTACHMENT_SIZE)
                   const rejected = files.length - accepted.length
-                  if (rejected > 0) error(rejected === 1 ? "文件不能超过 5MB" : `${rejected} 个文件超过 5MB，已忽略`, 3000)
+                  if (rejected > 0) message.error(rejected === 1 ? "文件不能超过 5MB" : `${rejected} 个文件超过 5MB，已忽略`, 3000)
                   if (accepted.length) setPendingFiles((prev) => [...prev, ...accepted])
                   e.currentTarget.value = ""
                 }}
