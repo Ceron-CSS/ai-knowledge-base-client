@@ -1,7 +1,5 @@
 import { getApiBaseUrl } from "@/app/env"
-import { getAccessToken } from "@/features/auth/authStorage"
-import { clearAccessToken } from "@/features/auth/authStorage"
-import { redirectToLogin } from "@/features/auth/redirectToLogin"
+import { clearAccessToken, getAccessToken, redirectToLogin } from "@/features/auth"
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
 

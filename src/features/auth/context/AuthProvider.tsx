@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
-import { AuthContext } from "@/features/auth/authContext"
+import { AuthContext } from "./authContext"
+import { redirectToLogin } from "../lib/redirect"
 import {
   AUTH_STORAGE_EVENT,
   clearAccessToken,
   getAccessToken,
   readAccessTokenPayload,
   setAccessToken,
-} from "@/features/auth/authStorage"
-import { redirectToLogin } from "@/features/auth/redirectToLogin"
+} from "../lib/storage"
 
 function readTokenPayload(token: string | null): {
   username: string | null
@@ -59,7 +59,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
         redirectToLogin("/")
       },
     }),
-    [displayName, provider, token, username]
+    [displayName, provider, token, username],
   )
 
   return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>

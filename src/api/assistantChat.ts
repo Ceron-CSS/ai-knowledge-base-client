@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from "@/app/env"
-import { getAccessToken } from "@/features/auth/authStorage"
+import { getAccessToken } from "@/features/auth"
 import { requestJson } from "@/api/http"
 
 export type AssistantConversation = {

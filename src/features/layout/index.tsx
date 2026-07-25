@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom"
-import { useAuth } from "@/features/auth/authContext"
+import { useAuth } from "@/features/auth"
 import { OnboardingGuide, useOnboarding } from "@/features/onboarding"
 import { AppSidebar } from "./components/AppSidebar"
 import { useSidebarCollapsed } from "./hooks/useSidebarCollapsed"

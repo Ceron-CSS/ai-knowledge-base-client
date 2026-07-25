@@ -2,17 +2,19 @@ import { useEffect, useMemo, useState } from "react"
 import { Navigate, useLocation } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { getGithubLoginUrl, login, register } from "@/api/auth"
-import { HttpError } from "@/api/http"
 import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useAuth } from "@/features/auth/authContext"
-import { consumePostLoginRedirect } from "@/features/auth/redirectToLogin"
+import { useAuth } from "../context/authContext"
+import { usePasswordPolicyConfig } from "../hooks/usePasswordPolicyConfig"
+import { consumePostLoginRedirect } from "../lib/redirect"
+import { getPasswordFieldError, validatePasswordPolicy } from "../lib/passwordPolicy"
 import { cn } from "@/lib/utils"
 
 export function LoginPage() {
   const auth = useAuth()
   const location = useLocation()
+  const { data: passwordPolicy } = usePasswordPolicyConfig()
   const [mode, setMode] = useState<"login" | "register">("login")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -68,11 +70,24 @@ export function LoginPage() {
   if (auth.isAuthed) return <Navigate to={from} replace />
 
   const trimmedUsername = username.trim()
+  const registerPasswordOptions = trimmedUsername ? { userInputs: [trimmedUsername] } : undefined
   const passwordsMatch = password && password2 && password === password2
+  const registerPasswordCheck =
+    mode === "register" && passwordPolicy
+      ? validatePasswordPolicy(password, passwordPolicy, registerPasswordOptions)
+      : { ok: true as const }
   const canSubmit =
     mode === "login"
       ? Boolean(trimmedUsername && password && !loginMutation.isPending)
-      : Boolean(trimmedUsername && password && password2 && passwordsMatch && !registerMutation.isPending)
+      : Boolean(
+          trimmedUsername &&
+            password &&
+            password2 &&
+            passwordsMatch &&
+            passwordPolicy &&
+            registerPasswordCheck.ok &&
+            !registerMutation.isPending,
+        )
 
   const loginErrorText =
     loginMutation.isError
@@ -82,28 +97,25 @@ export function LoginPage() {
       : null
 
   const registerErrorText = registerMutation.isError
-    ? registerMutation.error instanceof HttpError
-      ? registerMutation.error.code === "USERNAME_TAKEN"
-        ? "该用户名已被注册"
-        : registerMutation.error.code === "WEAK_PASSWORD"
-          ? "密码至少需要 6 位"
-          : registerMutation.error.code === "USERNAME_RESERVED"
-            ? "该用户名不可用"
-            : registerMutation.error.message
-      : registerMutation.error instanceof Error
-        ? registerMutation.error.message
-        : "注册失败，请稍后再试"
+    ? registerMutation.error instanceof Error
+      ? registerMutation.error.message
+      : "注册失败，请稍后再试"
     : null
 
   const oauthErrorText = oauthError
-    ? oauthError === "GitHub login was cancelled"
-      ? "GitHub 登录已取消"
-      : oauthError === "GitHub login failed"
-        ? "GitHub 登录失败，请稍后重试"
-        : oauthError
-    : null
 
   const errorText = mode === "login" ? loginErrorText : registerErrorText
+  const passwordFieldError =
+    mode === "register"
+      ? getPasswordFieldError(password, passwordPolicy, registerPasswordOptions)
+      : undefined
+  const confirmPasswordError =
+    mode === "register" && password && password2 && password !== password2
+      ? "两次密码不一致"
+      : null
+  const registerErrors = [passwordFieldError, confirmPasswordError, registerErrorText].filter(
+    (message): message is string => Boolean(message),
+  )
 
   const switchMode = (next: "login" | "register") => {
     setMode(next)
@@ -169,7 +181,9 @@ export function LoginPage() {
               <Input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="请输入密码"
+                placeholder={
+                  mode === "register" ? (passwordPolicy?.placeholder ?? "请输入密码") : "请输入密码"
+                }
                 type="password"
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
                 onKeyDown={(e) => {
@@ -181,10 +195,7 @@ export function LoginPage() {
             </Field>
 
             {mode === "register" ? (
-              <Field
-                label="确认密码"
-                error={password && password2 && password !== password2 ? "两次密码不一致" : undefined}
-              >
+              <Field label="确认密码">
                 <Input
                   value={password2}
                   onChange={(e) => setPassword2(e.target.value)}
@@ -198,7 +209,17 @@ export function LoginPage() {
               </Field>
             ) : null}
 
-            {errorText ? <div className="text-sm text-destructive">{errorText}</div> : null}
+            {mode === "register" && registerErrors.length > 0 ? (
+              <div className="-mt-2 space-y-1 text-sm text-destructive">
+                {registerErrors.map((message) => (
+                  <div key={message}>{message}</div>
+                ))}
+              </div>
+            ) : null}
+
+            {mode === "login" && errorText ? (
+              <div className="text-sm text-destructive">{errorText}</div>
+            ) : null}
             {oauthErrorText ? <div className="text-sm text-destructive">{oauthErrorText}</div> : null}
           </div>
 

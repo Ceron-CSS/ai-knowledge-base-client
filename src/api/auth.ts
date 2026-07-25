@@ -32,6 +32,21 @@ export function changePassword(body: ChangePasswordRequest) {
   return requestJson<void>("/auth/change-password", { method: "POST", body })
 }
 
+export type PasswordPolicyConfig = {
+  minLength: number
+  minScore: number
+  placeholder: string
+  messages: {
+    WEAK_PASSWORD: string
+    COMMON_PASSWORD: string
+    SAME_AS_OLD: string
+  }
+}
+
+export function getPasswordPolicyConfig() {
+  return requestJson<PasswordPolicyConfig>("/auth/password-policy")
+}
+
 export function getGithubLoginUrl(redirectTo?: string) {
   const url = new URL("auth/github", `${getApiBaseUrl().replace(/\/+$/, "")}/`)
   if (redirectTo) {

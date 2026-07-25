@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { changePassword } from "@/api/auth"
-import { useAuth } from "@/features/auth/authContext"
+import { HttpError } from "@/api/http"
 import { Button, Dialog, Field, Input } from "@/components/ui"
+import { useAuth } from "../context/authContext"
+import { usePasswordPolicyConfig } from "../hooks/usePasswordPolicyConfig"
+import { getPasswordFieldError, validatePasswordPolicy } from "../lib/passwordPolicy"
 
 type ChangePasswordDialogProps = {
   open: boolean
@@ -11,16 +14,18 @@ type ChangePasswordDialogProps = {
 
 export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps) {
   const auth = useAuth()
+  const { data: passwordPolicy } = usePasswordPolicyConfig()
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
+  const userInputs = useMemo(() => (auth.username ? [auth.username] : []), [auth.username])
+
   const canSubmit = useMemo(() => {
-    if (!oldPassword || !newPassword || !confirmPassword) return false
+    if (!oldPassword || !newPassword || !confirmPassword || !passwordPolicy) return false
     if (newPassword !== confirmPassword) return false
-    if (newPassword.length < 6) return false
-    return true
-  }, [oldPassword, newPassword, confirmPassword])
+    return validatePasswordPolicy(newPassword, passwordPolicy, { oldPassword, userInputs }).ok
+  }, [oldPassword, newPassword, confirmPassword, passwordPolicy, userInputs])
 
   const pwdMutation = useMutation({
     mutationFn: () => changePassword({ oldPassword, newPassword }),
@@ -56,13 +61,17 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
           placeholder="请输入旧密码"
         />
       </Field>
-      <Field className="mt-3" label="新密码">
+      <Field
+        className="mt-3"
+        label="新密码"
+        error={getPasswordFieldError(newPassword, passwordPolicy, { oldPassword, userInputs })}
+      >
         <Input
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           type="password"
           autoComplete="new-password"
-          placeholder="至少 6 位"
+          placeholder={passwordPolicy?.placeholder ?? "请输入新密码"}
         />
       </Field>
       <Field
@@ -84,7 +93,11 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       </Field>
       {pwdMutation.isError ? (
         <div className="mt-3 text-sm text-destructive">
-          {pwdMutation.error instanceof Error ? pwdMutation.error.message : "修改失败"}
+          {pwdMutation.error instanceof HttpError
+            ? pwdMutation.error.message
+            : pwdMutation.error instanceof Error
+              ? pwdMutation.error.message
+              : "修改失败"}
         </div>
       ) : null}
       <Button

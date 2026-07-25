@@ -1,8 +1,7 @@
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { CircleHelp, KeyRound, LogOut, Settings } from "lucide-react"
-import { ChangePasswordDialog } from "@/features/auth/ChangePasswordDialog"
-import { useAuth } from "@/features/auth/authContext"
+import { ChangePasswordDialog, useAuth } from "@/features/auth"
 import { cn } from "@/lib/utils"
 
 type AppSettingsMenuProps = {

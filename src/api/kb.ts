@@ -1,7 +1,7 @@
 import { requestJson } from "@/api/http"
 import { HttpError } from "@/api/http"
 import { getApiBaseUrl } from "@/app/env"
-import { getAccessToken } from "@/features/auth/authStorage"
+import { getAccessToken } from "@/features/auth"
 
 export type Kb = {
   id: string
