@@ -96,6 +96,10 @@ export function useRenameAssistantConversation(assistantId: string) {
   })
 }
 
-export function invalidateAssistantMessages(qc: ReturnType<typeof useQueryClient>, assistantId: string, conversationId: string) {
+export function invalidateAssistantMessages(
+  qc: ReturnType<typeof useQueryClient>,
+  assistantId: string,
+  conversationId: string,
+) {
   return qc.invalidateQueries({ queryKey: assistantChatKeys.messages(assistantId, conversationId) })
 }

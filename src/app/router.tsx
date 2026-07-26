@@ -7,7 +7,7 @@ import { KbDetailPage } from "@/features/kb/KbDetailPage"
 import { KbUploadPreviewPage } from "@/features/kb/KbUploadPreviewPage"
 import { HomePage } from "@/features/home/HomePage"
 import { ModelProviderPage } from "@/features/models/ModelProviderPage"
-import { AssistantChatPage } from "@/features/assistantChat/AssistantChatPage"
+import { AssistantChatPage } from "@/features/assistantChat"
 
 export const router = createBrowserRouter([
   {
