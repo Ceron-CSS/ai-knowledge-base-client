@@ -5,7 +5,7 @@ import { AssistantListPage, AssistantEditPage } from "@/features/assistants"
 import { KbPage } from "@/features/kb/KbPage"
 import { KbDetailPage } from "@/features/kb/KbDetailPage"
 import { KbUploadPreviewPage } from "@/features/kb/KbUploadPreviewPage"
-import { HomePage } from "@/features/home/HomePage"
+import { HomePage } from "@/features/home"
 import { ModelProviderPage } from "@/features/models/ModelProviderPage"
 import { AssistantChatPage } from "@/features/assistantChat"
 
