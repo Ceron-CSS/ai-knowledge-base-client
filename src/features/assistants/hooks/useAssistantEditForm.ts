@@ -9,7 +9,7 @@ import {
   useUpdateAssistant,
 } from "@/features/assistants/hooks/queries"
 import { validateAssistantForm } from "@/features/assistants/lib/validateAssistantForm"
-import { useKbList } from "@/features/kb/queries"
+import { useKbList } from "@/features/kb"
 import { useModelConfigList } from "@/features/models/queries"
 
 type UseAssistantEditFormOptions = {
