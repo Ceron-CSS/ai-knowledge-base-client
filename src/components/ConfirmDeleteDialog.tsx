@@ -1,4 +1,4 @@
-import { DialogActions } from "@/components/ui/dialog-actions"
+import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 
 export type ConfirmDeleteDialogProps = {
@@ -37,13 +37,14 @@ export function ConfirmDeleteDialog({
     >
       {children ?? null}
       {errorText ? <div className={children ? "mt-3 text-sm text-destructive" : "text-sm text-destructive"}>{errorText}</div> : null}
-      <DialogActions
-        cancelLabel={cancelLabel}
-        confirmLabel={confirmLabel}
-        pending={confirming}
-        onCancel={onCancel}
-        onConfirm={onConfirm}
-      />
+      <div className="mt-4 flex justify-end gap-2">
+        <Button variant="outline" size="lg" onClick={onCancel} disabled={confirming}>
+          {cancelLabel}
+        </Button>
+        <Button variant="destructive" size="lg" onClick={onConfirm} loading={confirming}>
+          {confirmLabel}
+        </Button>
+      </div>
     </Dialog>
   )
 }

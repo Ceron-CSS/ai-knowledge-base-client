@@ -11,7 +11,6 @@ export {
 } from "./card"
 export { DataTable, DataTableEmpty, type DataTableColumn } from "./data-table"
 export { Dialog, type DialogProps } from "./dialog"
-export { DialogActions, type DialogActionsProps } from "./dialog-actions"
 export { Field } from "./field"
 export { Input } from "./input"
 export { LoadingText } from "./loading-text"

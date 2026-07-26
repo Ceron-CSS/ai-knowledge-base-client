@@ -21,7 +21,7 @@ import { useTypewriter } from "@/features/assistantChat/hooks/useTypewriter"
 import { MAX_COMPOSER_HEIGHT, MIN_COMPOSER_HEIGHT } from "@/features/assistantChat/constants/chat"
 import { normalizeConversationTitle } from "@/features/assistantChat/lib/conversationTitle"
 import type { ActiveCitation, ParsedCitation } from "@/features/assistantChat/types"
-import { useDebouncedValue } from "@/lib/useDebouncedValue"
+import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 import { message } from "@/components/ui/message"
 
 type UseAssistantChatOptions = {
