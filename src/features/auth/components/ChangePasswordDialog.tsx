@@ -52,7 +52,14 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       title="修改密码"
     >
       <p className="text-sm text-muted-foreground">修改成功后会自动退出，需要重新登录</p>
-      <Field className="mt-3" label="旧密码">
+      <Field
+        className="mt-3"
+        label={
+          <>
+            旧密码 <span className="text-destructive">*</span>
+          </>
+        }
+      >
         <Input
           value={oldPassword}
           onChange={(e) => setOldPassword(e.target.value)}
@@ -63,7 +70,11 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       </Field>
       <Field
         className="mt-3"
-        label="新密码"
+        label={
+          <>
+            新密码 <span className="text-destructive">*</span>
+          </>
+        }
         error={getPasswordFieldError(newPassword, passwordPolicy, { oldPassword, userInputs })}
       >
         <Input
@@ -76,7 +87,11 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       </Field>
       <Field
         className="mt-3"
-        label="确认新密码"
+        label={
+          <>
+            确认新密码 <span className="text-destructive">*</span>
+          </>
+        }
         error={
           confirmPassword && newPassword !== confirmPassword
             ? "两次输入的新密码不一致"

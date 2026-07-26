@@ -167,9 +167,14 @@ export function KbPage() {
         header: "名称",
         className: "w-[10%]",
         render: (kb) => (
-          <div className="max-w-[18rem] truncate" title={kb.name}>
+          <Button
+            variant="link"
+            className="h-auto max-w-[18rem] truncate px-0 font-normal hover:no-underline"
+            onClick={() => navigate(`/kb/${kb.id}`)}
+            title={kb.name}
+          >
             {kb.name}
-          </div>
+          </Button>
         ),
       },
       {
@@ -290,7 +295,9 @@ export function KbPage() {
       >
         <div className="grid gap-4">
           <div>
-            <label className="block text-sm font-medium">名称</label>
+            <label className="block text-sm font-medium">
+              名称 <span className="text-destructive">*</span>
+            </label>
             <input
               className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
               value={name}

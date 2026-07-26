@@ -15,7 +15,7 @@ import {
   type AssistantConversation,
   type AssistantMessage,
 } from "@/api/assistantChat"
-import { useAssistant } from "@/features/assistants/queries"
+import { useAssistant } from "@/features/assistants"
 import {
   useAssistantConversations,
   useAssistantMessages,

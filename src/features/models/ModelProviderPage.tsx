@@ -90,7 +90,16 @@ export function ModelProviderPage() {
         key: "provider",
         header: "名称",
         className: "w-[18%]",
-        render: (item) => providerLabel(item.provider),
+        render: (item) => (
+          <Button
+            variant="link"
+            className="h-auto px-0 font-normal hover:no-underline"
+            onClick={() => openEdit(item)}
+            title={`编辑 ${providerLabel(item.provider)}`}
+          >
+            {providerLabel(item.provider)}
+          </Button>
+        ),
       },
       {
         key: "apiUrl",
