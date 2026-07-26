@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createModelConfig, deleteModelConfig, listModelConfigs, updateModelConfig } from "@/api/models"
 
-const modelKeys = {
+const modelProviderKeys = {
   all: ["model-configs"] as const,
 }
 
 export function useModelConfigList() {
   return useQuery({
-    queryKey: modelKeys.all,
+    queryKey: modelProviderKeys.all,
     queryFn: listModelConfigs,
   })
 }
@@ -17,7 +17,7 @@ export function useCreateModelConfig() {
   return useMutation({
     mutationFn: createModelConfig,
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: modelKeys.all })
+      await qc.invalidateQueries({ queryKey: modelProviderKeys.all })
     },
   })
 }
@@ -25,9 +25,10 @@ export function useCreateModelConfig() {
 export function useUpdateModelConfig() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, body }: { id: string; body: Parameters<typeof updateModelConfig>[1] }) => updateModelConfig(id, body),
+    mutationFn: ({ id, body }: { id: string; body: Parameters<typeof updateModelConfig>[1] }) =>
+      updateModelConfig(id, body),
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: modelKeys.all })
+      await qc.invalidateQueries({ queryKey: modelProviderKeys.all })
     },
   })
 }
@@ -37,7 +38,7 @@ export function useDeleteModelConfig() {
   return useMutation({
     mutationFn: ({ id }: { id: string }) => deleteModelConfig(id),
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: modelKeys.all })
+      await qc.invalidateQueries({ queryKey: modelProviderKeys.all })
       await qc.invalidateQueries({ queryKey: ["assistants"] })
     },
   })

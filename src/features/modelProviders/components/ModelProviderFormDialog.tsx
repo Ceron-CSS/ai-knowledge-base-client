@@ -1,0 +1,98 @@
+import type { ModelConfig, ModelProvider } from "@/api/models"
+import { Button } from "@/components/ui/button"
+import { Dialog } from "@/components/ui/dialog"
+import { Select } from "@/components/ui/select"
+import { MODEL_PROVIDERS } from "@/features/modelProviders/constants/providers"
+import type { ModelProviderFormState } from "@/features/modelProviders/types"
+
+type ModelProviderFormDialogProps = {
+  open: boolean
+  editing: ModelConfig | null
+  form: ModelProviderFormState
+  usedProviders: Set<ModelProvider>
+  error: string | null
+  submitting: boolean
+  onClose: () => void
+  onSubmit: () => void
+  onFormChange: (updater: (prev: ModelProviderFormState) => ModelProviderFormState) => void
+}
+
+export function ModelProviderFormDialog({
+  open,
+  editing,
+  form,
+  usedProviders,
+  error,
+  submitting,
+  onClose,
+  onSubmit,
+  onFormChange,
+}: ModelProviderFormDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()} title={editing ? "编辑供应商配置" : "添加供应商配置"}>
+      <div className="grid gap-4">
+        <div>
+          <label className="block text-sm font-medium">
+            供应商 <span className="text-destructive">*</span>
+          </label>
+          <Select
+            className="mt-2"
+            value={form.provider}
+            onValueChange={(value) => {
+              const next = value as ModelProvider
+              const defaultApiUrl = MODEL_PROVIDERS.find((provider) => provider.value === next)?.defaultApiUrl ?? ""
+              onFormChange((prev) => ({ ...prev, provider: next, apiUrl: editing ? prev.apiUrl : defaultApiUrl }))
+            }}
+            options={
+              editing
+                ? MODEL_PROVIDERS.map((provider) => ({ label: provider.label, value: provider.value }))
+                : MODEL_PROVIDERS.map((provider) => ({
+                    label: usedProviders.has(provider.value) ? `${provider.label}（已配置）` : provider.label,
+                    value: provider.value,
+                    disabled: usedProviders.has(provider.value),
+                  }))
+            }
+            modal={false}
+            disabled={!!editing}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">
+            API URL <span className="text-destructive">*</span>
+          </label>
+          <input
+            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            value={form.apiUrl}
+            onChange={(e) => onFormChange((prev) => ({ ...prev, apiUrl: e.target.value }))}
+            placeholder="https://..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">
+            API KEY <span className="text-destructive">*</span>
+          </label>
+          <input
+            type="password"
+            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            value={form.apiKey}
+            onChange={(e) => onFormChange((prev) => ({ ...prev, apiKey: e.target.value }))}
+            placeholder={editing ? "编辑时请重新输入 API KEY" : "请输入 API KEY"}
+          />
+        </div>
+
+        {error ? <div className="text-sm text-destructive">{error}</div> : null}
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="lg" onClick={onClose} disabled={submitting}>
+            取消
+          </Button>
+          <Button size="lg" onClick={onSubmit} loading={submitting} loadingText="保存中">
+            保存
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  )
+}

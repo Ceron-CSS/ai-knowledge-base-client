@@ -31,7 +31,7 @@ export function DashboardStatCards({ data }: DashboardStatCardsProps) {
         icon={<Cpu className="h-5 w-5" />}
         label="模型供应商"
         value={data ? String(data.modelConfigCount) : "-"}
-        href="/models"
+        href="/model-providers"
       />
     </div>
   )
