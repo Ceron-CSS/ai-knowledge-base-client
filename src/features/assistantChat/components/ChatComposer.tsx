@@ -112,7 +112,7 @@ export function ChatComposer({
         <input
           ref={attachmentInputRef}
           type="file"
-          accept="image/*,.txt,.md,.markdown,.pdf,.doc,.docx"
+          accept="image/*,.txt,.md,.markdown,.pdf,.docx"
           className="hidden"
           onChange={handleAttachmentChange}
         />

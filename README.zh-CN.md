@@ -116,4 +116,4 @@ npm run dev
 
 - 前端要求后端提供 `/auth`、`/kb`、`/assistants`、`/model-configs` 和 `/api/stats` 接口。
 - 聊天图片附件会先以 data URL 形式上传，再发送到流式消息载荷中。
-- 上传文档抽取支持后端已实现的文件类型：TXT、Markdown、PDF、DOC 和 DOCX。
+- 上传文档抽取支持后端已实现的文件类型：TXT、Markdown、PDF 和 DOCX。

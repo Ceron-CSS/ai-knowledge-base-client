@@ -116,4 +116,4 @@ Streaming and multipart flows use `fetch` directly:
 
 - The frontend expects the backend to expose `/auth`, `/kb`, `/assistants`, `/model-configs`, and `/api/stats`.
 - Chat image attachments are uploaded as data URLs before being sent in the streaming message payload.
-- Uploaded document extraction supports the file types implemented by the backend: TXT, Markdown, PDF, DOC, and DOCX.
+- Uploaded document extraction supports the file types implemented by the backend: TXT, Markdown, PDF, and DOCX.
