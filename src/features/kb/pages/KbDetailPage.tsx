@@ -24,7 +24,7 @@ export function KbDetailPage() {
 
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">{kb.countLabel}</div>
-        <Button size="lg" onClick={() => kb.setUploadOpen(true)}>
+        <Button variant="primary" size="lg" onClick={() => kb.setUploadOpen(true)}>
           上传文件
         </Button>
       </div>

@@ -1,4 +1,5 @@
 import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import type { CardPosition, OnboardingStep } from "../types"
 
 type OnboardingCardProps = {
@@ -95,40 +96,27 @@ export function OnboardingCard({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button
-          type="button"
-          className="rounded-md border px-3 py-2 text-sm hover:bg-muted/60"
-          onClick={onSkip}
-        >
+      <div className="mt-4 flex flex-wrap justify-end gap-3">
+        <Button type="button" variant="dialog-cancel" size="sm" onClick={onSkip}>
           跳过
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={isFirst}
-          onClick={onPrevious}
-        >
-          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button type="button" variant="dialog-cancel" size="sm" disabled={isFirst} onClick={onPrevious}>
+          <ChevronLeft data-icon="inline-start" />
           上一步
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-          onClick={onNext}
-        >
+        </Button>
+        <Button type="button" variant="primary" size="sm" onClick={onNext}>
           {isLast ? (
             <>
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle2 data-icon="inline-start" />
               开始使用
             </>
           ) : (
             <>
               下一步
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight data-icon="inline-end" />
             </>
           )}
-        </button>
+        </Button>
       </div>
     </section>
   )

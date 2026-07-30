@@ -41,7 +41,7 @@ export function useKbPage() {
   const isSaving = createKb.isPending || updateKb.isPending
 
   const submitLabel = useMemo(() => {
-    if (editing.mode === "create") return "创建"
+    if (editing.mode === "create") return "新建"
     if (editing.mode === "edit") return "保存"
     return "提交"
   }, [editing.mode])

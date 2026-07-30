@@ -35,11 +35,11 @@ export function KbDisableDialog({
             <KbLinkedAssistantsList assistants={linkedAssistants} />
             <p className="text-sm text-muted-foreground">确定要继续停用吗？</p>
           </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" size="lg" onClick={onCancel} disabled={confirming}>
+          <div className="mt-4 flex justify-end gap-3">
+            <Button variant="dialog-cancel" size="dialog" onClick={onCancel} disabled={confirming}>
               取消
             </Button>
-            <Button size="lg" onClick={onConfirm} loading={confirming}>
+            <Button variant="primary" size="dialog" onClick={onConfirm} loading={confirming}>
               确认停用
             </Button>
           </div>

@@ -92,21 +92,21 @@ export function KbUploadPreviewPage() {
 
             <Button
               className="w-full shrink-0"
+              variant="primary"
               size="lg"
               onClick={preview.onGenerate}
               disabled={!preview.canPreview && !preview.loading}
               loading={preview.loading}
-              loadingText="生成中"
             >
               生成预览
             </Button>
             <Button
               className="w-full shrink-0"
+              variant="primary"
               size="lg"
               onClick={preview.onSave}
               disabled={preview.loading || preview.chunks.length === 0 || !preview.previewGenerated}
               loading={preview.saving}
-              loadingText="保存中"
             >
               保存到知识库
             </Button>

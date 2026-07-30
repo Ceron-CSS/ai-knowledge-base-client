@@ -37,11 +37,11 @@ export function ConfirmDeleteDialog({
     >
       {children ?? null}
       {errorText ? <div className={children ? "mt-3 text-sm text-destructive" : "text-sm text-destructive"}>{errorText}</div> : null}
-      <div className="mt-4 flex justify-end gap-2">
-        <Button variant="outline" size="lg" onClick={onCancel} disabled={confirming}>
+      <div className="mt-4 flex justify-end gap-3">
+        <Button variant="dialog-cancel" size="dialog" onClick={onCancel} disabled={confirming}>
           {cancelLabel}
         </Button>
-        <Button variant="destructive" size="lg" onClick={onConfirm} loading={confirming}>
+        <Button variant="dialog-danger" size="dialog" onClick={onConfirm} loading={confirming}>
           {confirmLabel}
         </Button>
       </div>

@@ -46,11 +46,11 @@ export function KbDeleteDialog({
             <p className="text-sm text-muted-foreground">确定要继续删除吗？</p>
             {hasError ? <div className="text-sm text-destructive">删除失败，请重试</div> : null}
           </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" size="lg" onClick={onCancel} disabled={confirming}>
+          <div className="mt-4 flex justify-end gap-3">
+            <Button variant="dialog-cancel" size="dialog" onClick={onCancel} disabled={confirming}>
               取消
             </Button>
-            <Button variant="destructive" size="lg" onClick={onConfirm} loading={confirming}>
+            <Button variant="dialog-danger" size="dialog" onClick={onConfirm} loading={confirming}>
               确认删除
             </Button>
           </div>

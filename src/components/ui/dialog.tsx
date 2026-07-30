@@ -1,4 +1,4 @@
-﻿import { useEffect } from "react"
+import { useEffect } from "react"
 import { createPortal } from "react-dom"
 
 export type DialogProps = {
@@ -40,7 +40,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
         )}
 
         <div className="mt-4">{children}</div>
-        {footer ? <div className="mt-4 flex justify-end gap-2">{footer}</div> : null}
+        {footer ? <div className="mt-4 flex justify-end gap-3">{footer}</div> : null}
       </div>
     </div>,
     document.body,

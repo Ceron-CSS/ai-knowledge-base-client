@@ -163,38 +163,36 @@ export function AssistantEditPage() {
 
           {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" size="lg" onClick={() => navigate("/assistants")} disabled={submitting}>
+          <div className="flex justify-end gap-3">
+            <Button variant="dialog-cancel" size="lg" onClick={() => navigate("/assistants")} disabled={submitting}>
               取消
             </Button>
             <Button
-              variant="outline"
+              variant="primary"
               size="lg"
               onClick={save}
               disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
               loading={savePending}
-              loadingText="保存中"
             >
               保存
             </Button>
             {!isNew && isPublished ? (
               <Button
-                variant="destructive"
+                variant="dialog-danger"
                 size="lg"
                 onClick={handleUnpublish}
                 disabled={submitting}
                 loading={unpublishPending}
-                loadingText="取消发布中"
               >
                 取消发布
               </Button>
             ) : null}
             <Button
+              variant="primary"
               size="lg"
               onClick={handlePublish}
               disabled={!name.trim() || !modelConfigId || !baseModel || submitting}
               loading={submitting && !unpublishPending}
-              loadingText={isPublished ? "重新发布中" : "发布中"}
             >
               {isPublished ? "重新发布" : "发布"}
             </Button>

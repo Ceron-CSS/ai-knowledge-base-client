@@ -224,11 +224,11 @@ export function LoginPage() {
           </div>
 
           <Button
-            className="mt-6 h-10 w-full bg-[#4a8ef6] text-white hover:bg-[#4083e8] disabled:bg-[rgb(148,191,255)] disabled:text-white disabled:opacity-100"
+            className="mt-6 w-full"
+            variant="primary"
             size="lg"
             disabled={!canSubmit}
             loading={mode === "login" ? loginMutation.isPending : registerMutation.isPending}
-            loadingText={mode === "login" ? "正在登录" : "正在注册"}
             onClick={() => {
               if (mode === "login") loginMutation.mutate()
               if (mode === "register") registerMutation.mutate()

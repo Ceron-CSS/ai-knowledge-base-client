@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { Button } from "@/components/ui/button"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
@@ -105,12 +106,9 @@ export function AssistantListPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索助手名称"
           />
-          <button
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-            onClick={() => navigate("/assistants/new")}
-          >
-            创建问答助手
-          </button>
+          <Button variant="primary" size="lg" onClick={() => navigate("/assistants/new")}>
+            新建问答助手
+          </Button>
         </div>
       </div>
 

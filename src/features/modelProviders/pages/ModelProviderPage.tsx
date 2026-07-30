@@ -26,8 +26,8 @@ export function ModelProviderPage() {
             placeholder="搜索供应商名称"
           />
           <span className="group relative inline-flex">
-            <Button size="lg" onClick={providers.openCreate} disabled={!providers.canCreate}>
-              添加供应商配置
+            <Button variant="primary" size="lg" onClick={providers.openCreate} disabled={!providers.canCreate}>
+              新建供应商配置
             </Button>
             {!providers.canCreate ? (
               <span className="pointer-events-none absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">

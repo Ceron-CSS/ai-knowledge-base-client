@@ -84,11 +84,11 @@ export function ModelProviderFormDialog({
 
         {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" size="lg" onClick={onClose} disabled={submitting}>
+        <div className="flex justify-end gap-3">
+          <Button variant="dialog-cancel" size="dialog" onClick={onClose} disabled={submitting}>
             取消
           </Button>
-          <Button size="lg" onClick={onSubmit} loading={submitting} loadingText="保存中">
+          <Button variant="primary" size="dialog" onClick={onSubmit} loading={submitting}>
             保存
           </Button>
         </div>

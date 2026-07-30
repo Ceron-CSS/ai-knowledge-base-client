@@ -58,7 +58,7 @@ export function KbPage() {
             onChange={(e) => kb.setQuery(e.target.value)}
             placeholder="搜索知识库名称/描述"
           />
-          <Button size="lg" onClick={kb.startCreate}>
+          <Button variant="primary" size="lg" onClick={kb.startCreate}>
             新建知识库
           </Button>
         </div>

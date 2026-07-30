@@ -117,10 +117,10 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       ) : null}
       <Button
         className="mt-4 w-full"
-        size="lg"
+        variant="primary"
+        size="dialog"
         disabled={!canSubmit}
         loading={pwdMutation.isPending}
-        loadingText="提交中"
         onClick={() => pwdMutation.mutate()}
       >
         修改密码

@@ -61,11 +61,17 @@ export function KbFormDialog({
 
       {hasError ? <div className="mt-3 text-sm text-destructive">操作失败，请稍后重试</div> : null}
 
-      <div className="mt-4 flex justify-end gap-2">
-        <Button variant="outline" size="lg" onClick={onCancel} disabled={isSaving}>
+      <div className="mt-4 flex justify-end gap-3">
+        <Button variant="dialog-cancel" size="dialog" onClick={onCancel} disabled={isSaving}>
           取消
         </Button>
-        <Button size="lg" onClick={onSubmit} disabled={!name.trim()} loading={isSaving} loadingText="处理中">
+        <Button
+          variant="primary"
+          size="dialog"
+          onClick={onSubmit}
+          disabled={!name.trim()}
+          loading={isSaving}
+        >
           {submitLabel}
         </Button>
       </div>
