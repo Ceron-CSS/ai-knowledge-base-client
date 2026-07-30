@@ -1,7 +1,9 @@
 import type { RefObject } from "react"
+import { RotateCw } from "lucide-react"
 import type { AssistantMessage } from "@/api/assistantChat"
 import { MarkdownMessage } from "@/components/ui/markdown-message"
 import { LoadingText } from "@/components/ui/loading-text"
+import { TypingDots } from "@/components/ui/typing-dots"
 import { parseMessageContent } from "@/features/assistantChat/lib/parseMessageContent"
 import type { ParsedCitation } from "@/features/assistantChat/types"
 
@@ -15,6 +17,7 @@ type ChatMessageListProps = {
   bottomRef: RefObject<HTMLDivElement | null>
   onCitationClick: (index: number, citations: ParsedCitation[], event: React.MouseEvent<HTMLButtonElement>) => void
   onPreviewImage: (image: { url: string; name?: string }) => void
+  onResend?: () => void
 }
 
 export function ChatMessageList({
@@ -27,6 +30,7 @@ export function ChatMessageList({
   bottomRef,
   onCitationClick,
   onPreviewImage,
+  onResend,
 }: ChatMessageListProps) {
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
@@ -35,8 +39,10 @@ export function ChatMessageList({
       ) : messagesError ? (
         <div className="text-center text-sm text-destructive">加载失败，请检查后端服务</div>
       ) : messages.length ? (
-        messages.map((m) => {
+        messages.map((m, index) => {
           const parsed = parseMessageContent(m.content)
+          const isLastMessage = index === messages.length - 1
+          const showTypingDots = m.role === "assistant" && sending && isLastMessage && !parsed.text
           return (
             <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
               <div
@@ -46,11 +52,15 @@ export function ChatMessageList({
                 ].join(" ")}
               >
                 {m.role === "assistant" ? (
-                  <MarkdownMessage
-                    content={parsed.text || (sending ? "..." : "")}
-                    citationCount={parsed.citations.length}
-                    onCitationClick={(index, event) => onCitationClick(index, parsed.citations, event)}
-                  />
+                  showTypingDots ? (
+                    <TypingDots />
+                  ) : (
+                    <MarkdownMessage
+                      content={parsed.text}
+                      citationCount={parsed.citations.length}
+                      onCitationClick={(index, event) => onCitationClick(index, parsed.citations, event)}
+                    />
+                  )
                 ) : (
                   <div>{parsed.text}</div>
                 )}
@@ -87,7 +97,17 @@ export function ChatMessageList({
       {streamError ? (
         <div className="flex justify-start">
           <div className="max-w-[85%] rounded-lg bg-destructive/10 px-3 py-2 text-sm leading-relaxed text-destructive">
-            {streamError}
+            <div>{streamError}</div>
+            {onResend ? (
+              <button
+                type="button"
+                className="mt-2 inline-flex items-center gap-1 rounded-md border border-destructive/30 px-2 py-1 text-xs hover:bg-destructive/10"
+                onClick={() => onResend()}
+              >
+                <RotateCw className="h-3 w-3" />
+                重新发送
+              </button>
+            ) : null}
           </div>
         </div>
       ) : null}

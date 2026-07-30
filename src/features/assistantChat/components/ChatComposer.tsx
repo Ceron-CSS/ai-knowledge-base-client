@@ -1,5 +1,5 @@
 import type { RefObject } from "react"
-import { ArrowUp, Plus, X } from "lucide-react"
+import { ArrowUp, Plus, Square, X } from "lucide-react"
 import { MAX_ATTACHMENT_SIZE } from "@/features/assistantChat/constants/chat"
 import { message } from "@/components/ui/message"
 
@@ -21,6 +21,7 @@ type ChatComposerProps = {
   inputRef: RefObject<HTMLTextAreaElement | null>
   onAdjustComposerHeight: (textarea: HTMLTextAreaElement) => void
   onSend: () => void
+  onStop?: () => void
   onPreviewImage: (image: { url: string; name?: string }) => void
 }
 
@@ -37,6 +38,7 @@ export function ChatComposer({
   inputRef,
   onAdjustComposerHeight,
   onSend,
+  onStop,
   onPreviewImage,
 }: ChatComposerProps) {
   function removePendingFile(file: File) {
@@ -63,6 +65,32 @@ export function ChatComposer({
   }
 
   const sendDisabled = blockedByUnpublished || sending || (!input.trim() && !pendingFiles.length)
+
+  function renderActionButton(className: string) {
+    if (sending) {
+      return (
+        <button
+          type="button"
+          className={className}
+          onClick={() => onStop?.()}
+          title="停止生成"
+        >
+          <Square className="h-3.5 w-3.5 fill-current" />
+        </button>
+      )
+    }
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={() => void onSend()}
+        disabled={sendDisabled}
+        title="发送"
+      >
+        <ArrowUp className="h-4 w-4" />
+      </button>
+    )
+  }
 
   return (
     <div className="border-t p-3">
@@ -138,14 +166,9 @@ export function ChatComposer({
                 rows={1}
               />
             </div>
-            <button
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background disabled:opacity-50"
-              onClick={() => void onSend()}
-              disabled={sendDisabled}
-              title="发送"
-            >
-              <ArrowUp className="h-4 w-4" />
-            </button>
+            {renderActionButton(
+              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background disabled:opacity-50",
+            )}
           </div>
         ) : (
           <>
@@ -170,14 +193,9 @@ export function ChatComposer({
               >
                 <Plus className="h-4 w-4" />
               </button>
-              <button
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background disabled:opacity-50"
-                onClick={() => void onSend()}
-                disabled={sendDisabled}
-                title="发送"
-              >
-                <ArrowUp className="h-4 w-4" />
-              </button>
+              {renderActionButton(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background disabled:opacity-50",
+              )}
             </div>
           </>
         )}

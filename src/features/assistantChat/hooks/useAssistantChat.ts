@@ -54,6 +54,7 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const typewriter = useTypewriter((text) => {
     setPendingAssistant((prev) => (prev ? { ...prev, content: text } : prev))
@@ -123,6 +124,12 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
     setSearchParams({ c: allList[0].id }, { replace: true })
   }, [assistantId, conversations.isLoading, createConversation.isPending, selectedConversationId, allList, setSearchParams])
 
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [])
+
   const blockedByUnpublished = !assistant.isLoading && !!assistant.data && !assistant.data.publishedAt
 
   function adjustComposerHeight(textarea: HTMLTextAreaElement) {
@@ -181,59 +188,98 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
     cancelRenameConversation()
   }
 
+  function invalidateConversationQueries(conversationId: string) {
+    return Promise.all([
+      qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] }),
+      qc.invalidateQueries({
+        queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"],
+      }),
+    ])
+  }
+
+  function clearPendingMessages() {
+    setPendingUser(null)
+    setPendingAssistant(null)
+  }
+
+  function restoreComposer(savedInput: string, savedFiles: File[]) {
+    setInput(savedInput)
+    setPendingFiles(savedFiles)
+  }
+
+  function isAbortError(error: unknown) {
+    return error instanceof DOMException && error.name === "AbortError"
+  }
+
+  function stopGeneration() {
+    abortRef.current?.abort()
+  }
+
+  function resend() {
+    setStreamError(null)
+    void send()
+  }
+
   async function send() {
     if (blockedByUnpublished) {
       message.error("该问答助手尚未发布，无法发送消息", 3000)
       return
     }
-    const text = input.trim()
-    const hasFiles = pendingFiles.length > 0
+    const savedInput = input
+    const savedFiles = [...pendingFiles]
+    const text = savedInput.trim()
+    const hasFiles = savedFiles.length > 0
     if (!text && !hasFiles) return
     if (!assistantId) return
 
-    setStreamError(null)
-    setSending(true)
-    typewriter.stop()
-
-    const imageFiles = pendingFiles.filter((f) => f.type.startsWith("image/"))
-    const nonImageFiles = pendingFiles.filter((f) => !f.type.startsWith("image/"))
+    const imageFiles = savedFiles.filter((f) => f.type.startsWith("image/"))
+    const nonImageFiles = savedFiles.filter((f) => !f.type.startsWith("image/"))
     const isVisionModel = (assistant.data?.baseModel?.trim() ?? "").startsWith("qwen-vl-")
     if (imageFiles.length && !isVisionModel) {
-      setSending(false)
       message.error("当前模型不支持图片理解，请切换到 qwen-vl-* 模型", 3000)
       return
     }
 
-    let conversationId = selectedConversationId
-    if (!conversationId) {
-      const created = await createConversation.mutateAsync()
-      conversationId = created.id
-      setSearchParams({ c: created.id }, { replace: true })
-    }
+    setStreamError(null)
+    setSending(true)
+    typewriter.stop()
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
 
-    const userText = text || "请分析我上传的附件"
-    const attachmentSummary = pendingFiles.length
-      ? `\n\n[已上传附件 ${pendingFiles.length} 个：${pendingFiles.map((f) => f.name).join("、")}]`
-      : ""
-    setPendingUser({
-      id: `temp-user-${Date.now()}`,
-      conversationId,
-      role: "user",
-      content: `${userText}${attachmentSummary}`,
-      createdAt: new Date().toISOString(),
-    })
-    setPendingAssistant({
-      id: `temp-assistant-${Date.now()}`,
-      conversationId,
-      role: "assistant",
-      content: "",
-      createdAt: new Date().toISOString(),
-    })
-    setInput("")
-    setPendingFiles([])
-    typewriter.reset()
+    let conversationId = selectedConversationId
+    let messageCommitted = false
 
     try {
+      if (!conversationId) {
+        const created = await createConversation.mutateAsync()
+        conversationId = created.id
+        setSearchParams({ c: created.id }, { replace: true })
+      }
+
+      const userText = text || "请分析我上传的附件"
+      const attachmentSummary = savedFiles.length
+        ? `\n\n[已上传附件 ${savedFiles.length} 个：${savedFiles.map((f) => f.name).join("、")}]`
+        : ""
+      setPendingUser({
+        id: `temp-user-${Date.now()}`,
+        conversationId,
+        role: "user",
+        content: `${userText}${attachmentSummary}`,
+        createdAt: new Date().toISOString(),
+      })
+      setPendingAssistant({
+        id: `temp-assistant-${Date.now()}`,
+        conversationId,
+        role: "assistant",
+        content: "",
+        createdAt: new Date().toISOString(),
+      })
+      setInput("")
+      setPendingFiles([])
+      messageCommitted = true
+      typewriter.reset()
+
       const attachments: AssistantAttachment[] = []
       for (const imageFile of imageFiles) {
         attachments.push(await uploadAssistantImageAttachment({ assistantId, conversationId, file: imageFile }))
@@ -247,7 +293,7 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
         conversationId,
         text: userText,
         attachments,
-        signal: new AbortController().signal,
+        signal: controller.signal,
       })
       for await (const ev of stream) {
         if (ev.type === "delta") {
@@ -256,36 +302,34 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
           typewriter.flush()
           typewriter.stop()
           if (ev.saved) {
-            setPendingAssistant(null)
-            setPendingUser(null)
+            clearPendingMessages()
             setStreamError(null)
-            await Promise.all([
-              qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] }),
-              qc.invalidateQueries({
-                queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"],
-              }),
-            ])
+            await invalidateConversationQueries(conversationId)
           } else {
+            restoreComposer(savedInput, savedFiles)
+            clearPendingMessages()
             setStreamError(ev.message || "请求失败")
           }
         } else {
           typewriter.flush()
           typewriter.stop()
-          setPendingAssistant(null)
-          setPendingUser(null)
-          await Promise.all([
-            qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] }),
-            qc.invalidateQueries({
-              queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"],
-            }),
-          ])
+          clearPendingMessages()
+          await invalidateConversationQueries(conversationId)
         }
       }
     } catch (e) {
       typewriter.stop()
-      setStreamError(e instanceof Error ? e.message : "请求失败")
+      if (isAbortError(e)) {
+        clearPendingMessages()
+        if (conversationId) await invalidateConversationQueries(conversationId)
+      } else {
+        if (messageCommitted) restoreComposer(savedInput, savedFiles)
+        clearPendingMessages()
+        setStreamError(e instanceof Error ? e.message : "请求失败")
+      }
     } finally {
       setSending(false)
+      if (abortRef.current === controller) abortRef.current = null
     }
   }
 
@@ -332,5 +376,7 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
     cancelRenameConversation,
     submitRenameConversation,
     send,
+    stopGeneration,
+    resend,
   }
 }

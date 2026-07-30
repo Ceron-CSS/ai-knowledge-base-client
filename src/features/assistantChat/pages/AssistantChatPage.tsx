@@ -58,6 +58,7 @@ export function AssistantChatPage() {
             bottomRef={chat.bottomRef}
             onCitationClick={chat.openCitationPopover}
             onPreviewImage={chat.setPreviewImage}
+            onResend={chat.resend}
           />
 
           <ChatComposer
@@ -73,6 +74,7 @@ export function AssistantChatPage() {
             inputRef={chat.inputRef}
             onAdjustComposerHeight={chat.adjustComposerHeight}
             onSend={() => void chat.send()}
+            onStop={chat.stopGeneration}
             onPreviewImage={chat.setPreviewImage}
           />
         </section>
