@@ -36,7 +36,8 @@ export function useUpdateModelConfig() {
 export function useDeleteModelConfig() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id }: { id: string }) => deleteModelConfig(id),
+    mutationFn: ({ id, acknowledgeLinked }: { id: string; acknowledgeLinked?: boolean }) =>
+      deleteModelConfig(id, { acknowledgeLinked }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: modelProviderKeys.all })
       await qc.invalidateQueries({ queryKey: ["assistants"] })

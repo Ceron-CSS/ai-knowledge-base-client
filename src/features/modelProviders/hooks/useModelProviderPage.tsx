@@ -31,6 +31,7 @@ export function useModelProviderPage() {
   const [deleting, setDeleting] = useState<ModelConfig | null>(null)
   const [deletingLinked, setDeletingLinked] = useState<ModelConfigLinkedAssistant[]>([])
   const [checkingDeleteLinked, setCheckingDeleteLinked] = useState(false)
+  const [linkedCheckError, setLinkedCheckError] = useState<string | null>(null)
   const [query, setQuery] = useState("")
 
   const submitting = createModel.isPending || updateModel.isPending
@@ -64,13 +65,13 @@ export function useModelProviderPage() {
 
   const handleDelete = useCallback(async (config: ModelConfig) => {
     setCheckingDeleteLinked(true)
+    setLinkedCheckError(null)
     try {
       const linked = await getModelConfigLinkedAssistants(config.id)
       setDeleting(config)
       setDeletingLinked(linked)
     } catch {
-      setDeleting(config)
-      setDeletingLinked([])
+      setLinkedCheckError("无法检查关联助手，请稍后重试")
     } finally {
       setCheckingDeleteLinked(false)
     }
@@ -179,7 +180,10 @@ export function useModelProviderPage() {
 
   async function confirmDelete() {
     if (!deleting) return
-    await deleteModel.mutateAsync({ id: deleting.id })
+    await deleteModel.mutateAsync({
+      id: deleting.id,
+      acknowledgeLinked: deletingLinked.length > 0,
+    })
     cancelDelete()
     await qc.invalidateQueries({ queryKey: ["assistants"] })
   }
@@ -202,6 +206,7 @@ export function useModelProviderPage() {
     submitting,
     deleting,
     deletingLinked,
+    linkedCheckError,
     deleteModel,
     openCreate,
     closeDialog,

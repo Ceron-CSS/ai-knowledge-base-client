@@ -35,12 +35,25 @@ export function updateKb(id: string, body: { name: string; description?: string 
   return requestJson<Kb>(`/kb/${id}`, { method: "PATCH", body })
 }
 
-export function setKbEnabled(id: string, enabled: boolean) {
-  return requestJson<Kb>(`/kb/${id}`, { method: "PATCH", body: { enabled } })
+export function setKbEnabled(
+  id: string,
+  enabled: boolean,
+  options?: { acknowledgeLinked?: boolean },
+) {
+  return requestJson<Kb>(`/kb/${id}`, {
+    method: "PATCH",
+    body: {
+      enabled,
+      ...(options?.acknowledgeLinked ? { acknowledgeLinked: true } : {}),
+    },
+  })
 }
 
-export function deleteKb(id: string) {
-  return requestJson<void>(`/kb/${id}`, { method: "DELETE" })
+export function deleteKb(id: string, options?: { acknowledgeLinked?: boolean }) {
+  return requestJson<void>(`/kb/${id}`, {
+    method: "DELETE",
+    query: options?.acknowledgeLinked ? { acknowledgeLinked: true } : undefined,
+  })
 }
 
 export type KbLinkedAssistant = {

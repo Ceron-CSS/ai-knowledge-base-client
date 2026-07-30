@@ -17,7 +17,12 @@ export function ModelProviderPage() {
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        <div className="text-sm text-muted-foreground">{providers.countLabel}</div>
+        <div className="space-y-1">
+          <div className="text-sm text-muted-foreground">{providers.countLabel}</div>
+          {providers.linkedCheckError ? (
+            <div className="text-sm text-destructive">{providers.linkedCheckError}</div>
+          ) : null}
+        </div>
         <div className="flex items-center gap-1.5">
           <Input
             clearable

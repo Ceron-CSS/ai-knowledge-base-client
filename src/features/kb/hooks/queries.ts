@@ -52,7 +52,15 @@ export function useUpdateKb() {
 export function useSetKbEnabled() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => setKbEnabled(id, enabled),
+    mutationFn: ({
+      id,
+      enabled,
+      acknowledgeLinked,
+    }: {
+      id: string
+      enabled: boolean
+      acknowledgeLinked?: boolean
+    }) => setKbEnabled(id, enabled, { acknowledgeLinked }),
     onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: kbKeys.all })
       if (!vars.enabled) {
@@ -65,7 +73,8 @@ export function useSetKbEnabled() {
 export function useDeleteKb() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id }: { id: string }) => deleteKb(id),
+    mutationFn: ({ id, acknowledgeLinked }: { id: string; acknowledgeLinked?: boolean }) =>
+      deleteKb(id, { acknowledgeLinked }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: kbKeys.all })
       await qc.invalidateQueries({ queryKey: ["assistants"] })

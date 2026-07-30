@@ -37,6 +37,7 @@ export function useKbPage() {
   const [disablingKb, setDisablingKb] = useState<Kb | null>(null)
   const [disablingLinked, setDisablingLinked] = useState<KbLinkedAssistant[]>([])
   const [checkingLinked, setCheckingLinked] = useState(false)
+  const [linkedCheckError, setLinkedCheckError] = useState<string | null>(null)
 
   const isSaving = createKb.isPending || updateKb.isPending
 
@@ -96,19 +97,22 @@ export function useKbPage() {
 
   async function confirmDelete() {
     if (!deleting) return
-    await deleteKb.mutateAsync({ id: deleting.id })
+    await deleteKb.mutateAsync({
+      id: deleting.id,
+      acknowledgeLinked: deletingLinked.length > 0,
+    })
     cancelDelete()
   }
 
   const handleDelete = useCallback(async (kb: Kb) => {
     setCheckingLinked(true)
+    setLinkedCheckError(null)
     try {
       const linked = await getKbLinkedAssistants(kb.id)
       setDeleting(kb)
       setDeletingLinked(linked)
     } catch {
-      setDeleting(kb)
-      setDeletingLinked([])
+      setLinkedCheckError("无法检查关联助手，请稍后重试")
     } finally {
       setCheckingLinked(false)
     }
@@ -118,6 +122,7 @@ export function useKbPage() {
     async (kb: Kb) => {
       if (kb.enabled) {
         setCheckingLinked(true)
+        setLinkedCheckError(null)
         try {
           const linked = await getKbLinkedAssistants(kb.id)
           if (linked.length) {
@@ -127,7 +132,7 @@ export function useKbPage() {
             setEnabled.mutate({ id: kb.id, enabled: false })
           }
         } catch {
-          setEnabled.mutate({ id: kb.id, enabled: false })
+          setLinkedCheckError("无法检查关联助手，请稍后重试")
         } finally {
           setCheckingLinked(false)
         }
@@ -145,7 +150,11 @@ export function useKbPage() {
 
   function confirmDisable() {
     if (!disablingKb) return
-    setEnabled.mutate({ id: disablingKb.id, enabled: false })
+    setEnabled.mutate({
+      id: disablingKb.id,
+      enabled: false,
+      acknowledgeLinked: true,
+    })
     cancelDisable()
   }
 
@@ -301,6 +310,7 @@ export function useKbPage() {
     deletingLinked,
     disablingKb,
     disablingLinked,
+    linkedCheckError,
     isSaving,
     submitLabel,
     filteredList,

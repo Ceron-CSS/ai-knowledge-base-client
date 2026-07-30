@@ -30,8 +30,11 @@ export function updateModelConfig(
   return requestJson<ModelConfig>(`/model-configs/${id}`, { method: "PATCH", body })
 }
 
-export function deleteModelConfig(id: string) {
-  return requestJson<void>(`/model-configs/${id}`, { method: "DELETE" })
+export function deleteModelConfig(id: string, options?: { acknowledgeLinked?: boolean }) {
+  return requestJson<void>(`/model-configs/${id}`, {
+    method: "DELETE",
+    query: options?.acknowledgeLinked ? { acknowledgeLinked: true } : undefined,
+  })
 }
 
 export type ModelConfigLinkedAssistant = {
