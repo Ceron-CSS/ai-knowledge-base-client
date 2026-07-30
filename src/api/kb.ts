@@ -180,6 +180,16 @@ export async function streamKbChunkPreview(
   if (tail) onChunk(JSON.parse(tail) as ChunkPreviewChunk)
 }
 
+export async function fetchKbChunkPreview(
+  kbId: string,
+  body: ChunkPreviewRequest,
+  signal?: AbortSignal,
+): Promise<ChunkPreviewChunk[]> {
+  const chunks: ChunkPreviewChunk[] = []
+  await streamKbChunkPreview(kbId, body, (chunk) => chunks.push(chunk), signal)
+  return chunks
+}
+
 export type ExtractedFile = {
   fileName: string
   fileType: string

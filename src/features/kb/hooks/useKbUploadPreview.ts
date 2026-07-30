@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   createKbItem,
+  fetchKbChunkPreview,
   streamKbChunkPreview,
   updateKbItem,
   type ChunkPreviewChunk,
@@ -9,6 +10,10 @@ import {
   type ChunkPreviewSeparator,
 } from "@/api/kb"
 import { clampMaxLength } from "@/features/kb/lib/clampMaxLength"
+import {
+  chunkPreviewSnapshotMatches,
+  type ChunkPreviewSnapshot,
+} from "@/features/kb/lib/chunkPreviewSnapshot"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
 import type { KbUploadNavigationState } from "@/features/kb/types"
 
@@ -30,13 +35,25 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [chunks, setChunks] = useState<ChunkPreviewChunk[]>([])
-  const [previewGenerated, setPreviewGenerated] = useState(false)
+  const [previewSnapshot, setPreviewSnapshot] = useState<ChunkPreviewSnapshot | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const lastSaveAtRef = useRef(0)
 
-  const canPreview = useMemo(() => text.trim().length > 0 && !loading, [text, loading])
+  const canPreview = useMemo(() => text.trim().length > 0 && !loading && !saving, [text, loading, saving])
+  const canSave = useMemo(
+    () => fileName.trim().length > 0 && text.trim().length > 0 && !loading && !saving,
+    [fileName, text, loading, saving],
+  )
+
+  function resolveMaxLength() {
+    return maxLengthInput === "" ? maxLength : clampMaxLength(Number(maxLengthInput))
+  }
+
+  function currentSnapshot(resolvedMaxLength: number): ChunkPreviewSnapshot {
+    return { text, mode, separators, maxLength: resolvedMaxLength, trimSpaces }
+  }
 
   useEffect(() => {
     const state = location.state as KbUploadNavigationState | null
@@ -61,33 +78,47 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
         })),
       )
     }
-    setPreviewGenerated(false)
+    setPreviewSnapshot(null)
   }, [location.state])
 
   async function onGenerate() {
     setError(null)
-    setPreviewGenerated(false)
+    setPreviewSnapshot(null)
     setChunks([])
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
     setLoading(true)
-    const previewMaxLength = maxLengthInput === "" ? maxLength : clampMaxLength(Number(maxLengthInput))
+    const previewMaxLength = resolveMaxLength()
     setMaxLength(previewMaxLength)
     setMaxLengthInput(String(previewMaxLength))
+    const snapshot = currentSnapshot(previewMaxLength)
     try {
       await streamKbChunkPreview(
         kbId,
-        { text, mode, separators, maxLength: previewMaxLength, trimSpaces },
+        snapshot,
         (chunk) => setChunks((prev) => [...prev, chunk]),
         controller.signal,
       )
-      setPreviewGenerated(true)
+      setPreviewSnapshot(snapshot)
     } catch (e) {
       setError(e instanceof Error ? e.message : "预览失败")
     } finally {
       setLoading(false)
     }
+  }
+
+  async function resolveChunksForSave(resolvedMaxLength: number): Promise<string[]> {
+    const snapshot = currentSnapshot(resolvedMaxLength)
+    if (previewSnapshot && chunkPreviewSnapshotMatches(snapshot, previewSnapshot) && chunks.length > 0) {
+      return chunks.map((chunk) => chunk.text)
+    }
+
+    const generated = await fetchKbChunkPreview(kbId, snapshot)
+    if (!generated.length) {
+      throw new Error("分片结果为空，请检查文本内容或分段参数")
+    }
+    return generated.map((chunk) => chunk.text)
   }
 
   async function onSave() {
@@ -99,26 +130,31 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
       setSaveError("缺少文件名，请重新上传文件")
       return
     }
-    if (!chunks.length) {
-      setSaveError("请先生成分段预览后再保存")
+    if (!text.trim()) {
+      setSaveError("文本内容不能为空")
       return
     }
     setSaveError(null)
     setSaving(true)
+    const saveMaxLength = resolveMaxLength()
+    setMaxLength(saveMaxLength)
+    setMaxLengthInput(String(saveMaxLength))
     try {
+      const chunkTexts = await resolveChunksForSave(saveMaxLength)
+      const chunkConfig = { mode, separators, maxLength: saveMaxLength, trimSpaces }
       if (editingItemId) {
         await updateKbItem(kbId, editingItemId, {
           fileName,
           content: text,
-          chunks: chunks.map((c) => c.text),
-          chunkConfig: { mode, separators, maxLength, trimSpaces },
+          chunks: chunkTexts,
+          chunkConfig,
         })
       } else {
         await createKbItem(kbId, {
           fileName,
           content: text,
-          chunks: chunks.map((c) => c.text),
-          chunkConfig: { mode, separators, maxLength, trimSpaces },
+          chunks: chunkTexts,
+          chunkConfig,
         })
       }
       navigate(`/kb/${kbId}`)
@@ -165,10 +201,10 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     loading,
     error,
     chunks,
-    previewGenerated,
     saving,
     saveError,
     canPreview,
+    canSave,
     previewStatusText,
     formatCharCountK,
     onGenerate: () => void onGenerate(),

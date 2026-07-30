@@ -105,10 +105,10 @@ export function KbUploadPreviewPage() {
               variant="primary"
               size="lg"
               onClick={preview.onSave}
-              disabled={preview.loading || preview.chunks.length === 0 || !preview.previewGenerated}
+              disabled={!preview.canSave}
               loading={preview.saving}
             >
-              保存到知识库
+              {preview.saving ? "正在处理并保存" : "保存到知识库"}
             </Button>
           </div>
         </section>
