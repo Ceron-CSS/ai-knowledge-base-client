@@ -80,8 +80,14 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
 
   const combinedMessages = useMemo(() => {
     const output = [...baseMessages]
-    if (pendingUser) output.push(pendingUser)
-    if (pendingAssistant) output.push(pendingAssistant)
+    if (pendingUser) {
+      const last = output[output.length - 1]
+      if (last?.role !== "user") output.push(pendingUser)
+    }
+    if (pendingAssistant) {
+      const last = output[output.length - 1]
+      if (last?.role !== "assistant") output.push(pendingAssistant)
+    }
     return output
   }, [baseMessages, pendingUser, pendingAssistant])
 
@@ -250,29 +256,29 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
           typewriter.flush()
           typewriter.stop()
           if (ev.saved) {
+            setPendingAssistant(null)
+            setPendingUser(null)
+            setStreamError(null)
             await Promise.all([
               qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] }),
               qc.invalidateQueries({
                 queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"],
               }),
             ])
-            setPendingAssistant(null)
-            setPendingUser(null)
-            setStreamError(null)
           } else {
             setStreamError(ev.message || "请求失败")
           }
         } else {
           typewriter.flush()
           typewriter.stop()
+          setPendingAssistant(null)
+          setPendingUser(null)
           await Promise.all([
             qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] }),
             qc.invalidateQueries({
               queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"],
             }),
           ])
-          setPendingAssistant(null)
-          setPendingUser(null)
         }
       }
     } catch (e) {
