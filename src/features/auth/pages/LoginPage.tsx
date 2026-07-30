@@ -11,6 +11,37 @@ import { consumePostLoginRedirect } from "../lib/redirect"
 import { getPasswordFieldError, validatePasswordPolicy } from "../lib/passwordPolicy"
 import { cn } from "@/lib/utils"
 
+type OAuthHashResult = {
+  accessToken: string | null
+  redirectTo: string | null
+  oauthError: string | null
+  shouldClearHash: boolean
+}
+
+function parseOAuthHash(): OAuthHashResult {
+  if (typeof window === "undefined") {
+    return { accessToken: null, redirectTo: null, oauthError: null, shouldClearHash: false }
+  }
+
+  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash
+  if (!hash) {
+    return { accessToken: null, redirectTo: null, oauthError: null, shouldClearHash: false }
+  }
+
+  const params = new URLSearchParams(hash)
+  const accessToken = params.get("accessToken")
+  const redirectTo = params.get("redirectTo")
+  const oauthError = params.get("oauthError")
+
+  if (accessToken) {
+    return { accessToken, redirectTo: redirectTo || "/home", oauthError: null, shouldClearHash: true }
+  }
+  if (oauthError) {
+    return { accessToken: null, redirectTo: null, oauthError, shouldClearHash: true }
+  }
+  return { accessToken: null, redirectTo: null, oauthError: null, shouldClearHash: false }
+}
+
 export function LoginPage() {
   const auth = useAuth()
   const location = useLocation()
@@ -19,37 +50,25 @@ export function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [password2, setPassword2] = useState("")
-  const [oauthRedirect, setOauthRedirect] = useState<string | null>(null)
-  const [oauthError, setOauthError] = useState<string | null>(null)
+  const [oauthHash] = useState(parseOAuthHash)
 
   useEffect(() => {
-    if (typeof window === "undefined") return
+    if (!oauthHash.accessToken) return
+    auth.loginWithToken(oauthHash.accessToken)
+  }, [auth, oauthHash.accessToken])
 
-    const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash
-    if (!hash) return
-
-    const params = new URLSearchParams(hash)
-    const accessToken = params.get("accessToken")
-    const redirectTo = params.get("redirectTo")
-    const error = params.get("oauthError")
-
-    if (accessToken) {
-      auth.loginWithToken(accessToken)
-      setOauthRedirect(redirectTo || "/home")
-    } else if (error) {
-      setOauthError(error)
-    }
-
+  useEffect(() => {
+    if (!oauthHash.shouldClearHash) return
     window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`)
-  }, [auth])
+  }, [oauthHash.shouldClearHash])
 
   const from = useMemo(() => {
-    if (oauthRedirect) return oauthRedirect
+    if (oauthHash.redirectTo) return oauthHash.redirectTo
     const stored = consumePostLoginRedirect()
     if (stored) return stored
     const s = location.state as { from?: string } | null
     return s?.from ?? "/"
-  }, [location.state, oauthRedirect])
+  }, [location.state, oauthHash.redirectTo])
 
   const loginMutation = useMutation({
     mutationFn: () => login({ username: username.trim(), password }),
@@ -102,7 +121,7 @@ export function LoginPage() {
       : "注册失败，请稍后再试"
     : null
 
-  const oauthErrorText = oauthError
+  const oauthErrorText = oauthHash.oauthError
 
   const errorText = mode === "login" ? loginErrorText : registerErrorText
   const passwordFieldError =

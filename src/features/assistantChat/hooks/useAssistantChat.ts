@@ -65,9 +65,9 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
   const deleteConversation = useDeleteAssistantConversation(assistantId)
   const renameConversation = useRenameAssistantConversation(assistantId)
   const messagesQuery = useAssistantMessages(assistantId, selectedConversationId, !!selectedConversationId)
-  const baseMessages = messagesQuery.data ?? []
+  const baseMessages = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data])
 
-  const allList = conversations.data ?? []
+  const allList = useMemo(() => conversations.data ?? [], [conversations.data])
   const list = useMemo(() => {
     const q = debouncedConversationQuery.trim().toLowerCase()
     if (!q) return allList

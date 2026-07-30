@@ -45,7 +45,7 @@ export function AssistantListPage() {
     }
   }, [menuOpenFor])
 
-  const items = assistants.data ?? []
+  const items = useMemo(() => assistants.data ?? [], [assistants.data])
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return items

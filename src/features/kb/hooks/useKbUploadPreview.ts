@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   createKbItem,
@@ -21,20 +21,82 @@ type UseKbUploadPreviewOptions = {
   kbId: string
 }
 
+type UploadPreviewInitialState = {
+  editingItemId: string | null
+  text: string
+  fileName: string
+  mode: ChunkPreviewMode
+  separators: ChunkPreviewSeparator[]
+  maxLength: number
+  maxLengthInput: string
+  trimSpaces: boolean
+  chunks: ChunkPreviewChunk[]
+}
+
+function buildUploadPreviewInitialState(state: unknown): UploadPreviewInitialState | null {
+  const nav = state as KbUploadNavigationState | null
+  if (!nav?.text) return null
+
+  const initial: UploadPreviewInitialState = {
+    editingItemId: nav.itemId ?? null,
+    text: nav.text,
+    fileName: nav.fileName ?? "",
+    mode: "smart",
+    separators: [],
+    maxLength: 500,
+    maxLengthInput: "500",
+    trimSpaces: true,
+    chunks: [],
+  }
+
+  if (nav.chunkConfig) {
+    initial.mode = nav.chunkConfig.mode
+    initial.separators = nav.chunkConfig.separators
+    const nextMaxLength = clampMaxLength(nav.chunkConfig.maxLength)
+    initial.maxLength = nextMaxLength
+    initial.maxLengthInput = String(nextMaxLength)
+    initial.trimSpaces = nav.chunkConfig.trimSpaces
+  }
+
+  if (Array.isArray(nav.chunks) && nav.chunks.length) {
+    initial.chunks = nav.chunks.map((chunk, index) => ({
+      index: index + 1,
+      charCount: chunk.length,
+      text: chunk,
+    }))
+  }
+
+  return initial
+}
+
 export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
   const navigate = useNavigate()
   const location = useLocation()
-  const [text, setText] = useState("")
-  const [fileName, setFileName] = useState("")
-  const [editingItemId, setEditingItemId] = useState<string | null>(null)
-  const [mode, setMode] = useState<ChunkPreviewMode>("smart")
-  const [separators, setSeparators] = useState<ChunkPreviewSeparator[]>([])
-  const [maxLength, setMaxLength] = useState(500)
-  const [maxLengthInput, setMaxLengthInput] = useState("500")
-  const [trimSpaces, setTrimSpaces] = useState(true)
+  const [text, setText] = useState(() => buildUploadPreviewInitialState(location.state)?.text ?? "")
+  const [fileName] = useState(() => buildUploadPreviewInitialState(location.state)?.fileName ?? "")
+  const [editingItemId] = useState<string | null>(
+    () => buildUploadPreviewInitialState(location.state)?.editingItemId ?? null,
+  )
+  const [mode, setMode] = useState<ChunkPreviewMode>(
+    () => buildUploadPreviewInitialState(location.state)?.mode ?? "smart",
+  )
+  const [separators, setSeparators] = useState<ChunkPreviewSeparator[]>(
+    () => buildUploadPreviewInitialState(location.state)?.separators ?? [],
+  )
+  const [maxLength, setMaxLength] = useState(
+    () => buildUploadPreviewInitialState(location.state)?.maxLength ?? 500,
+  )
+  const [maxLengthInput, setMaxLengthInput] = useState(
+    () => buildUploadPreviewInitialState(location.state)?.maxLengthInput ?? "500",
+  )
+  const [trimSpaces, setTrimSpaces] = useState(
+    () => buildUploadPreviewInitialState(location.state)?.trimSpaces ?? true,
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [chunks, setChunks] = useState<ChunkPreviewChunk[]>([])
+  const [chunks, setChunks] = useState<ChunkPreviewChunk[]>(
+    () => buildUploadPreviewInitialState(location.state)?.chunks ?? [],
+  )
   const [previewSnapshot, setPreviewSnapshot] = useState<ChunkPreviewSnapshot | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -54,32 +116,6 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
   function currentSnapshot(resolvedMaxLength: number): ChunkPreviewSnapshot {
     return { text, mode, separators, maxLength: resolvedMaxLength, trimSpaces }
   }
-
-  useEffect(() => {
-    const state = location.state as KbUploadNavigationState | null
-    if (!state?.text) return
-    setEditingItemId(state.itemId ?? null)
-    setText(state.text)
-    setFileName(state.fileName ?? "")
-    if (state.chunkConfig) {
-      setMode(state.chunkConfig.mode)
-      setSeparators(state.chunkConfig.separators)
-      const nextMaxLength = clampMaxLength(state.chunkConfig.maxLength)
-      setMaxLength(nextMaxLength)
-      setMaxLengthInput(String(nextMaxLength))
-      setTrimSpaces(state.chunkConfig.trimSpaces)
-    }
-    if (Array.isArray(state.chunks) && state.chunks.length) {
-      setChunks(
-        state.chunks.map((chunk, index) => ({
-          index: index + 1,
-          charCount: chunk.length,
-          text: chunk,
-        })),
-      )
-    }
-    setPreviewSnapshot(null)
-  }, [location.state])
 
   async function onGenerate() {
     setError(null)

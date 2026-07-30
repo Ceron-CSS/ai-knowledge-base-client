@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import type { Assistant } from "@/api/assistants"
 import { DEFAULT_BASE_MODEL, getBaseModelOptionsForProvider } from "@/features/assistants/constants/baseModelOptions"
@@ -44,30 +44,25 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
       })),
     [modelConfigs.data],
   )
-  const selectedProvider = modelConfigId ? (configMap.get(modelConfigId)?.provider ?? "aliyun-bailian") : "aliyun-bailian"
+  const resolvedModelConfigId = modelConfigId || configOptions[0]?.value || ""
+  const selectedProvider = resolvedModelConfigId
+    ? (configMap.get(resolvedModelConfigId)?.provider ?? "aliyun-bailian")
+    : "aliyun-bailian"
   const baseModelOptions = getBaseModelOptionsForProvider(selectedProvider)
+  const resolvedBaseModel = baseModelOptions.some((x) => x.value === baseModel)
+    ? baseModel
+    : (baseModelOptions[0]?.value ?? "")
 
-  useEffect(() => {
-    if (!existing) return
+  const [syncedExistingId, setSyncedExistingId] = useState(existing?.id)
+  if (existing && existing.id !== syncedExistingId) {
+    setSyncedExistingId(existing.id)
     setName(existing.name)
     setDescription(existing.description ?? "")
     setModelConfigId(existing.modelConfigId ?? "")
     setBaseModel(existing.baseModel ?? DEFAULT_BASE_MODEL)
     setSystemPrompt(existing.systemPrompt ?? "")
     setKbIds(existing.kbIds ?? [])
-  }, [existing])
-
-  useEffect(() => {
-    if (modelConfigId) return
-    if (!configOptions.length) return
-    setModelConfigId(configOptions[0].value)
-  }, [modelConfigId, configOptions])
-
-  useEffect(() => {
-    if (!baseModelOptions.some((x) => x.value === baseModel)) {
-      setBaseModel(baseModelOptions[0]?.value ?? "")
-    }
-  }, [baseModel, baseModelOptions])
+  }
 
   const disabledKbNames = useMemo(() => {
     if (!kbList.data) return []
@@ -83,8 +78,8 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
     return {
       name: trimmedName,
       description: description.trim() ? description.trim() : undefined,
-      modelConfigId,
-      baseModel,
+      modelConfigId: resolvedModelConfigId,
+      baseModel: resolvedBaseModel,
       systemPrompt: systemPrompt.trim() ? systemPrompt.trim() : undefined,
       kbIds,
     }
@@ -95,15 +90,15 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
     return {
       name: trimmedName,
       description: description.trim() ? description.trim() : null,
-      modelConfigId,
-      baseModel,
+      modelConfigId: resolvedModelConfigId,
+      baseModel: resolvedBaseModel,
       systemPrompt: systemPrompt.trim() ? systemPrompt.trim() : null,
       kbIds,
     }
   }
 
   async function save() {
-    const validationError = validateAssistantForm({ name, modelConfigId, baseModel })
+    const validationError = validateAssistantForm({ name, modelConfigId: resolvedModelConfigId, baseModel: resolvedBaseModel })
     if (validationError) {
       setError(validationError)
       return
@@ -133,7 +128,7 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
   }
 
   async function handlePublish() {
-    const validationError = validateAssistantForm({ name, modelConfigId, baseModel })
+    const validationError = validateAssistantForm({ name, modelConfigId: resolvedModelConfigId, baseModel: resolvedBaseModel })
     if (validationError) {
       setError(validationError)
       return
@@ -181,9 +176,9 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
     setName,
     description,
     setDescription,
-    modelConfigId,
+    modelConfigId: resolvedModelConfigId,
     setModelConfigId,
-    baseModel,
+    baseModel: resolvedBaseModel,
     setBaseModel,
     systemPrompt,
     setSystemPrompt,

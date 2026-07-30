@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useLocation } from "react-router-dom"
 
 const SIDEBAR_COLLAPSED_KEY = "app.sidebarCollapsed"
@@ -30,9 +30,12 @@ export function useSidebarCollapsed() {
     [location.pathname],
   )
 
-  useEffect(() => {
+  const [prevIsAssistantChatRoute, setPrevIsAssistantChatRoute] = useState(isAssistantChatRoute)
+
+  if (isAssistantChatRoute !== prevIsAssistantChatRoute) {
+    setPrevIsAssistantChatRoute(isAssistantChatRoute)
     setCollapsed(isAssistantChatRoute)
-  }, [isAssistantChatRoute])
+  }
 
   function toggleCollapsed() {
     setCollapsed((v) => {
