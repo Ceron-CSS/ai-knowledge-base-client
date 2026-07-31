@@ -1,5 +1,11 @@
 import { authenticatedFetch, requestJson, throwIfNotOk } from "@/api/http"
 import { readSseJsonStream } from "@/api/http-stream"
+import {
+  listQueryToSearchParams,
+  type ListQuery,
+  type PaginatedResult,
+  type SortDir,
+} from "@/api/listQuery"
 
 export type AssistantConversation = {
   id: string
@@ -10,7 +16,12 @@ export type AssistantConversation = {
 }
 
 export type AssistantConversationSortBy = "updatedAt" | "createdAt" | "title"
-export type SortDir = "asc" | "desc"
+export type { SortDir, PaginatedResult, ListQuery }
+
+export type AssistantConversationListParams = ListQuery & {
+  sortBy?: AssistantConversationSortBy
+  sortDir?: SortDir
+}
 
 export type AssistantMessage = {
   id: string
@@ -28,13 +39,11 @@ export type AssistantCitation = {
   score: number
 }
 
-export function listAssistantConversations(
-  assistantId: string,
-  params: { sortBy?: AssistantConversationSortBy; sortDir?: SortDir } = {},
-) {
-  return requestJson<AssistantConversation[]>(`/assistants/${assistantId}/conversations`, {
+export function listAssistantConversations(assistantId: string, params: AssistantConversationListParams = {}) {
+  const listParams = listQueryToSearchParams(params)
+  return requestJson<PaginatedResult<AssistantConversation>>(`/assistants/${assistantId}/conversations`, {
     query: {
-      ...params,
+      ...listParams,
       sortBy: params.sortBy ?? "createdAt",
       sortDir: params.sortDir ?? "desc",
     },

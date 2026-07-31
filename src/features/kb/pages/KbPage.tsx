@@ -76,6 +76,12 @@ export function KbPage() {
         loading={kb.kbList.isLoading}
         error={kb.kbList.isError}
         errorText="加载失败：请确认后端服务可用"
+        pagination={{
+          page: kb.page,
+          pageSize: kb.pageSize,
+          total: kb.total,
+          onPageChange: kb.setPage,
+        }}
       />
     </div>
   )

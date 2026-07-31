@@ -9,7 +9,7 @@ export {
   CardHeader,
   CardTitle,
 } from "./card"
-export { DataTable, DataTableEmpty, type DataTableColumn } from "./data-table"
+export { DataTable, DataTableEmpty, type DataTableColumn, type DataTablePagination } from "./data-table"
 export { Dialog, type DialogProps } from "./dialog"
 export { Field } from "./field"
 export { Input } from "./input"

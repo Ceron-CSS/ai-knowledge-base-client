@@ -8,19 +8,20 @@ import {
   setKbEnabled,
   setKbItemEnabled,
   updateKb,
-  type KbSortBy,
-  type SortDir,
+  type KbItemListParams,
+  type KbListParams,
 } from "@/api/kb"
 
 const kbKeys = {
   all: ["kb"] as const,
-  list: (params: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir }) => ["kb", "list", params] as const,
-  items: (kbId: string) => ["kb", "items", kbId] as const,
+  list: (params: KbListParams) => ["kb", "list", params] as const,
+  items: (kbId: string, params: KbItemListParams) => ["kb", "items", kbId, params] as const,
 }
 
-const EMPTY_LIST_PARAMS: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir } = {}
+const EMPTY_LIST_PARAMS: KbListParams = {}
+const EMPTY_ITEM_PARAMS: KbItemListParams = {}
 
-export function useKbList(params?: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir }) {
+export function useKbList(params?: KbListParams) {
   const effectiveParams = params ?? EMPTY_LIST_PARAMS
   return useQuery({
     queryKey: kbKeys.list(effectiveParams),
@@ -82,10 +83,11 @@ export function useDeleteKb() {
   })
 }
 
-export function useKbItems(kbId: string) {
+export function useKbItems(kbId: string, params?: KbItemListParams) {
+  const effectiveParams = params ?? EMPTY_ITEM_PARAMS
   return useQuery({
-    queryKey: kbKeys.items(kbId),
-    queryFn: () => listKbItems(kbId),
+    queryKey: kbKeys.items(kbId, effectiveParams),
+    queryFn: () => listKbItems(kbId, effectiveParams),
     enabled: !!kbId,
   })
 }
@@ -96,7 +98,7 @@ export function useSetKbItemEnabled() {
     mutationFn: ({ kbId, itemId, enabled }: { kbId: string; itemId: string; enabled: boolean }) =>
       setKbItemEnabled(kbId, itemId, enabled),
     onSuccess: async (_data, vars) => {
-      await qc.invalidateQueries({ queryKey: kbKeys.items(vars.kbId) })
+      await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
     },
   })
 }
@@ -106,7 +108,7 @@ export function useDeleteKbItem() {
   return useMutation({
     mutationFn: ({ kbId, itemId }: { kbId: string; itemId: string }) => deleteKbItem(kbId, itemId),
     onSuccess: async (_data, vars) => {
-      await qc.invalidateQueries({ queryKey: kbKeys.items(vars.kbId) })
+      await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
       await qc.invalidateQueries({ queryKey: kbKeys.all })
     },
   })

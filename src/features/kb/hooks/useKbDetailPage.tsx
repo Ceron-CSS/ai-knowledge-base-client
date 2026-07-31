@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Pencil, Trash2 } from "lucide-react"
 import type { KbItem } from "@/api/kb"
 import { extractKbFileText, getKbItemDetail } from "@/api/kb"
+import { DEFAULT_PAGE_SIZE } from "@/api/listQuery"
 import { Button } from "@/components/ui/button"
 import type { DataTableColumn } from "@/components/ui/data-table"
 import { Switch } from "@/components/ui/switch"
@@ -15,7 +16,17 @@ type UseKbDetailPageOptions = {
 
 export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   const navigate = useNavigate()
-  const items = useKbItems(kbId)
+  const [page, setPage] = useState(1)
+  const itemParams = useMemo(
+    () => ({
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+      sortBy: "createdAt" as const,
+      sortDir: "desc" as const,
+    }),
+    [page],
+  )
+  const items = useKbItems(kbId, itemParams)
   const setEnabled = useSetKbItemEnabled()
   const deleteItem = useDeleteKbItem()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -26,8 +37,9 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<KbItem | null>(null)
 
-  const list = items.data ?? []
-  const countLabel = useMemo(() => `${list.length} 个文档`, [list.length])
+  const list = items.data?.items ?? []
+  const total = items.data?.total ?? 0
+  const countLabel = useMemo(() => `${total} 个文档`, [total])
 
   const onToggle = useCallback(
     async (itemId: string, enabled: boolean) => {
@@ -173,6 +185,10 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   return {
     items,
     list,
+    total,
+    page,
+    setPage,
+    pageSize: DEFAULT_PAGE_SIZE,
     countLabel,
     columns,
     uploadOpen,

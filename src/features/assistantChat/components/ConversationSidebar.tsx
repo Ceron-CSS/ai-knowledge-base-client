@@ -12,8 +12,12 @@ type ConversationSidebarProps = {
   onConversationQueryChange: (value: string) => void
   conversationsLoading: boolean
   conversationsError: boolean
+  conversationsFetching?: boolean
   list: AssistantConversation[]
   allListCount: number
+  totalCount: number
+  hasMore: boolean
+  onLoadMore: () => void
   selectedConversationId: string
   editingConversationId: string | null
   editingTitle: string
@@ -34,8 +38,12 @@ export function ConversationSidebar({
   onConversationQueryChange,
   conversationsLoading,
   conversationsError,
+  conversationsFetching = false,
   list,
   allListCount,
+  totalCount,
+  hasMore,
+  onLoadMore,
   selectedConversationId,
   editingConversationId,
   editingTitle,
@@ -148,8 +156,18 @@ export function ConversationSidebar({
                 </div>
               )
             })}
+            {hasMore ? (
+              <button
+                type="button"
+                className="mt-1 w-full rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/60 disabled:opacity-50"
+                onClick={onLoadMore}
+                disabled={conversationsFetching}
+              >
+                {conversationsFetching ? "加载中…" : `加载更多（${list.length}/${totalCount}）`}
+              </button>
+            ) : null}
           </div>
-        ) : allListCount ? (
+        ) : allListCount || totalCount ? (
           <div className="px-2 py-6 text-center text-sm text-muted-foreground">无匹配结果</div>
         ) : (
           <div className="px-2 py-6 text-center text-sm text-muted-foreground">暂无对话，点击右上角开始</div>

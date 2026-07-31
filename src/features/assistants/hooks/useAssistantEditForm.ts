@@ -23,7 +23,7 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
   const resolvedAssistantId =
     existing?.id ?? (routeId && routeId !== "new" ? routeId : undefined)
 
-  const kbList = useKbList()
+  const kbList = useKbList({ pageSize: 100, sortBy: "createdAt", sortDir: "desc" })
   const modelConfigs = useModelConfigList()
   const createAssistant = useCreateAssistant()
   const createAndPublishAssistant = useCreateAndPublishAssistant()
@@ -69,9 +69,10 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
   }
 
   const disabledKbNames = useMemo(() => {
-    if (!kbList.data) return []
-    return kbList.data.filter((kb) => !kb.enabled && kbIds.includes(kb.id)).map((kb) => kb.name)
-  }, [kbList.data, kbIds])
+    const items = kbList.data?.items
+    if (!items) return []
+    return items.filter((kb) => !kb.enabled && kbIds.includes(kb.id)).map((kb) => kb.name)
+  }, [kbList.data?.items, kbIds])
 
   const isPublished = !!existing?.publishedAt
   const submitting =

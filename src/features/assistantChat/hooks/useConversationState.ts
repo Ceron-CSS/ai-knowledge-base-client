@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import type { AssistantConversation } from "@/api/assistantChat"
 import {
-  useAssistantConversations,
+  useAssistantConversationFeed,
   useCreateAssistantConversation,
   useDeleteAssistantConversation,
   useRenameAssistantConversation,
@@ -26,17 +26,27 @@ export function useConversationState({ assistantId, blockedByUnpublished }: UseC
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")
 
-  const conversations = useAssistantConversations(assistantId)
+  const feedParams = useMemo(
+    () => ({
+      ...(debouncedConversationQuery.trim() ? { q: debouncedConversationQuery.trim() } : {}),
+      sortBy: "updatedAt" as const,
+      sortDir: "desc" as const,
+    }),
+    [debouncedConversationQuery],
+  )
+
+  const conversations = useAssistantConversationFeed(assistantId, feedParams)
   const createConversation = useCreateAssistantConversation(assistantId)
   const deleteConversation = useDeleteAssistantConversation(assistantId)
   const renameConversation = useRenameAssistantConversation(assistantId)
 
-  const allList = useMemo(() => conversations.data ?? [], [conversations.data])
-  const list = useMemo(() => {
-    const q = debouncedConversationQuery.trim().toLowerCase()
-    if (!q) return allList
-    return allList.filter((item) => (item.title ?? "").toLowerCase().includes(q))
-  }, [allList, debouncedConversationQuery])
+  const list = useMemo(
+    () => conversations.data?.pages.flatMap((page) => page.items) ?? [],
+    [conversations.data],
+  )
+  const total = conversations.data?.pages[0]?.total ?? 0
+  const hasMore = !!conversations.hasNextPage
+  const allList = list
 
   const selectedConversation = useMemo(
     () => allList.find((item) => item.id === selectedConversationId) ?? null,
@@ -107,6 +117,11 @@ export function useConversationState({ assistantId, blockedByUnpublished }: UseC
     cancelRenameConversation()
   }
 
+  function loadMoreConversations() {
+    if (!hasMore || conversations.isFetchingNextPage) return
+    void conversations.fetchNextPage()
+  }
+
   return {
     selectedConversationId,
     setSearchParams,
@@ -115,6 +130,9 @@ export function useConversationState({ assistantId, blockedByUnpublished }: UseC
     conversations,
     list,
     allList,
+    total,
+    hasMore,
+    loadMoreConversations,
     selectedConversation,
     createConversation,
     deleteConversation,

@@ -103,11 +103,11 @@ export function AssistantEditPage() {
                 <LoadingText className="justify-start">加载知识库列表中</LoadingText>
               ) : kbList.isError ? (
                 <div className="text-sm text-destructive">加载失败：请确认后端服务可用</div>
-              ) : kbList.data?.length ? (
+              ) : kbList.data?.items.length ? (
                 <MultiSelect
                   value={kbIds}
                   onValueChange={setKbIds}
-                  options={kbList.data.map((kb) => ({
+                  options={kbList.data.items.map((kb) => ({
                     label: kb.enabled ? kb.name : `${kb.name}（已停用）`,
                     value: kb.id,
                     disabled: !kb.enabled,

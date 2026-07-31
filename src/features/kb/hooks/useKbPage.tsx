@@ -1,31 +1,44 @@
 import { useMemo, useState } from "react"
+import { DEFAULT_PAGE_SIZE } from "@/api/listQuery"
 import { useKbList } from "@/features/kb/hooks/queries"
 import { useKbFormState } from "@/features/kb/hooks/useKbFormState"
 import { useKbLinkedActions } from "@/features/kb/hooks/useKbLinkedActions"
 import { useKbTableColumns } from "@/features/kb/hooks/useKbTableColumns"
-import { filterKbList } from "@/features/kb/lib/filterKbList"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 
 export function useKbPage() {
-  const kbList = useKbList()
   const form = useKbFormState()
   const actions = useKbLinkedActions()
 
   const [query, setQuery] = useState("")
   const debouncedQuery = useDebouncedValue(query, 250)
+  const [page, setPage] = useState(1)
+  const [pageQuery, setPageQuery] = useState(debouncedQuery)
+  if (pageQuery !== debouncedQuery) {
+    setPageQuery(debouncedQuery)
+    setPage(1)
+  }
 
-  const filteredList = useMemo(
-    () => filterKbList(kbList.data ?? [], debouncedQuery),
-    [kbList.data, debouncedQuery],
+  const listParams = useMemo(
+    () => ({
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+      ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
+      sortBy: "createdAt" as const,
+      sortDir: "desc" as const,
+    }),
+    [page, debouncedQuery],
   )
 
+  const kbList = useKbList(listParams)
+  const list = kbList.data?.items ?? []
+  const total = kbList.data?.total ?? 0
+
   const countLabel = useMemo(() => {
-    const total = kbList.data?.length ?? 0
-    const filtered = filteredList.length
     const q = debouncedQuery.trim()
-    if (q) return `${filtered}/${total} 个知识库`
+    if (q) return `${list.length}/${total} 个知识库`
     return `${total} 个知识库`
-  }, [kbList.data?.length, filteredList.length, debouncedQuery])
+  }, [list.length, total, debouncedQuery])
 
   const columns = useKbTableColumns({
     onEdit: form.startEdit,
@@ -40,6 +53,10 @@ export function useKbPage() {
   return {
     query,
     setQuery,
+    page,
+    setPage,
+    pageSize: DEFAULT_PAGE_SIZE,
+    total,
     editing: form.editing,
     name: form.name,
     setName: form.setName,
@@ -52,7 +69,7 @@ export function useKbPage() {
     linkedCheckError: actions.linkedCheckError,
     isSaving: form.isSaving,
     submitLabel: form.submitLabel,
-    filteredList,
+    filteredList: list,
     countLabel,
     columns,
     kbList,

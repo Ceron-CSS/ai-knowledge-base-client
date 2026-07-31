@@ -1,6 +1,7 @@
 import type { ComponentProps, Key, ReactNode } from "react"
 import { LoaderCircle } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export type DataTableColumn<T> = {
@@ -9,6 +10,13 @@ export type DataTableColumn<T> = {
   className?: string
   cellClassName?: string
   render: (item: T) => ReactNode
+}
+
+export type DataTablePagination = {
+  page: number
+  pageSize: number
+  total: number
+  onPageChange: (page: number) => void
 }
 
 type DataTableProps<T> = {
@@ -21,6 +29,7 @@ type DataTableProps<T> = {
   emptyText?: ReactNode
   tableClassName?: string
   containerClassName?: string
+  pagination?: DataTablePagination
 }
 
 function DataTable<T>({
@@ -33,45 +42,76 @@ function DataTable<T>({
   emptyText = "暂无数据",
   tableClassName,
   containerClassName,
+  pagination,
 }: DataTableProps<T>) {
   if (loading) return <DataTableEmpty loading>加载中</DataTableEmpty>
   if (error) return <DataTableEmpty className="text-destructive">{errorText}</DataTableEmpty>
   if (!data.length) return <DataTableEmpty>{emptyText}</DataTableEmpty>
 
+  const totalPages = pagination
+    ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
+    : 1
+
   return (
-    <DataTableContainer className={containerClassName}>
-      <table className={cn("w-full table-fixed text-left text-sm", tableClassName)}>
-        <thead>
-          <tr className="border-b bg-muted">
-            {columns.map((column) => (
-              <th
-                key={column.key}
-                className={cn(
-                  "px-4 py-3 align-middle text-sm font-bold text-foreground",
-                  column.className,
-                )}
-              >
-                {column.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="font-normal">
-          {data.map((item) => (
-            <tr key={getRowKey(item)} className="border-b font-normal last:border-b-0">
+    <div className="space-y-2">
+      <DataTableContainer className={containerClassName}>
+        <table className={cn("w-full table-fixed text-left text-sm", tableClassName)}>
+          <thead>
+            <tr className="border-b bg-muted">
               {columns.map((column) => (
-                <td
+                <th
                   key={column.key}
-                  className={cn("px-4 py-2.5 align-middle", column.cellClassName, "font-normal")}
+                  className={cn(
+                    "px-4 py-3 align-middle text-sm font-bold text-foreground",
+                    column.className,
+                  )}
                 >
-                  {column.render(item)}
-                </td>
+                  {column.header}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </DataTableContainer>
+          </thead>
+          <tbody className="font-normal">
+            {data.map((item) => (
+              <tr key={getRowKey(item)} className="border-b font-normal last:border-b-0">
+                {columns.map((column) => (
+                  <td
+                    key={column.key}
+                    className={cn("px-4 py-2.5 align-middle", column.cellClassName, "font-normal")}
+                  >
+                    {column.render(item)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </DataTableContainer>
+
+      {pagination && pagination.total > pagination.pageSize ? (
+        <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+          <span>
+            第 {pagination.page}/{totalPages} 页 · 共 {pagination.total} 条
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pagination.page <= 1}
+            onClick={() => pagination.onPageChange(pagination.page - 1)}
+          >
+            上一页
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pagination.page >= totalPages}
+            onClick={() => pagination.onPageChange(pagination.page + 1)}
+          >
+            下一页
+          </Button>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

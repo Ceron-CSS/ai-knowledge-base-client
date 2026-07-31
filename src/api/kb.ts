@@ -1,5 +1,11 @@
 import { authenticatedFetch, requestJson, throwIfNotOk } from "@/api/http"
 import { readNdjsonStream } from "@/api/http-stream"
+import {
+  listQueryToSearchParams,
+  type ListQuery,
+  type PaginatedResult,
+  type SortDir,
+} from "@/api/listQuery"
 
 export type Kb = {
   id: string
@@ -13,12 +19,20 @@ export type Kb = {
 }
 
 export type KbSortBy = "updatedAt" | "createdAt" | "name"
-export type SortDir = "asc" | "desc"
+export type { SortDir, PaginatedResult, ListQuery }
 
-export function listKbs(params: { enabled?: boolean; sortBy?: KbSortBy; sortDir?: SortDir } = {}) {
-  return requestJson<Kb[]>("/kb", {
+export type KbListParams = ListQuery & {
+  enabled?: boolean
+  sortBy?: KbSortBy
+  sortDir?: SortDir
+}
+
+export function listKbs(params: KbListParams = {}) {
+  const listParams = listQueryToSearchParams(params)
+  return requestJson<PaginatedResult<Kb>>("/kb", {
     query: {
-      ...params,
+      ...listParams,
+      enabled: params.enabled,
       sortBy: params.sortBy ?? "createdAt",
       sortDir: params.sortDir ?? "desc",
     },
@@ -74,8 +88,22 @@ export type KbItem = {
   updatedAt: string
 }
 
-export function listKbItems(kbId: string) {
-  return requestJson<KbItem[]>(`/kb/${kbId}/items`)
+export type KbItemSortBy = "updatedAt" | "createdAt" | "fileName"
+
+export type KbItemListParams = ListQuery & {
+  sortBy?: KbItemSortBy
+  sortDir?: SortDir
+}
+
+export function listKbItems(kbId: string, params: KbItemListParams = {}) {
+  const listParams = listQueryToSearchParams(params)
+  return requestJson<PaginatedResult<KbItem>>(`/kb/${kbId}/items`, {
+    query: {
+      ...listParams,
+      sortBy: params.sortBy ?? "createdAt",
+      sortDir: params.sortDir ?? "desc",
+    },
+  })
 }
 
 export type KbItemDetail = {

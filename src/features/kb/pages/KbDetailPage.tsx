@@ -35,6 +35,12 @@ export function KbDetailPage() {
         getRowKey={(item) => item.id}
         loading={kb.items.isLoading}
         error={kb.items.isError}
+        pagination={{
+          page: kb.page,
+          pageSize: kb.pageSize,
+          total: kb.total,
+          onPageChange: kb.setPage,
+        }}
       />
 
       <KbFileUploadDialog

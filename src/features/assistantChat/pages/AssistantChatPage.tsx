@@ -24,10 +24,14 @@ export function AssistantChatPage() {
           assistantLoading={chat.assistant.isLoading}
           conversationQuery={chat.conversationQuery}
           onConversationQueryChange={chat.setConversationQuery}
-          conversationsLoading={chat.conversations.isLoading}
+          conversationsLoading={chat.conversations.isLoading && chat.list.length === 0}
           conversationsError={chat.conversations.isError}
+          conversationsFetching={chat.conversations.isFetchingNextPage}
           list={chat.list}
           allListCount={chat.allList.length}
+          totalCount={chat.conversationTotal}
+          hasMore={chat.hasMoreConversations}
+          onLoadMore={chat.loadMoreConversations}
           selectedConversationId={chat.selectedConversationId}
           editingConversationId={chat.editingConversationId}
           editingTitle={chat.editingTitle}
