@@ -126,15 +126,29 @@ export function KbUploadPreviewPage() {
           {preview.saveError ? <div className="mb-3 text-sm text-destructive">{preview.saveError}</div> : null}
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
             {preview.chunks.length ? (
-              preview.chunks.map((chunk) => (
-                <article key={chunk.index} className="rounded-md border p-3">
-                  <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>分片序号 #{chunk.index}</span>
-                    <span>当前分片字数 {preview.formatCharCountK(chunk.charCount)}</span>
-                  </div>
-                  <pre className="whitespace-pre-wrap break-words text-sm">{chunk.text}</pre>
-                </article>
-              ))
+              preview.chunks.map((chunk) => {
+                const highlighted =
+                  preview.highlightChunkIndex !== null && chunk.index === preview.highlightChunkIndex + 1
+                return (
+                  <article
+                    key={chunk.index}
+                    ref={highlighted ? preview.highlightChunkRef : undefined}
+                    className={[
+                      "rounded-md border p-3",
+                      highlighted ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "",
+                    ].join(" ")}
+                  >
+                    <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        分片序号 #{chunk.index}
+                        {highlighted ? <span className="ml-2 text-primary">召回命中</span> : null}
+                      </span>
+                      <span>当前分片字数 {preview.formatCharCountK(chunk.charCount)}</span>
+                    </div>
+                    <pre className="whitespace-pre-wrap break-words text-sm">{chunk.text}</pre>
+                  </article>
+                )
+              })
             ) : preview.text.trim() ? (
               <article className="rounded-md border p-3">
                 <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">

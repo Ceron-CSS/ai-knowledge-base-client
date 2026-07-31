@@ -8,6 +8,8 @@ export type KbUploadNavigationState = {
   fileName?: string
   text?: string
   chunks?: string[]
+  /** 0-based chunk index from retrieval; used to highlight the target slice. */
+  highlightChunkIndex?: number
   chunkConfig?: {
     mode: ChunkPreviewMode
     separators: ChunkPreviewSeparator[]

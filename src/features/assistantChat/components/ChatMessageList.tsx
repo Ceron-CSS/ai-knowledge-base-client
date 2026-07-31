@@ -15,7 +15,13 @@ type ChatMessageListProps = {
   sending: boolean
   streamError: string | null
   bottomRef: RefObject<HTMLDivElement | null>
-  onCitationClick: (index: number, citations: ParsedCitation[], event: React.MouseEvent<HTMLButtonElement>) => void
+  onCitationClick: (
+    index: number,
+    citations: ParsedCitation[],
+    event: React.MouseEvent<HTMLButtonElement>,
+    messageId: string,
+    conversationId: string,
+  ) => void
   onPreviewImage: (image: { url: string; name?: string }) => void
   onResend?: () => void
 }
@@ -58,7 +64,9 @@ export function ChatMessageList({
                     <MarkdownMessageLazy
                       content={parsed.text}
                       citationCount={parsed.citations.length}
-                      onCitationClick={(index, event) => onCitationClick(index, parsed.citations, event)}
+                      onCitationClick={(index, event) =>
+                        onCitationClick(index, parsed.citations, event, m.id, m.conversationId)
+                      }
                     />
                   )
                 ) : (

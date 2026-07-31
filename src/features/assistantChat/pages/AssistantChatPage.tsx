@@ -111,7 +111,20 @@ export function AssistantChatPage() {
             </div>
           ) : null}
         </Dialog>
-        <CitationPopover activeCitation={chat.activeCitation} onClose={() => chat.setActiveCitation(null)} />
+        <CitationPopover
+          activeCitation={chat.activeCitation}
+          onClose={chat.closeCitationPopover}
+          openingSource={chat.openingSource}
+          loadingFullChunk={chat.loadingFullChunk}
+          showingFullChunk={chat.showingFullChunk}
+          fullChunkText={chat.fullChunkText}
+          feedbackPending={chat.feedbackPending}
+          feedbackSubmitted={chat.feedbackSubmitted}
+          onOpenSource={() => void chat.openSource()}
+          onViewFullChunk={() => void chat.viewFullChunk()}
+          onCopy={() => void chat.copyCitation()}
+          onFeedbackIrrelevant={() => void chat.feedbackIrrelevant()}
+        />
       </div>
     </div>
   )

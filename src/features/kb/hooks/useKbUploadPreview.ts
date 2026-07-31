@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   createKbItem,
@@ -31,6 +31,7 @@ type UploadPreviewInitialState = {
   maxLengthInput: string
   trimSpaces: boolean
   chunks: ChunkPreviewChunk[]
+  highlightChunkIndex: number | null
 }
 
 function buildUploadPreviewInitialState(state: unknown): UploadPreviewInitialState | null {
@@ -47,6 +48,10 @@ function buildUploadPreviewInitialState(state: unknown): UploadPreviewInitialSta
     maxLengthInput: "500",
     trimSpaces: true,
     chunks: [],
+    highlightChunkIndex:
+      typeof nav.highlightChunkIndex === "number" && Number.isFinite(nav.highlightChunkIndex)
+        ? Math.max(0, Math.floor(nav.highlightChunkIndex))
+        : null,
   }
 
   if (nav.chunkConfig) {
@@ -97,6 +102,10 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
   const [chunks, setChunks] = useState<ChunkPreviewChunk[]>(
     () => buildUploadPreviewInitialState(location.state)?.chunks ?? [],
   )
+  const [highlightChunkIndex] = useState<number | null>(
+    () => buildUploadPreviewInitialState(location.state)?.highlightChunkIndex ?? null,
+  )
+  const highlightChunkRef = useRef<HTMLElement | null>(null)
   const [previewSnapshot, setPreviewSnapshot] = useState<ChunkPreviewSnapshot | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -108,6 +117,14 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     () => fileName.trim().length > 0 && text.trim().length > 0 && !loading && !saving,
     [fileName, text, loading, saving],
   )
+
+  useEffect(() => {
+    if (highlightChunkIndex === null) return
+    const frame = window.requestAnimationFrame(() => {
+      highlightChunkRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [highlightChunkIndex, chunks.length])
 
   function resolveMaxLength() {
     return maxLengthInput === "" ? maxLength : clampMaxLength(Number(maxLengthInput))
@@ -237,6 +254,8 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     loading,
     error,
     chunks,
+    highlightChunkIndex,
+    highlightChunkRef,
     saving,
     saveError,
     canPreview,

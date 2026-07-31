@@ -37,6 +37,7 @@ export type AssistantCitation = {
   fileName: string
   snippet: string
   score: number
+  chunkIndex?: number
 }
 
 export function listAssistantConversations(assistantId: string, params: AssistantConversationListParams = {}) {
@@ -110,7 +111,8 @@ function isAssistantCitation(value: unknown): value is AssistantCitation {
     typeof citation.itemId === "string" &&
     typeof citation.fileName === "string" &&
     typeof citation.snippet === "string" &&
-    typeof citation.score === "number"
+    typeof citation.score === "number" &&
+    (citation.chunkIndex === undefined || typeof citation.chunkIndex === "number")
   )
 }
 
@@ -194,4 +196,52 @@ export async function uploadAssistantFileForExtraction(args: {
   )
   await throwIfNotOk(response)
   return (await response.json()) as AssistantFileAttachment
+}
+
+export type CitationFeedbackPayload = {
+  citationIndex: number
+  kbId: string
+  itemId: string
+  chunkIndex?: number
+  fileName: string
+  snippet: string
+  feedback?: "irrelevant"
+}
+
+export type CitationFeedback = {
+  id: string
+  assistantId: string
+  conversationId: string
+  messageId: string
+  citationIndex: number
+  kbId: string
+  itemId: string
+  chunkIndex: number | null
+  fileName: string
+  snippet: string
+  feedback: string
+  createdAt: string
+}
+
+export function submitCitationFeedback(args: {
+  assistantId: string
+  conversationId: string
+  messageId: string
+  body: CitationFeedbackPayload
+}) {
+  return requestJson<CitationFeedback>(
+    `/assistants/${args.assistantId}/conversations/${args.conversationId}/messages/${args.messageId}/citation-feedback`,
+    {
+      method: "POST",
+      body: {
+        citationIndex: args.body.citationIndex,
+        kbId: args.body.kbId,
+        itemId: args.body.itemId,
+        chunkIndex: args.body.chunkIndex,
+        fileName: args.body.fileName,
+        snippet: args.body.snippet,
+        feedback: args.body.feedback ?? "irrelevant",
+      },
+    },
+  )
 }

@@ -20,7 +20,7 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
   const conversation = useConversationState({ assistantId, blockedByUnpublished })
   const composer = useChatComposer()
   const attachments = useAttachmentPreviews()
-  const citation = useCitationPopover()
+  const citation = useCitationPopover({ assistantId })
 
   const messagesQuery = useAssistantMessages(
     assistantId,
@@ -69,7 +69,17 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
     previewImage,
     setPreviewImage,
     activeCitation: citation.activeCitation,
-    setActiveCitation: citation.setActiveCitation,
+    closeCitationPopover: citation.closeCitationPopover,
+    openingSource: citation.openingSource,
+    loadingFullChunk: citation.loadingFullChunk,
+    fullChunkText: citation.fullChunkText,
+    showingFullChunk: citation.showingFullChunk,
+    feedbackPending: citation.feedbackPending,
+    feedbackSubmitted: citation.feedbackSubmitted,
+    openSource: citation.openSource,
+    viewFullChunk: citation.viewFullChunk,
+    copyCitation: citation.copyCitation,
+    feedbackIrrelevant: citation.feedbackIrrelevant,
     composerExpanded: composer.composerExpanded,
     confirmDelete: conversation.confirmDelete,
     setConfirmDelete: conversation.setConfirmDelete,

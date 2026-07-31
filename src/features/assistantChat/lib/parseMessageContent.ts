@@ -32,9 +32,18 @@ export function parseMessageContent(content: string): ParsedMessageContent {
                 typeof v.itemId === "string" &&
                 typeof v.fileName === "string" &&
                 typeof v.snippet === "string" &&
-                typeof v.score === "number"
+                typeof v.score === "number" &&
+                (v.chunkIndex === undefined || typeof v.chunkIndex === "number")
               )
             })
+            .map((item) => ({
+              kbId: item.kbId,
+              itemId: item.itemId,
+              fileName: item.fileName,
+              snippet: item.snippet,
+              score: item.score,
+              ...(typeof item.chunkIndex === "number" ? { chunkIndex: item.chunkIndex } : {}),
+            }))
             .slice(0, 8)
         }
       } catch {
