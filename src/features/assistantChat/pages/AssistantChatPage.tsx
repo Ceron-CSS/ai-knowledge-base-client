@@ -28,7 +28,6 @@ export function AssistantChatPage() {
           conversationsError={chat.conversations.isError}
           conversationsFetching={chat.conversations.isFetchingNextPage}
           list={chat.list}
-          allListCount={chat.allList.length}
           totalCount={chat.conversationTotal}
           hasMore={chat.hasMoreConversations}
           onLoadMore={chat.loadMoreConversations}

@@ -32,6 +32,39 @@ type DataTableProps<T> = {
   pagination?: DataTablePagination
 }
 
+function shouldShowPagination(pagination: DataTablePagination | undefined) {
+  if (!pagination) return false
+  return pagination.total > pagination.pageSize || pagination.page > 1
+}
+
+function DataTablePaginationBar({ pagination }: { pagination: DataTablePagination }) {
+  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
+
+  return (
+    <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+      <span>
+        第 {pagination.page}/{totalPages} 页 · 共 {pagination.total} 条
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={pagination.page <= 1}
+        onClick={() => pagination.onPageChange(pagination.page - 1)}
+      >
+        上一页
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={pagination.page >= totalPages}
+        onClick={() => pagination.onPageChange(pagination.page + 1)}
+      >
+        下一页
+      </Button>
+    </div>
+  )
+}
+
 function DataTable<T>({
   columns,
   data,
@@ -46,11 +79,15 @@ function DataTable<T>({
 }: DataTableProps<T>) {
   if (loading) return <DataTableEmpty loading>加载中</DataTableEmpty>
   if (error) return <DataTableEmpty className="text-destructive">{errorText}</DataTableEmpty>
-  if (!data.length) return <DataTableEmpty>{emptyText}</DataTableEmpty>
 
-  const totalPages = pagination
-    ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
-    : 1
+  if (!data.length) {
+    return (
+      <div className="space-y-2">
+        <DataTableEmpty>{emptyText}</DataTableEmpty>
+        {shouldShowPagination(pagination) ? <DataTablePaginationBar pagination={pagination!} /> : null}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-2">
@@ -88,29 +125,7 @@ function DataTable<T>({
         </table>
       </DataTableContainer>
 
-      {pagination && pagination.total > pagination.pageSize ? (
-        <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
-          <span>
-            第 {pagination.page}/{totalPages} 页 · 共 {pagination.total} 条
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={pagination.page <= 1}
-            onClick={() => pagination.onPageChange(pagination.page - 1)}
-          >
-            上一页
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={pagination.page >= totalPages}
-            onClick={() => pagination.onPageChange(pagination.page + 1)}
-          >
-            下一页
-          </Button>
-        </div>
-      ) : null}
+      {shouldShowPagination(pagination) ? <DataTablePaginationBar pagination={pagination!} /> : null}
     </div>
   )
 }

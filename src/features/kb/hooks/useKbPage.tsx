@@ -33,6 +33,10 @@ export function useKbPage() {
   const kbList = useKbList(listParams)
   const list = kbList.data?.items ?? []
   const total = kbList.data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE))
+  if (kbList.data && page > totalPages) {
+    setPage(totalPages)
+  }
 
   const countLabel = useMemo(() => {
     const q = debouncedQuery.trim()

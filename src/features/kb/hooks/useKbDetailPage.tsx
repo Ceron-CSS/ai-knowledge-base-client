@@ -39,6 +39,10 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
 
   const list = items.data?.items ?? []
   const total = items.data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE))
+  if (items.data && page > totalPages) {
+    setPage(totalPages)
+  }
   const countLabel = useMemo(() => `${total} 个文档`, [total])
 
   const onToggle = useCallback(

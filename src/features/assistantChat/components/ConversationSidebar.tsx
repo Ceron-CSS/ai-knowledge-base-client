@@ -14,7 +14,6 @@ type ConversationSidebarProps = {
   conversationsError: boolean
   conversationsFetching?: boolean
   list: AssistantConversation[]
-  allListCount: number
   totalCount: number
   hasMore: boolean
   onLoadMore: () => void
@@ -40,7 +39,6 @@ export function ConversationSidebar({
   conversationsError,
   conversationsFetching = false,
   list,
-  allListCount,
   totalCount,
   hasMore,
   onLoadMore,
@@ -167,7 +165,7 @@ export function ConversationSidebar({
               </button>
             ) : null}
           </div>
-        ) : allListCount || totalCount ? (
+        ) : conversationQuery.trim() ? (
           <div className="px-2 py-6 text-center text-sm text-muted-foreground">无匹配结果</div>
         ) : (
           <div className="px-2 py-6 text-center text-sm text-muted-foreground">暂无对话，点击右上角开始</div>

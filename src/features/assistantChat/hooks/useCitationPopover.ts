@@ -11,6 +11,10 @@ type UseCitationPopoverOptions = {
   assistantId: string
 }
 
+function citationFeedbackKey(messageId: string, citationIndex: number) {
+  return `${messageId}:${citationIndex}`
+}
+
 export function useCitationPopover({ assistantId }: UseCitationPopoverOptions) {
   const navigate = useNavigate()
   const [activeCitation, setActiveCitation] = useState<ActiveCitation | null>(null)
@@ -19,7 +23,7 @@ export function useCitationPopover({ assistantId }: UseCitationPopoverOptions) {
   const [fullChunkText, setFullChunkText] = useState<string | null>(null)
   const [showingFullChunk, setShowingFullChunk] = useState(false)
   const [feedbackPending, setFeedbackPending] = useState(false)
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
+  const [submittedFeedbackKeys, setSubmittedFeedbackKeys] = useState(() => new Set<string>())
 
   const resetActionState = useCallback(() => {
     setOpeningSource(false)
@@ -27,7 +31,6 @@ export function useCitationPopover({ assistantId }: UseCitationPopoverOptions) {
     setFullChunkText(null)
     setShowingFullChunk(false)
     setFeedbackPending(false)
-    setFeedbackSubmitted(false)
   }, [])
 
   const closeCitationPopover = useCallback(() => {
@@ -52,6 +55,10 @@ export function useCitationPopover({ assistantId }: UseCitationPopoverOptions) {
     resetActionState()
     setActiveCitation({ index, citation, left, top, messageId, conversationId })
   }
+
+  const feedbackSubmitted = activeCitation
+    ? submittedFeedbackKeys.has(citationFeedbackKey(activeCitation.messageId, activeCitation.index))
+    : false
 
   const openSource = useCallback(async () => {
     if (!activeCitation) return
@@ -114,7 +121,10 @@ export function useCitationPopover({ assistantId }: UseCitationPopoverOptions) {
   }, [activeCitation])
 
   const feedbackIrrelevant = useCallback(async () => {
-    if (!activeCitation || feedbackSubmitted || feedbackPending) return
+    if (!activeCitation || feedbackPending) return
+    const key = citationFeedbackKey(activeCitation.messageId, activeCitation.index)
+    if (submittedFeedbackKeys.has(key)) return
+
     setFeedbackPending(true)
     try {
       await submitCitationFeedback({
@@ -131,14 +141,14 @@ export function useCitationPopover({ assistantId }: UseCitationPopoverOptions) {
           feedback: "irrelevant",
         },
       })
-      setFeedbackSubmitted(true)
+      setSubmittedFeedbackKeys((prev) => new Set(prev).add(key))
       message.success("已反馈：引用无关")
     } catch (e) {
       message.error(e instanceof HttpError || e instanceof Error ? e.message : "反馈失败")
     } finally {
       setFeedbackPending(false)
     }
-  }, [activeCitation, assistantId, feedbackPending, feedbackSubmitted])
+  }, [activeCitation, assistantId, feedbackPending, submittedFeedbackKeys])
 
   return {
     activeCitation,
