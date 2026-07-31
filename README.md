@@ -64,11 +64,13 @@ client/
 |   |   |-- models.ts            Model provider configs
 |   |   |-- stats.ts             Dashboard stats
 |   |   `-- search.ts            Search
-|   |-- app/                     App-level configuration
+|   |-- app/                     App config and routing infrastructure
 |   |   |-- router.tsx           Route definitions
 |   |   |-- lazyPage.tsx         Page lazy-loading helper
+|   |   |-- PageFallback.tsx     Route Suspense fallback
 |   |   |-- queryClient.ts       React Query client
-|   |   `-- env.ts               Environment variable helpers
+|   |   |-- env.ts               Environment variable helpers
+|   |   `-- pages/               Route-level pages (404, errors; not business features)
 |   |-- components/              Cross-feature shared components
 |   |   |-- ui/                  Base UI component library
 |   |   |-- ConfirmDeleteDialog.tsx
@@ -124,6 +126,7 @@ Pages compose UI and hooks. Server state lives in `hooks/queries.ts` via TanStac
 
 - Routes are defined in `src/app/router.tsx`.
 - Pages load on demand via `lazyPage()` with `Suspense` and `PageFallback`.
+- Global 404 and route error pages live in `src/app/pages/` and are wired through `errorElement` and wildcard routes.
 - Protected routes are wrapped in `RequireAuth` + `AppLayout`.
 
 ## UI Components

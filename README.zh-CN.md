@@ -64,11 +64,13 @@ client/
 |   |   |-- models.ts            模型供应商配置
 |   |   |-- stats.ts             仪表盘统计
 |   |   `-- search.ts            搜索
-|   |-- app/                     应用级配置
+|   |-- app/                     应用级配置与路由基础设施
 |   |   |-- router.tsx           路由定义
 |   |   |-- lazyPage.tsx         页面懒加载工具
+|   |   |-- PageFallback.tsx     路由 Suspense 占位
 |   |   |-- queryClient.ts       React Query 客户端
-|   |   `-- env.ts               环境变量读取
+|   |   |-- env.ts               环境变量读取
+|   |   `-- pages/               路由级页面（404、错误页，非业务 feature）
 |   |-- components/              跨功能复用组件
 |   |   |-- ui/                  基础 UI 组件库
 |   |   |-- ConfirmDeleteDialog.tsx
@@ -124,6 +126,7 @@ features/<name>/
 
 - 路由定义在 `src/app/router.tsx`。
 - 页面通过 `lazyPage()` 按需加载，配合 `Suspense` 显示 `PageFallback`。
+- 404 / 路由错误等全局异常页放在 `src/app/pages/`，由 `errorElement` 与通配路由引用。
 - 需登录的路由包裹在 `RequireAuth` + `AppLayout` 下。
 
 ## UI 组件

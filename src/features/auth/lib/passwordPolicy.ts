@@ -36,6 +36,35 @@ export function preloadPasswordStrengthChecker(): Promise<ZxcvbnChecker> {
   return zxcvbnLoader
 }
 
+export function schedulePasswordStrengthCheckerPreload(): () => void {
+  if (zxcvbnLoader) return () => {}
+
+  let cancelled = false
+  let idleId: number | undefined
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  const start = () => {
+    if (cancelled) return
+    void preloadPasswordStrengthChecker()
+  }
+
+  if (typeof requestIdleCallback === "function") {
+    idleId = requestIdleCallback(start, { timeout: 3000 })
+  } else {
+    timeoutId = setTimeout(start, 2000)
+  }
+
+  return () => {
+    cancelled = true
+    if (idleId !== undefined && typeof cancelIdleCallback === "function") {
+      cancelIdleCallback(idleId)
+    }
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
+
 function collectUserInputs(options?: PasswordPolicyOptions): string[] {
   return (options?.userInputs ?? []).map((value) => value.trim()).filter(Boolean)
 }

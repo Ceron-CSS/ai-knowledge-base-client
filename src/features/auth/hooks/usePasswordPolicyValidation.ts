@@ -1,18 +1,13 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react"
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react"
 import type { PasswordPolicyConfig } from "@/api/auth"
 import {
   preloadPasswordStrengthChecker,
+  schedulePasswordStrengthCheckerPreload,
   validatePasswordPolicy,
   type PasswordPolicyOptions,
 } from "../lib/passwordPolicy"
 
 type PasswordValidationResult = { ok: true } | { ok: false; message: string }
-
-function serializePasswordOptions(options: PasswordPolicyOptions | undefined) {
-  const userInputs = (options?.userInputs ?? []).join("\0")
-  const oldPassword = options?.oldPassword ?? ""
-  return `${oldPassword}\u0001${userInputs}`
-}
 
 function setValid(setValidation: Dispatch<SetStateAction<PasswordValidationResult>>) {
   setValidation((current) => (current.ok ? current : { ok: true }))
@@ -25,7 +20,19 @@ export function usePasswordPolicyValidation(
   enabled: boolean,
 ) {
   const [validation, setValidation] = useState<PasswordValidationResult>({ ok: true })
-  const optionsKey = serializePasswordOptions(options)
+  const oldPassword = options?.oldPassword
+  const userInputs = options?.userInputs
+
+  const stableOptions = useMemo((): PasswordPolicyOptions | undefined => {
+    if (oldPassword === undefined && !userInputs?.length) {
+      return undefined
+    }
+
+    return {
+      oldPassword,
+      userInputs: userInputs?.length ? [...userInputs] : undefined,
+    }
+  }, [oldPassword, userInputs])
 
   useEffect(() => {
     if (enabled) return
@@ -34,8 +41,15 @@ export function usePasswordPolicyValidation(
 
   useEffect(() => {
     if (!enabled) return
-    void preloadPasswordStrengthChecker()
-  }, [enabled])
+
+    const minLength = config?.minLength ?? 1
+    if (password.length > 0 || password.length >= minLength) {
+      void preloadPasswordStrengthChecker()
+      return
+    }
+
+    return schedulePasswordStrengthCheckerPreload()
+  }, [enabled, password, config?.minLength])
 
   useEffect(() => {
     if (!enabled) return
@@ -46,14 +60,14 @@ export function usePasswordPolicyValidation(
     }
 
     let cancelled = false
-    void validatePasswordPolicy(password, config, options).then((result) => {
+    void validatePasswordPolicy(password, config, stableOptions).then((result) => {
       if (!cancelled) setValidation(result)
     })
 
     return () => {
       cancelled = true
     }
-  }, [password, config, optionsKey, enabled])
+  }, [password, config, stableOptions, enabled])
 
   return validation
 }
