@@ -34,6 +34,17 @@ export function createAssistant(body: {
   return requestJson<Assistant>("/assistants", { method: "POST", body })
 }
 
+export function createAndPublishAssistant(body: {
+  name: string
+  description?: string
+  modelConfigId: string
+  baseModel: string
+  systemPrompt?: string
+  kbIds: string[]
+}) {
+  return requestJson<Assistant>("/assistants/create-and-publish", { method: "POST", body })
+}
+
 export function updateAssistant(
   id: string,
   body: {

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   createAssistant,
+  createAndPublishAssistant,
   deleteAssistant,
   getAssistant,
   listAssistants,
@@ -35,6 +36,17 @@ export function useCreateAssistant() {
     mutationFn: createAssistant,
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: assistantKeys.all })
+    },
+  })
+}
+
+export function useCreateAndPublishAssistant() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createAndPublishAssistant,
+    onSuccess: async (data) => {
+      await qc.invalidateQueries({ queryKey: assistantKeys.all })
+      await qc.invalidateQueries({ queryKey: assistantKeys.byId(data.id) })
     },
   })
 }

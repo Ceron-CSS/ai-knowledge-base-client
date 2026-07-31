@@ -42,7 +42,7 @@ export function AssistantEditPage() {
     save,
     handlePublish,
     handleUnpublish,
-  } = useAssistantEditForm({ isNew, existing })
+  } = useAssistantEditForm({ existing })
 
   const title = isNew ? "创建问答助手" : "配置问答助手"
 

@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import type { Assistant } from "@/api/assistants"
 import { DEFAULT_BASE_MODEL, getBaseModelOptionsForProvider } from "@/features/assistants/constants/baseModelOptions"
 import {
   useCreateAssistant,
+  useCreateAndPublishAssistant,
   usePublishAssistant,
   useUnpublishAssistant,
   useUpdateAssistant,
@@ -13,16 +14,19 @@ import { useKbList } from "@/features/kb"
 import { useModelConfigList } from "@/features/modelProviders"
 
 type UseAssistantEditFormOptions = {
-  isNew: boolean
   existing?: Assistant
 }
 
-export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOptions) {
+export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) {
   const navigate = useNavigate()
+  const { id: routeId } = useParams()
+  const resolvedAssistantId =
+    existing?.id ?? (routeId && routeId !== "new" ? routeId : undefined)
 
   const kbList = useKbList()
   const modelConfigs = useModelConfigList()
   const createAssistant = useCreateAssistant()
+  const createAndPublishAssistant = useCreateAndPublishAssistant()
   const updateAssistant = useUpdateAssistant()
   const publishAssistant = usePublishAssistant()
   const unpublishAssistant = useUnpublishAssistant()
@@ -71,7 +75,11 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
 
   const isPublished = !!existing?.publishedAt
   const submitting =
-    createAssistant.isPending || updateAssistant.isPending || publishAssistant.isPending || unpublishAssistant.isPending
+    createAssistant.isPending ||
+    createAndPublishAssistant.isPending ||
+    updateAssistant.isPending ||
+    publishAssistant.isPending ||
+    unpublishAssistant.isPending
 
   function buildPayload() {
     const trimmedName = name.trim()
@@ -106,19 +114,14 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
 
     setError(null)
     try {
-      if (isNew) {
+      if (!resolvedAssistantId) {
         const created = await createAssistant.mutateAsync(buildPayload())
         navigate(`/assistants/${created.id}`, { replace: true })
         return
       }
 
-      if (!existing) {
-        setError("未找到该助手，可能已被删除")
-        return
-      }
-
       await updateAssistant.mutateAsync({
-        id: existing.id,
+        id: resolvedAssistantId,
         body: buildUpdatePayload(),
       })
       navigate("/assistants", { replace: true })
@@ -141,19 +144,17 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
 
     setError(null)
     try {
-      let assistantId = existing?.id ?? ""
-
-      if (isNew) {
-        const created = await createAssistant.mutateAsync(buildPayload())
-        assistantId = created.id
-      } else {
-        await updateAssistant.mutateAsync({
-          id: existing!.id,
-          body: buildUpdatePayload(),
-        })
+      if (!resolvedAssistantId) {
+        await createAndPublishAssistant.mutateAsync(buildPayload())
+        navigate("/assistants", { replace: true })
+        return
       }
 
-      await publishAssistant.mutateAsync({ id: assistantId })
+      await updateAssistant.mutateAsync({
+        id: resolvedAssistantId,
+        body: buildUpdatePayload(),
+      })
+      await publishAssistant.mutateAsync({ id: resolvedAssistantId })
       navigate("/assistants", { replace: true })
     } catch {
       setError("发布失败，请重试")
@@ -161,10 +162,10 @@ export function useAssistantEditForm({ isNew, existing }: UseAssistantEditFormOp
   }
 
   async function handleUnpublish() {
-    if (!existing) return
+    if (!resolvedAssistantId) return
     setError(null)
     try {
-      await unpublishAssistant.mutateAsync({ id: existing.id })
+      await unpublishAssistant.mutateAsync({ id: resolvedAssistantId })
       navigate("/assistants", { replace: true })
     } catch {
       setError("取消发布失败，请重试")
