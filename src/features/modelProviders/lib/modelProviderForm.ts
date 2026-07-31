@@ -11,9 +11,9 @@ export function initialModelProviderFormState(provider: ModelProvider = "aliyun-
   }
 }
 
-export function getModelProviderFormError(form: ModelProviderFormState): string | null {
+export function getModelProviderFormError(form: ModelProviderFormState, options?: { isEditing?: boolean }): string | null {
   if (!form.apiUrl.trim()) return "API URL 不能为空"
-  if (!form.apiKey.trim()) return "API KEY 不能为空"
+  if (!options?.isEditing && !form.apiKey.trim()) return "API KEY 不能为空"
   try {
     new URL(form.apiUrl.trim())
   } catch {

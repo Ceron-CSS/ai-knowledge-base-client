@@ -33,8 +33,9 @@ export function useModelProviderPage() {
   const [checkingDeleteLinked, setCheckingDeleteLinked] = useState(false)
   const [linkedCheckError, setLinkedCheckError] = useState<string | null>(null)
   const [query, setQuery] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const submitting = createModel.isPending || updateModel.isPending
+  const submitting = isSubmitting || createModel.isPending || updateModel.isPending
   const list = useMemo(() => modelConfigs.data ?? [], [modelConfigs.data])
   const filteredList = useMemo(() => filterModelProviderList(list, query), [list, query])
   const countLabel = useMemo(() => {
@@ -141,35 +142,50 @@ export function useModelProviderPage() {
     setOpen(true)
   }
 
-  function closeDialog() {
+  const closeDialog = useCallback(() => {
     if (submitting) return
     setOpen(false)
     setError(null)
-  }
+  }, [submitting])
 
   async function submit() {
-    const validationError = getModelProviderFormError(form)
+    if (submitting) return
+
+    const validationError = getModelProviderFormError(form, { isEditing: !!editing })
     if (validationError) {
       setError(validationError)
       return
     }
 
+    setIsSubmitting(true)
     setError(null)
-    const payload = {
-      provider: form.provider,
-      apiUrl: form.apiUrl.trim(),
-      apiKey: form.apiKey.trim(),
-    }
+    const trimmedApiUrl = form.apiUrl.trim()
+    const trimmedApiKey = form.apiKey.trim()
 
     try {
       if (!editing) {
-        await createModel.mutateAsync(payload)
+        await createModel.mutateAsync({
+          provider: form.provider,
+          apiUrl: trimmedApiUrl,
+          apiKey: trimmedApiKey,
+        })
       } else {
+        const payload: Parameters<typeof updateModel.mutateAsync>[0]["body"] = {}
+        if (trimmedApiUrl !== editing.apiUrl) payload.apiUrl = trimmedApiUrl
+        if (trimmedApiKey) payload.apiKey = trimmedApiKey
+
+        if (Object.keys(payload).length === 0) {
+          closeDialog()
+          return
+        }
+
         await updateModel.mutateAsync({ id: editing.id, body: payload })
       }
-      setOpen(false)
+      closeDialog()
     } catch (e) {
       setError(e instanceof Error ? e.message : "保存失败，请稍后重试")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 

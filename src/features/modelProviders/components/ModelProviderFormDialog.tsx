@@ -71,21 +71,34 @@ export function ModelProviderFormDialog({
 
         <div>
           <label className="block text-sm font-medium">
-            API KEY <span className="text-destructive">*</span>
+            API KEY {!editing ? <span className="text-destructive">*</span> : null}
           </label>
           <input
             type="password"
             className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
             value={form.apiKey}
             onChange={(e) => onFormChange((prev) => ({ ...prev, apiKey: e.target.value }))}
-            placeholder={editing ? "编辑时请重新输入 API KEY" : "请输入 API KEY"}
+            placeholder={editing ? "留空则保留当前 API KEY" : "请输入 API KEY"}
           />
         </div>
 
         {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
         <div className="flex justify-end gap-3">
-          <Button variant="dialog-cancel" size="dialog" onClick={onClose} disabled={submitting}>
+          <Button
+            variant="dialog-cancel"
+            size="dialog"
+            onPointerDown={(e) => {
+              if (e.button !== 0) return
+              e.preventDefault()
+              onClose()
+            }}
+            onClick={(e) => {
+              // Keyboard activation doesn't fire pointer events.
+              if (e.detail === 0) onClose()
+            }}
+            disabled={submitting}
+          >
             取消
           </Button>
           <Button variant="primary" size="dialog" onClick={onSubmit} loading={submitting}>
