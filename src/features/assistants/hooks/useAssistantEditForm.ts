@@ -10,7 +10,7 @@ import {
   useUpdateAssistant,
 } from "@/features/assistants/hooks/queries"
 import { validateAssistantForm } from "@/features/assistants/lib/validateAssistantForm"
-import { useKbList } from "@/features/kb"
+import { useKbPicker } from "@/features/kb"
 import { useModelConfigList } from "@/features/modelProviders"
 
 type UseAssistantEditFormOptions = {
@@ -23,7 +23,6 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
   const resolvedAssistantId =
     existing?.id ?? (routeId && routeId !== "new" ? routeId : undefined)
 
-  const kbList = useKbList({ pageSize: 100, sortBy: "createdAt", sortDir: "desc" })
   const modelConfigs = useModelConfigList()
   const createAssistant = useCreateAssistant()
   const createAndPublishAssistant = useCreateAndPublishAssistant()
@@ -38,6 +37,8 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
   const [systemPrompt, setSystemPrompt] = useState("")
   const [kbIds, setKbIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  const kbPicker = useKbPicker()
 
   const configMap = useMemo(() => new Map((modelConfigs.data ?? []).map((x) => [x.id, x])), [modelConfigs.data])
   const configOptions = useMemo(
@@ -69,10 +70,10 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
   }
 
   const disabledKbNames = useMemo(() => {
-    const items = kbList.data?.items
-    if (!items) return []
-    return items.filter((kb) => !kb.enabled && kbIds.includes(kb.id)).map((kb) => kb.name)
-  }, [kbList.data?.items, kbIds])
+    return kbPicker.items
+      .filter((kb) => !kb.enabled && kbIds.includes(kb.id))
+      .map((kb) => kb.name)
+  }, [kbPicker.items, kbIds])
 
   const isPublished = !!existing?.publishedAt
   const submitting =
@@ -189,7 +190,7 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     error,
     configOptions,
     baseModelOptions,
-    kbList,
+    kbPicker,
     modelConfigs,
     isPublished,
     submitting,

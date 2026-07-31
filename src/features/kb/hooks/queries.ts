@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   createKb,
   deleteKb,
@@ -11,10 +11,18 @@ import {
   type KbItemListParams,
   type KbListParams,
 } from "@/api/kb"
+import { MAX_PAGE_SIZE } from "@/api/listQuery"
+
+const KB_FEED_PAGE_SIZE = 20
+
+export type KbFeedParams = Omit<KbListParams, "page" | "pageSize"> & {
+  pageSize?: number
+}
 
 const kbKeys = {
   all: ["kb"] as const,
   list: (params: KbListParams) => ["kb", "list", params] as const,
+  feed: (params: KbFeedParams) => ["kb", "feed", params] as const,
   items: (kbId: string, params: KbItemListParams) => ["kb", "items", kbId, params] as const,
 }
 
@@ -26,6 +34,23 @@ export function useKbList(params?: KbListParams) {
   return useQuery({
     queryKey: kbKeys.list(effectiveParams),
     queryFn: () => listKbs(effectiveParams),
+  })
+}
+
+export function useKbFeed(params: KbFeedParams = {}) {
+  const { pageSize = KB_FEED_PAGE_SIZE, ...rest } = params
+  const feedParams = { ...rest, pageSize: Math.min(pageSize, MAX_PAGE_SIZE) }
+  return useInfiniteQuery({
+    queryKey: kbKeys.feed(feedParams),
+    queryFn: ({ pageParam }) =>
+      listKbs({
+        ...rest,
+        page: pageParam,
+        pageSize: feedParams.pageSize,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.page * last.pageSize < last.total ? last.page + 1 : undefined,
   })
 }
 

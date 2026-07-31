@@ -17,6 +17,37 @@ type MultiSelectProps = {
   searchPlaceholder?: string
   emptyText?: string
   className?: string
+  /** Controlled search for server-side filtering. When set with onSearchChange, client-side filtering is skipped. */
+  searchValue?: string
+  onSearchChange?: (value: string) => void
+  hasMore?: boolean
+  onLoadMore?: () => void
+  loadingMore?: boolean
+  searching?: boolean
+}
+
+function mergeKnownSelected(
+  prev: Map<string, MultiSelectOption>,
+  value: string[],
+  options: MultiSelectOption[],
+) {
+  const next = new Map(prev)
+  let changed = false
+  for (const opt of options) {
+    if (!value.includes(opt.value)) continue
+    const existing = next.get(opt.value)
+    if (!existing || existing.label !== opt.label || existing.disabled !== opt.disabled) {
+      next.set(opt.value, opt)
+      changed = true
+    }
+  }
+  for (const id of [...next.keys()]) {
+    if (!value.includes(id)) {
+      next.delete(id)
+      changed = true
+    }
+  }
+  return changed ? next : prev
 }
 
 export function MultiSelect({
@@ -28,42 +59,60 @@ export function MultiSelect({
   searchPlaceholder = "搜索...",
   emptyText = "无匹配项",
   className,
+  searchValue,
+  onSearchChange,
+  hasMore = false,
+  onLoadMore,
+  loadingMore = false,
+  searching = false,
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState("")
+  const [internalSearch, setInternalSearch] = useState("")
+  const [knownSelected, setKnownSelected] = useState(() => new Map<string, MultiSelectOption>())
   const containerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  const serverSearch = typeof onSearchChange === "function"
+  const search = serverSearch ? (searchValue ?? "") : internalSearch
 
   const selectedSet = useMemo(() => new Set(value), [value])
 
+  const [prevSyncKey, setPrevSyncKey] = useState("")
+  const syncKey = `${value.join(",")}::${options.map((o) => `${o.value}:${o.label}:${o.disabled ? 1 : 0}`).join("|")}`
+  if (syncKey !== prevSyncKey) {
+    setPrevSyncKey(syncKey)
+    const merged = mergeKnownSelected(knownSelected, value, options)
+    if (merged !== knownSelected) setKnownSelected(merged)
+  }
+
   const filtered = useMemo(() => {
+    if (serverSearch) return options
     const q = search.trim().toLowerCase()
     if (!q) return options
     return options.filter((o) => o.label.toLowerCase().includes(q))
-  }, [options, search])
+  }, [options, search, serverSearch])
 
   const selectedLabel = useMemo(() => {
     if (!value.length) return null
-    const names = value
-      .map((id) => options.find((o) => o.value === id)?.label)
-      .filter(Boolean) as string[]
+    const names = value.map((id) => knownSelected.get(id)?.label).filter(Boolean) as string[]
+    if (!names.length) return `已选 ${value.length} 项`
     if (names.length <= 2) return names.join("、")
     return `已选 ${names.length} 项`
-  }, [value, options])
+  }, [value, knownSelected])
 
-  // Close on outside click
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (!open) return
       const t = e.target as Node | null
       if (t && containerRef.current && containerRef.current.contains(t)) return
       setOpen(false)
-      setSearch("")
+      if (!serverSearch) setInternalSearch("")
     }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setOpen(false)
-        setSearch("")
+        if (!serverSearch) setInternalSearch("")
       }
     }
     document.addEventListener("mousedown", onMouseDown)
@@ -72,19 +121,26 @@ export function MultiSelect({
       document.removeEventListener("mousedown", onMouseDown)
       document.removeEventListener("keydown", onKeyDown)
     }
-  }, [open])
+  }, [open, serverSearch])
 
-  // Focus search input on open
   useEffect(() => {
     if (open) {
-      // small delay to let the popup render
       const id = setTimeout(() => searchInputRef.current?.focus(), 0)
       return () => clearTimeout(id)
     }
   }, [open])
 
+  function setSearch(next: string) {
+    if (serverSearch) onSearchChange?.(next)
+    else setInternalSearch(next)
+  }
+
+  function resolveOption(v: string) {
+    return options.find((o) => o.value === v) ?? knownSelected.get(v)
+  }
+
   function toggle(v: string) {
-    const opt = options.find((o) => o.value === v)
+    const opt = resolveOption(v)
     if (opt?.disabled) return
     if (selectedSet.has(v)) {
       onValueChange(value.filter((x) => x !== v))
@@ -96,6 +152,15 @@ export function MultiSelect({
   function removeTag(v: string, e: React.MouseEvent) {
     e.stopPropagation()
     onValueChange(value.filter((x) => x !== v))
+  }
+
+  function handleListScroll() {
+    if (!onLoadMore || !hasMore || loadingMore) return
+    const el = listRef.current
+    if (!el) return
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 48) {
+      onLoadMore()
+    }
   }
 
   return (
@@ -123,7 +188,6 @@ export function MultiSelect({
 
       {open ? (
         <div className="absolute left-0 z-50 mt-1.5 w-full min-w-[var(--anchor-width)] rounded-md border bg-popover text-popover-foreground shadow-md">
-          {/* Search */}
           <div className="flex items-center gap-2 border-b px-3 py-2">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
@@ -135,8 +199,7 @@ export function MultiSelect({
             />
           </div>
 
-          {/* List */}
-          <div className="max-h-56 overflow-auto p-1">
+          <div ref={listRef} className="max-h-56 overflow-auto p-1" onScroll={handleListScroll}>
             {filtered.length
               ? filtered.map((o) => {
                   const sel = selectedSet.has(o.value)
@@ -171,15 +234,26 @@ export function MultiSelect({
                   )
                 })
               : (
-              <div className="px-3 py-4 text-center text-sm text-muted-foreground">{emptyText}</div>
+              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                {searching ? "搜索中…" : emptyText}
+              </div>
             )}
+            {hasMore ? (
+              <button
+                type="button"
+                className="mt-1 w-full rounded-sm px-3 py-2 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
+                onClick={() => onLoadMore?.()}
+                disabled={loadingMore}
+              >
+                {loadingMore ? "加载中…" : "加载更多"}
+              </button>
+            ) : null}
           </div>
 
-          {/* Footer */}
           {value.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 border-t p-2">
               {value.map((id) => {
-                const label = options.find((o) => o.value === id)?.label ?? id
+                const label = knownSelected.get(id)?.label ?? id
                 return (
                   <span
                     key={id}

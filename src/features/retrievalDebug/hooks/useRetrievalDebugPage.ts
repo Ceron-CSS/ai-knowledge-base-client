@@ -2,15 +2,14 @@ import { useCallback, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { searchEntries, type SearchHit } from "@/api/search"
 import { HttpError } from "@/api/http"
-import { useKbList } from "@/features/kb"
+import { useKbPicker } from "@/features/kb"
 import { openKbItemChunk } from "@/features/kb/lib/openKbItemChunk"
-import type { SelectOption } from "@/components/ui/select"
 
 const DEFAULT_TOP_K = 6
 
 export function useRetrievalDebugPage() {
   const navigate = useNavigate()
-  const kbList = useKbList({ pageSize: 100, sortBy: "createdAt", sortDir: "desc" })
+  const kbPicker = useKbPicker()
 
   const [kbId, setKbId] = useState("")
   const [query, setQuery] = useState("")
@@ -20,15 +19,6 @@ export function useRetrievalDebugPage() {
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [openingKey, setOpeningKey] = useState<string | null>(null)
-
-  const kbOptions = useMemo<SelectOption[]>(() => {
-    const items = kbList.data?.items ?? []
-    return items.map((kb) => ({
-      label: kb.enabled ? kb.name : `${kb.name}（已停用）`,
-      value: kb.id,
-      disabled: !kb.enabled,
-    }))
-  }, [kbList.data?.items])
 
   const canSearch = kbId.trim().length > 0 && query.trim().length > 0 && !searching
 
@@ -81,8 +71,7 @@ export function useRetrievalDebugPage() {
   }, [error, hits.length, searched])
 
   return {
-    kbList,
-    kbOptions,
+    kbPicker,
     kbId,
     setKbId,
     query,

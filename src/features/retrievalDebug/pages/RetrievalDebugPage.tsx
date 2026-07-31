@@ -3,7 +3,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
-import { Select } from "@/components/ui/select"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Textarea } from "@/components/ui/textarea"
 import { useRetrievalDebugPage } from "@/features/retrievalDebug/hooks/useRetrievalDebugPage"
 
@@ -30,12 +30,20 @@ export function RetrievalDebugPage() {
         <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_120px_auto]">
           <div>
             <label className="mb-1.5 block text-sm font-medium">知识库</label>
-            <Select
+            <SearchableSelect
               value={page.kbId}
               onValueChange={page.setKbId}
-              options={page.kbOptions}
-              placeholder={page.kbList.isLoading ? "加载中…" : "选择知识库"}
-              disabled={page.kbList.isLoading || page.searching}
+              options={page.kbPicker.options}
+              placeholder={page.kbPicker.isLoading ? "加载中…" : "选择知识库"}
+              searchPlaceholder="搜索知识库..."
+              emptyText="无匹配的知识库"
+              disabled={page.kbPicker.isLoading || page.searching}
+              searchValue={page.kbPicker.search}
+              onSearchChange={page.kbPicker.setSearch}
+              hasMore={page.kbPicker.hasMore}
+              onLoadMore={page.kbPicker.loadMore}
+              loadingMore={page.kbPicker.loadingMore}
+              searching={page.kbPicker.isFetching}
             />
           </div>
           <div>
@@ -75,7 +83,7 @@ export function RetrievalDebugPage() {
           />
         </div>
 
-        {page.kbList.isError ? (
+        {page.kbPicker.isError ? (
           <div className="mt-3 text-sm text-destructive">知识库列表加载失败，请确认后端服务可用</div>
         ) : null}
       </section>

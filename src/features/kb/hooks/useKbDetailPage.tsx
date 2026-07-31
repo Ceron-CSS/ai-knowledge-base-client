@@ -9,6 +9,7 @@ import type { DataTableColumn } from "@/components/ui/data-table"
 import { Switch } from "@/components/ui/switch"
 import { useDeleteKbItem, useKbItems, useSetKbItemEnabled } from "@/features/kb/hooks/queries"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
+import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 
 type UseKbDetailPageOptions = {
   kbId: string
@@ -16,15 +17,24 @@ type UseKbDetailPageOptions = {
 
 export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   const navigate = useNavigate()
+  const [query, setQuery] = useState("")
+  const debouncedQuery = useDebouncedValue(query, 250)
   const [page, setPage] = useState(1)
+  const [pageQuery, setPageQuery] = useState(debouncedQuery)
+  if (pageQuery !== debouncedQuery) {
+    setPageQuery(debouncedQuery)
+    setPage(1)
+  }
+
   const itemParams = useMemo(
     () => ({
       page,
       pageSize: DEFAULT_PAGE_SIZE,
+      ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
       sortBy: "createdAt" as const,
       sortDir: "desc" as const,
     }),
-    [page],
+    [page, debouncedQuery],
   )
   const items = useKbItems(kbId, itemParams)
   const setEnabled = useSetKbItemEnabled()
@@ -43,7 +53,11 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   if (items.data && page > totalPages) {
     setPage(totalPages)
   }
-  const countLabel = useMemo(() => `${total} 个文档`, [total])
+  const countLabel = useMemo(() => {
+    const q = debouncedQuery.trim()
+    if (q) return `${list.length}/${total} 个文档`
+    return `${total} 个文档`
+  }, [list.length, total, debouncedQuery])
 
   const onToggle = useCallback(
     async (itemId: string, enabled: boolean) => {
@@ -187,6 +201,8 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   )
 
   return {
+    query,
+    setQuery,
     items,
     list,
     total,

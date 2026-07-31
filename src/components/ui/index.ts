@@ -18,6 +18,7 @@ export { LoadingText } from "./loading-text"
 export { MarkdownMessage } from "./markdown-message"
 export { MessageCenter, message } from "./message"
 export { MultiSelect, type MultiSelectOption } from "./multi-select"
+export { SearchableSelect, type SearchableSelectOption } from "./searchable-select"
 export { Select, type SelectOption } from "./select"
 export { Switch } from "./switch"
 export {

@@ -35,7 +35,7 @@ export function AssistantEditPage() {
     error,
     configOptions,
     baseModelOptions,
-    kbList,
+    kbPicker,
     modelConfigs,
     isPublished,
     submitting,
@@ -99,22 +99,24 @@ export function AssistantEditPage() {
           <div>
             <div className="text-sm font-medium">知识库关联</div>
             <div className="mt-3">
-              {kbList.isLoading ? (
+              {kbPicker.isLoading ? (
                 <LoadingText className="justify-start">加载知识库列表中</LoadingText>
-              ) : kbList.isError ? (
+              ) : kbPicker.isError ? (
                 <div className="text-sm text-destructive">加载失败：请确认后端服务可用</div>
-              ) : kbList.data?.items.length ? (
+              ) : kbPicker.total > 0 || kbPicker.search.trim() || kbIds.length > 0 ? (
                 <MultiSelect
                   value={kbIds}
                   onValueChange={setKbIds}
-                  options={kbList.data.items.map((kb) => ({
-                    label: kb.enabled ? kb.name : `${kb.name}（已停用）`,
-                    value: kb.id,
-                    disabled: !kb.enabled,
-                  }))}
+                  options={kbPicker.options}
                   placeholder="选择关联的知识库"
                   searchPlaceholder="搜索知识库..."
                   emptyText="无匹配的知识库"
+                  searchValue={kbPicker.search}
+                  onSearchChange={kbPicker.setSearch}
+                  hasMore={kbPicker.hasMore}
+                  onLoadMore={kbPicker.loadMore}
+                  loadingMore={kbPicker.loadingMore}
+                  searching={kbPicker.isFetching}
                 />
               ) : (
                 <div className="text-sm text-muted-foreground">暂无可关联的知识库，先去"知识库"创建</div>

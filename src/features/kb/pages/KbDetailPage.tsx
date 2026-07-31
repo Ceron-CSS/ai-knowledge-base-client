@@ -3,6 +3,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
+import { Input } from "@/components/ui/input"
 import { KbFileUploadDialog } from "@/features/kb/components/KbFileUploadDialog"
 import { useKbDetailPage } from "@/features/kb/hooks/useKbDetailPage"
 
@@ -24,9 +25,17 @@ export function KbDetailPage() {
 
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">{kb.countLabel}</div>
-        <Button variant="primary" size="lg" onClick={() => kb.setUploadOpen(true)}>
-          上传文件
-        </Button>
+        <div className="flex items-center gap-2">
+          <Input
+            clearable
+            value={kb.query}
+            onChange={(e) => kb.setQuery(e.target.value)}
+            placeholder="搜索文件名称"
+          />
+          <Button variant="primary" size="lg" onClick={() => kb.setUploadOpen(true)}>
+            上传文件
+          </Button>
+        </div>
       </div>
 
       <DataTable
