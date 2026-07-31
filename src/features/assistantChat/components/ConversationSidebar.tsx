@@ -94,8 +94,8 @@ export function ConversationSidebar({
                   <div className="min-w-0 flex-1">
                     {editingConversationId === c.id ? (
                       <div className="flex w-full min-w-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          className="min-w-0 flex-1 rounded border bg-background px-2 py-1 text-xs outline-none focus:ring-2"
+                        <Input
+                          className="min-w-0 flex-1 px-2 py-1 text-xs"
                           value={editingTitle}
                           onChange={(e) => onEditingTitleChange(e.target.value)}
                           autoFocus

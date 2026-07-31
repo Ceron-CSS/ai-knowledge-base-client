@@ -139,7 +139,7 @@ export function AssistantListPage() {
         </div>
       ) : (
         <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">
-          {items.length ? "没有匹配的问答助手" : "暂无问答助手，先创建一个吧"}
+          {items.length ? "没有匹配的问答助手" : "暂无数据"}
         </div>
       )}
 

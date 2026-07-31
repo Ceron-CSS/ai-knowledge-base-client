@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import type { KbEditingState } from "@/features/kb/types"
 
 type KbFormDialogProps = {
@@ -40,8 +42,8 @@ export function KbFormDialog({
           <label className="block text-sm font-medium">
             名称 <span className="text-destructive">*</span>
           </label>
-          <input
-            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+          <Input
+            className="mt-2"
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
             placeholder="例如：产品文档库"
@@ -49,8 +51,8 @@ export function KbFormDialog({
         </div>
         <div>
           <label className="block text-sm font-medium">描述</label>
-          <textarea
-            className="mt-2 min-h-24 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+          <Textarea
+            className="mt-2 min-h-24 resize-y"
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
             placeholder="可选，例如：用于存放 PRD/需求/FAQ"

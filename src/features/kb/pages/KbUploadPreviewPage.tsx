@@ -1,8 +1,10 @@
 import { useParams } from "react-router-dom"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import { MultiSelect } from "@/components/ui/multi-select"
+import { Textarea } from "@/components/ui/textarea"
 import type { ChunkPreviewSeparator } from "@/api/kb"
 import { CHUNK_SEPARATOR_OPTIONS } from "@/features/kb/constants/chunkPreview"
 import { useKbUploadPreview } from "@/features/kb/hooks/useKbUploadPreview"
@@ -61,7 +63,7 @@ export function KbUploadPreviewPage() {
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium">单片最大长度(最小为100)</label>
-                  <input
+                  <Input
                     type="number"
                     min={100}
                     max={2000}
@@ -69,7 +71,6 @@ export function KbUploadPreviewPage() {
                     value={preview.maxLengthInput}
                     onChange={(e) => preview.handleMaxLengthInputChange(e.target.value)}
                     onBlur={preview.handleMaxLengthBlur}
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
                   />
                 </div>
                 <label className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
@@ -81,12 +82,12 @@ export function KbUploadPreviewPage() {
 
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <label className="mb-2 shrink-0 text-sm font-medium">预览文本</label>
-              <textarea
+              <Textarea
                 rows={16}
                 value={preview.text}
                 onChange={(e) => preview.setText(e.target.value)}
                 placeholder="粘贴待切分文档内容..."
-                className="min-h-0 w-full flex-1 resize-none overflow-y-auto rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+                className="min-h-0 flex-1 resize-none overflow-y-auto"
               />
             </div>
 

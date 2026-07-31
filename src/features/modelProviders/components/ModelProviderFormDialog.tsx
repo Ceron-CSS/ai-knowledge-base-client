@@ -1,6 +1,7 @@
 import type { ModelConfig, ModelProvider } from "@/api/models"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { MODEL_PROVIDERS } from "@/features/modelProviders/constants/providers"
 import type { ModelProviderFormState } from "@/features/modelProviders/types"
@@ -61,8 +62,8 @@ export function ModelProviderFormDialog({
           <label className="block text-sm font-medium">
             API URL <span className="text-destructive">*</span>
           </label>
-          <input
-            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+          <Input
+            className="mt-2"
             value={form.apiUrl}
             onChange={(e) => onFormChange((prev) => ({ ...prev, apiUrl: e.target.value }))}
             placeholder="https://..."
@@ -73,9 +74,9 @@ export function ModelProviderFormDialog({
           <label className="block text-sm font-medium">
             API KEY {!editing ? <span className="text-destructive">*</span> : null}
           </label>
-          <input
+          <Input
             type="password"
-            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+            className="mt-2"
             value={form.apiKey}
             onChange={(e) => onFormChange((prev) => ({ ...prev, apiKey: e.target.value }))}
             placeholder={editing ? "留空则保留当前 API KEY" : "请输入 API KEY"}

@@ -7,16 +7,16 @@ type InputProps = ComponentProps<"input"> & {
   clearable?: boolean
 }
 
+const inputClassName =
+  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-200/60"
+
 export function Input({ className, clearable, value, onChange, ...props }: InputProps) {
   const showClear = clearable && String(value ?? "").length > 0
 
   if (!clearable) {
     return (
       <input
-        className={cn(
-          "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2",
-          className,
-        )}
+        className={cn(inputClassName, className)}
         value={value}
         onChange={onChange}
         {...props}
@@ -27,10 +27,7 @@ export function Input({ className, clearable, value, onChange, ...props }: Input
   return (
     <div className={cn("relative w-52 shrink-0", className)}>
       <input
-        className={cn(
-          "w-full rounded-md border bg-background py-2 pl-3 text-sm outline-none focus:ring-2",
-          showClear ? "pr-8" : "pr-3",
-        )}
+        className={cn(inputClassName, showClear ? "pr-8" : "pr-3")}
         value={value}
         onChange={onChange}
         {...props}

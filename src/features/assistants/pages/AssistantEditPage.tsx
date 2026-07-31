@@ -2,9 +2,11 @@ import { useParams, useNavigate } from "react-router-dom"
 import type { Assistant } from "@/api/assistants"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { useAssistantEditForm } from "@/features/assistants/hooks/useAssistantEditForm"
 import { useAssistant } from "@/features/assistants/hooks/queries"
 
@@ -74,8 +76,8 @@ export function AssistantEditPage() {
                 <label className="block text-sm font-medium">
                   助手名称 <span className="text-destructive">*</span>
                 </label>
-                <input
-                  className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+                <Input
+                  className="mt-2"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="例如：售后问答助手"
@@ -83,8 +85,8 @@ export function AssistantEditPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium">描述</label>
-                <textarea
-                  className="mt-2 min-h-24 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+                <Textarea
+                  className="mt-2 min-h-24 resize-y"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="可选：简述该助手的用途与边界"
@@ -150,8 +152,8 @@ export function AssistantEditPage() {
 
               <div>
                 <label className="block text-sm font-medium">提示词（System Prompt）</label>
-                <textarea
-                  className="mt-2 min-h-40 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+                <Textarea
+                  className="mt-2 min-h-40 resize-y"
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
                   placeholder="例如：你是一个严格遵循公司知识库回答的助手..."

@@ -1,57 +1,152 @@
+<div align="center">
+
 # AI Knowledge Base Client
 
-[English](README.md) | [中文](README.zh-CN.md)
+<p>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript" alt="TypeScript" /></a>
+  <a href="https://vite.dev/"><img src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white" alt="Vite" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS" /></a>
+  <a href="https://reactrouter.com/"><img src="https://img.shields.io/badge/React_Router-7-CA4245?logo=reactrouter&logoColor=white" alt="React Router" /></a>
+  <a href="https://tanstack.com/query"><img src="https://img.shields.io/badge/TanStack_Query-5-FF4154?logo=reactquery&logoColor=white" alt="TanStack Query" /></a>
+</p>
 
-AI 知识库管理平台的前端项目，基于 React、TypeScript 和 Vite 构建。
+<p>
+  <a href="README.md">English</a>
+  ·
+  <a href="README.zh-CN.md">中文</a>
+</p>
 
+<p>AI 知识库管理平台的前端项目，基于 React、TypeScript 和 Vite 构建。</p>
+
+</div>
+
+---
 ## 技术栈
 
-- React 19 + TypeScript
-- Vite 7
-- Tailwind CSS 4 + shadcn 风格 UI 基础组件
-- React Router 7
-- TanStack Query 5
-- lucide-react 图标
-- react-markdown + remark-gfm 用于聊天内容渲染
-- Recharts 用于仪表盘图表
+| 类别 | 技术 |
+| --- | --- |
+| 框架 | React 19 + TypeScript |
+| 构建 | Vite 7 |
+| 样式 | Tailwind CSS 4 + shadcn 风格 UI 组件 |
+| 路由 | React Router 7（懒加载 + Suspense） |
+| 数据请求 | TanStack Query 5 |
+| 基础组件 | @base-ui/react |
+| 图标 | lucide-react |
+| 图表 | Recharts |
+| Markdown | react-markdown + remark-gfm |
+| 密码强度 | @zxcvbn-ts |
 
 ## 功能特性
 
-- JWT 登录、注册、GitHub OAuth 登录和修改密码。
-- 带可折叠侧边栏导航的登录后应用框架。
-- 仪表盘指标，包括知识库、文档、助手、模型、请求趋势和文档分布。
-- 知识库增删改查，支持启用/停用状态、排序和关联助手检查。
-- 知识条目管理，支持上传、文本抽取、分块预览、自定义分块设置、编辑、启用/停用和删除。
-- 模型服务商配置，支持阿里云百炼、DeepSeek 和 OpenAI 兼容服务商。
-- 助手创建与编辑，支持模型配置、基础模型、系统提示词、发布状态和关联知识库。
-- 助手聊天，支持会话历史、重命名/删除会话、SSE 流式响应、引用来源、Markdown 渲染、图片附件和文档抽取附件。
+- **认证**：JWT 登录、注册、GitHub OAuth、修改密码与密码强度校验。
+- **布局**：登录后应用框架，可折叠侧边栏导航，支持明暗主题切换（快捷键 `D`）。
+- **首页仪表盘**：知识库、文档、助手、模型、请求趋势和文档分布统计。
+- **知识库**：增删改查，启用/停用，排序，关联助手检查，文档上传与分块预览。
+- **模型供应商**：阿里云百炼、DeepSeek、OpenAI 兼容服务商配置。
+- **问答助手**：创建/编辑、模型配置、系统提示词、发布状态、关联知识库。
+- **助手聊天**：会话历史、重命名/删除、SSE 流式响应、引用来源、Markdown 渲染、图片与文档附件。
+- **新手引导**：首次使用时的页面引导（`onboarding` 模块）。
 
 ## 项目结构
 
 ```text
 client/
-|-- public/                  静态资源
+|-- public/                      静态资源
 |-- src/
-|   |-- api/                 HTTP 客户端和后端 API 封装
-|   |-- app/                 路由、查询客户端和环境变量工具
-|   |-- components/          通用 UI 组件
-|   |-- features/
-|   |   |-- assistantChat/   助手聊天页面和查询逻辑
-|   |   |-- assistants/      助手列表和编辑页面
-|   |   |-- auth/            登录、认证 Provider、认证守卫
-|   |   |-- home/            仪表盘页面
-|   |   |-- kb/              知识库列表、详情、上传预览
-|   |   |-- layout/          应用框架和侧边栏
-|   |   |-- models/          模型服务商管理
-|   |   |-- settings/        设置页占位
-|   |-- hooks/               Toast/消息 hooks
-|   |-- lib/                 通用工具
-|   |-- main.tsx             应用入口
-|   |-- index.css            全局样式和主题变量
+|   |-- api/                     HTTP 客户端与后端 API 封装
+|   |   |-- http.ts              通用请求、鉴权、错误处理
+|   |   |-- http-stream.ts       SSE / NDJSON 流式解析
+|   |   |-- auth.ts              登录、注册、改密、OAuth
+|   |   |-- kb.ts                知识库与文档
+|   |   |-- assistants.ts        问答助手
+|   |   |-- assistantChat.ts     会话与流式聊天
+|   |   |-- models.ts            模型供应商配置
+|   |   |-- stats.ts             仪表盘统计
+|   |   `-- search.ts            搜索
+|   |-- app/                     应用级配置
+|   |   |-- router.tsx           路由定义
+|   |   |-- lazyPage.tsx         页面懒加载工具
+|   |   |-- queryClient.ts       React Query 客户端
+|   |   `-- env.ts               环境变量读取
+|   |-- components/              跨功能复用组件
+|   |   |-- ui/                  基础 UI 组件库
+|   |   |-- ConfirmDeleteDialog.tsx
+|   |   `-- theme-provider.tsx   主题 Provider
+|   |-- features/                按业务域划分的功能模块
+|   |   |-- auth/                认证与登录
+|   |   |-- layout/              应用框架与侧边栏
+|   |   |-- home/                首页仪表盘
+|   |   |-- kb/                  知识库
+|   |   |-- modelProviders/      模型供应商
+|   |   |-- assistants/          问答助手
+|   |   |-- assistantChat/       助手聊天
+|   |   `-- onboarding/          新手引导
+|   |-- hooks/                   全局 hooks（如防抖）
+|   |-- lib/                     通用工具（如 cn）
+|   |-- main.tsx                 应用入口
+|   `-- index.css                全局样式与主题变量
 |-- .env.example
 |-- package.json
-|-- vite.config.ts
+`-- vite.config.ts
 ```
+
+## 架构约定
+
+### Feature 模块组织
+
+每个 `features/<name>/` 目录按职责拆分，常见结构如下：
+
+```text
+features/<name>/
+|-- pages/           路由页面组件
+|-- components/      仅该功能使用的 UI 组件
+|-- hooks/           页面逻辑与 React Query hooks
+|-- lib/             纯函数工具
+|-- constants/       常量配置
+|-- types/           类型定义
+`-- index.ts         对外导出入口
+```
+
+页面组件负责组合 UI 与 hooks；数据请求通过 `hooks/queries.ts` 封装 TanStack Query；与后端交互的类型和请求函数放在 `src/api/`。
+
+### 路径别名
+
+`@/` 映射到 `src/`，在 `vite.config.ts` 中配置。
+
+### 状态管理
+
+- **服务端状态**：TanStack Query（列表、详情、变更、缓存失效）。
+- **认证状态**：`AuthProvider` 管理 token 与用户信息。
+- **本地 UI 状态**：组件内 `useState` / `useReducer`，复杂表单逻辑抽到自定义 hook。
+
+### 路由与懒加载
+
+- 路由定义在 `src/app/router.tsx`。
+- 页面通过 `lazyPage()` 按需加载，配合 `Suspense` 显示 `PageFallback`。
+- 需登录的路由包裹在 `RequireAuth` + `AppLayout` 下。
+
+## UI 组件
+
+基础组件位于 `src/components/ui/`，统一从 `@/components/ui` 导入：
+
+| 组件 | 说明 |
+| --- | --- |
+| `Button` | 按钮，含 `primary`、`dialog-cancel` 等变体 |
+| `Input` | 单行输入，支持 `clearable` 清除按钮 |
+| `Textarea` | 多行输入 |
+| `Select` | 下拉选择 |
+| `MultiSelect` | 多选下拉 |
+| `Dialog` | 弹窗 |
+| `Field` | 表单字段标签 + 错误信息容器 |
+| `DataTable` | 数据表格 |
+| `Switch` | 开关 |
+| `Breadcrumb` | 面包屑 |
+| `Card` | 卡片容器 |
+| `Chart` | Recharts 图表封装 |
+| `LoadingText` | 加载文案 |
+| `MarkdownMessage` | Markdown 消息渲染 |
+| `MessageCenter` / `message` | 全局 Toast 提示 |
 
 ## 快速开始
 
@@ -62,7 +157,7 @@ cp .env.example .env
 npm run dev
 ```
 
-开发服务器会启动在 Vite 默认端口，通常是 `http://localhost:5173`。
+开发服务器默认运行在 `http://localhost:5173`。
 
 ## 环境变量
 
@@ -75,45 +170,55 @@ npm run dev
 | 命令 | 说明 |
 | --- | --- |
 | `npm run dev` | 启动 Vite 开发服务器 |
-| `npm run build` | 执行类型检查并构建生产资源 |
+| `npm run build` | 类型检查并构建生产资源 |
 | `npm run preview` | 预览生产构建结果 |
 | `npm run lint` | 运行 ESLint |
-| `npm run typecheck` | 运行 TypeScript 检查，不输出文件 |
-| `npm run format` | 格式化 TypeScript 和 TSX 文件 |
+| `npm run typecheck` | 运行 TypeScript 检查（不输出文件） |
+| `npm run check` | 依次执行 lint + typecheck |
+| `npm run format` | 使用 Prettier 格式化 TS/TSX 文件 |
 
 ## 路由
 
 | 路径 | 页面 | 需要认证 |
 | --- | --- | --- |
-| `/login` | 登录 / 注册 / GitHub OAuth 入口 | 否 |
+| `/login` | 登录 / 注册 / GitHub OAuth | 否 |
 | `/` | 重定向到 `/home` | 是 |
-| `/home` | 仪表盘 | 是 |
+| `/home` | 首页仪表盘 | 是 |
 | `/kb` | 知识库列表 | 是 |
-| `/kb/:id` | 知识库详情和条目列表 | 是 |
-| `/kb/:id/upload` | 上传、抽取和分块预览流程 | 是 |
-| `/models` | 模型服务商配置 | 是 |
-| `/assistants` | 助手列表 | 是 |
-| `/assistants/:id` | 创建或编辑助手 | 是 |
+| `/kb/:id` | 知识库详情与条目列表 | 是 |
+| `/kb/:id/upload` | 上传、抽取与分块预览 | 是 |
+| `/model-providers` | 模型供应商配置 | 是 |
+| `/assistants` | 问答助手列表 | 是 |
+| `/assistants/:id` | 创建或编辑助手（`new` 为新建） | 是 |
 | `/assistants/:id/chat` | 助手聊天 | 是 |
 
 ## 后端集成
 
-所有请求都会通过 `src/api/http.ts` 发送，它会：
+所有请求通过 `src/api/http.ts` 发送：
 
-- 读取 `VITE_API_BASE_URL` 并拼接 URL。
-- 通过 `authenticatedFetch` 在存在 token 时附加 `Authorization: Bearer <token>`。
-- 序列化查询参数，并支持 `AbortSignal` 取消。
+- 读取 `VITE_API_BASE_URL` 拼接请求 URL。
+- `authenticatedFetch` 在存在 token 时附加 `Authorization: Bearer <token>`。
+- 支持查询参数序列化、`AbortSignal` 取消。
 - 通过 `parseApiError` 和 `HttpError` 统一 JSON 错误格式。
-- 通过 `handleUnauthorized` 将未认证用户重定向回 `/login`。
+- `401` 时通过 `handleUnauthorized` 清除 token 并重定向到 `/login`。
 
-流式和 multipart 请求也复用上述能力；解析逻辑在 `src/api/http-stream.ts`：
+流式与 multipart 请求复用同一层，解析逻辑在 `src/api/http-stream.ts`：
 
-- `src/api/kb.ts` 从 `/kb/:id/chunk-preview` 以 NDJSON 形式流式接收分块预览响应。
-- `src/api/assistantChat.ts` 从 `/assistants/:id/conversations/:conversationId/messages/stream` 以 SSE 形式流式接收聊天响应。
-- 知识库上传和聊天附件使用 `FormData`。
+| 场景 | API 模块 | 协议 |
+| --- | --- | --- |
+| 分块预览 | `kb.ts` → `/kb/:id/chunk-preview` | NDJSON 流 |
+| 聊天回复 | `assistantChat.ts` → `.../messages/stream` | SSE |
+| 文件上传 | `kb.ts`、聊天附件 | `FormData` |
 
-## 说明
+前端依赖后端提供 `/auth`、`/kb`、`/assistants`、`/model-configs`、`/api/stats` 等接口。
 
-- 前端要求后端提供 `/auth`、`/kb`、`/assistants`、`/model-configs` 和 `/api/stats` 接口。
-- 聊天图片附件会先以 data URL 形式上传，再发送到流式消息载荷中。
-- 上传文档抽取支持后端已实现的文件类型：TXT、Markdown、PDF 和 DOCX。
+## 构建优化
+
+`vite.config.ts` 中配置了 `manualChunks`，将 Recharts、Markdown、React Query、React Router 等大型依赖拆分为独立 chunk，减小首屏加载体积。
+
+## 开发说明
+
+- 聊天图片附件先以 data URL 上传，再发送到流式消息载荷。
+- 文档抽取支持后端已实现的文件类型：TXT、Markdown、PDF、DOCX。
+- 新增功能时，优先在 `features/` 下创建模块，复用 `components/ui/` 中的基础组件。
+- 提交前建议执行 `npm run check` 确保无 lint 与类型错误。
