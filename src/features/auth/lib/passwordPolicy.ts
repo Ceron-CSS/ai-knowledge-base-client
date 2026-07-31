@@ -1,9 +1,5 @@
 /** Client-side pre-check only. Rules and copy come from the backend password policy API. */
 
-import { ZxcvbnFactory } from "@zxcvbn-ts/core"
-import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common"
-import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en"
-import * as zxcvbnZhPackage from "@zxcvbn-ts/language-zh"
 import type { PasswordPolicyConfig } from "@/api/auth"
 
 export type PasswordPolicyOptions = {
@@ -13,20 +9,38 @@ export type PasswordPolicyOptions = {
 
 type PasswordValidationResult = { ok: true } | { ok: false; message: string }
 
-const zxcvbn = new ZxcvbnFactory({
-  graphs: zxcvbnCommonPackage.adjacencyGraphs,
-  dictionary: {
-    ...zxcvbnCommonPackage.dictionary,
-    ...zxcvbnEnPackage.dictionary,
-    ...zxcvbnZhPackage.dictionary,
-  },
-})
+type ZxcvbnChecker = {
+  check: (password: string, userInputs: string[]) => { score: number }
+}
+
+let zxcvbnLoader: Promise<ZxcvbnChecker> | null = null
+
+export function preloadPasswordStrengthChecker(): Promise<ZxcvbnChecker> {
+  if (!zxcvbnLoader) {
+    zxcvbnLoader = Promise.all([
+      import("@zxcvbn-ts/core"),
+      import("@zxcvbn-ts/language-common"),
+      import("@zxcvbn-ts/language-en"),
+      import("@zxcvbn-ts/language-zh"),
+    ]).then(([core, common, en, zh]) =>
+      new core.ZxcvbnFactory({
+        graphs: common.adjacencyGraphs,
+        dictionary: {
+          ...common.dictionary,
+          ...en.dictionary,
+          ...zh.dictionary,
+        },
+      }),
+    )
+  }
+  return zxcvbnLoader
+}
 
 function collectUserInputs(options?: PasswordPolicyOptions): string[] {
   return (options?.userInputs ?? []).map((value) => value.trim()).filter(Boolean)
 }
 
-export function validatePasswordPolicy(
+function validatePasswordPolicySync(
   password: string,
   config: PasswordPolicyConfig,
   options?: PasswordPolicyOptions,
@@ -39,20 +53,22 @@ export function validatePasswordPolicy(
     return { ok: false, message: config.messages.SAME_AS_OLD }
   }
 
+  return { ok: true }
+}
+
+export async function validatePasswordPolicy(
+  password: string,
+  config: PasswordPolicyConfig,
+  options?: PasswordPolicyOptions,
+): Promise<PasswordValidationResult> {
+  const syncResult = validatePasswordPolicySync(password, config, options)
+  if (!syncResult.ok) return syncResult
+
+  const zxcvbn = await preloadPasswordStrengthChecker()
   const result = zxcvbn.check(password, collectUserInputs(options))
   if (result.score < config.minScore) {
     return { ok: false, message: config.messages.COMMON_PASSWORD }
   }
 
   return { ok: true }
-}
-
-export function getPasswordFieldError(
-  password: string,
-  config: PasswordPolicyConfig | undefined,
-  options?: PasswordPolicyOptions,
-): string | undefined {
-  if (!password || !config) return undefined
-  const result = validatePasswordPolicy(password, config, options)
-  return result.ok ? undefined : result.message
 }

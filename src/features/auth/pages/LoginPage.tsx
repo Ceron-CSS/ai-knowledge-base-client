@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Navigate, useLocation } from "react-router-dom"
+import { Navigate, useLocation, useNavigate } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { getGithubLoginUrl, login, register } from "@/api/auth"
 import { Button } from "@/components/ui/button"
@@ -7,8 +7,8 @@ import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "../context/authContext"
 import { usePasswordPolicyConfig } from "../hooks/usePasswordPolicyConfig"
-import { consumePostLoginRedirect } from "../lib/redirect"
-import { getPasswordFieldError, validatePasswordPolicy } from "../lib/passwordPolicy"
+import { consumePostLoginRedirect, resolvePostLoginPath } from "../lib/redirect"
+import { usePasswordPolicyValidation } from "../hooks/usePasswordPolicyValidation"
 import { cn } from "@/lib/utils"
 
 type OAuthHashResult = {
@@ -45,6 +45,7 @@ function parseOAuthHash(): OAuthHashResult {
 export function LoginPage() {
   const auth = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const { data: passwordPolicy } = usePasswordPolicyConfig()
   const [mode, setMode] = useState<"login" | "register">("login")
   const [username, setUsername] = useState("")
@@ -63,16 +64,19 @@ export function LoginPage() {
   }, [oauthHash.shouldClearHash])
 
   const from = useMemo(() => {
-    if (oauthHash.redirectTo) return oauthHash.redirectTo
+    if (oauthHash.redirectTo) return resolvePostLoginPath(oauthHash.redirectTo)
     const stored = consumePostLoginRedirect()
     if (stored) return stored
     const s = location.state as { from?: string } | null
-    return s?.from ?? "/"
+    return resolvePostLoginPath(s?.from)
   }, [location.state, oauthHash.redirectTo])
 
   const loginMutation = useMutation({
     mutationFn: () => login({ username: username.trim(), password }),
-    onSuccess: (data) => auth.loginWithToken(data.accessToken),
+    onSuccess: (data) => {
+      auth.loginWithToken(data.accessToken)
+      navigate(from, { replace: true })
+    },
   })
 
   const registerMutation = useMutation({
@@ -86,15 +90,21 @@ export function LoginPage() {
     },
   })
 
+  const trimmedUsername = username.trim()
+  const registerPasswordOptions = useMemo(
+    () => (trimmedUsername ? { userInputs: [trimmedUsername] } : undefined),
+    [trimmedUsername],
+  )
+  const passwordsMatch = password && password2 && password === password2
+  const registerPasswordCheck = usePasswordPolicyValidation(
+    password,
+    passwordPolicy,
+    registerPasswordOptions,
+    mode === "register",
+  )
+
   if (auth.isAuthed) return <Navigate to={from} replace />
 
-  const trimmedUsername = username.trim()
-  const registerPasswordOptions = trimmedUsername ? { userInputs: [trimmedUsername] } : undefined
-  const passwordsMatch = password && password2 && password === password2
-  const registerPasswordCheck =
-    mode === "register" && passwordPolicy
-      ? validatePasswordPolicy(password, passwordPolicy, registerPasswordOptions)
-      : { ok: true as const }
   const canSubmit =
     mode === "login"
       ? Boolean(trimmedUsername && password && !loginMutation.isPending)
@@ -125,8 +135,8 @@ export function LoginPage() {
 
   const errorText = mode === "login" ? loginErrorText : registerErrorText
   const passwordFieldError =
-    mode === "register"
-      ? getPasswordFieldError(password, passwordPolicy, registerPasswordOptions)
+    mode === "register" && password && passwordPolicy && !registerPasswordCheck.ok
+      ? registerPasswordCheck.message
       : undefined
   const confirmPasswordError =
     mode === "register" && password && password2 && password !== password2

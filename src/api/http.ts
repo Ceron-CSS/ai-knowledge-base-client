@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from "@/app/env"
-import { clearAccessToken, getAccessToken, redirectToLogin } from "@/features/auth"
+import { clearAccessToken, getAccessToken, redirectToLogin, resolvePostLoginPath } from "@/features/auth"
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
 
@@ -73,7 +73,7 @@ export async function requestJson<T>(path: string, options: RequestOptions = {})
 
   if (response.status === 401) {
     clearAccessToken()
-    redirectToLogin(window.location.pathname || "/")
+    redirectToLogin(resolvePostLoginPath(window.location.pathname))
     throw new HttpError(401, "Session expired")
   }
 

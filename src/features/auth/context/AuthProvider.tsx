@@ -56,7 +56,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
       logout: () => {
         clearAccessToken()
         setToken(null)
-        redirectToLogin("/")
+        redirectToLogin("/home")
       },
     }),
     [displayName, provider, token, username],

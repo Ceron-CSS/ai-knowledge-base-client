@@ -1,8 +1,14 @@
-import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, lazy, type CSSProperties, useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { CircleHelp, KeyRound, LogOut, Settings } from "lucide-react"
-import { ChangePasswordDialog, useAuth } from "@/features/auth"
+import { useAuth } from "@/features/auth"
 import { cn } from "@/lib/utils"
+
+const ChangePasswordDialog = lazy(() =>
+  import("@/features/auth/components/ChangePasswordDialog").then((module) => ({
+    default: module.ChangePasswordDialog,
+  })),
+)
 
 type AppSettingsMenuProps = {
   collapsed: boolean
@@ -130,7 +136,11 @@ export function AppSettingsMenu({ collapsed, onOpenOnboarding }: AppSettingsMenu
           )
         : null}
 
-      <ChangePasswordDialog open={pwdOpen} onOpenChange={setPwdOpen} />
+      {pwdOpen ? (
+        <Suspense fallback={null}>
+          <ChangePasswordDialog open={pwdOpen} onOpenChange={setPwdOpen} />
+        </Suspense>
+      ) : null}
     </>
   )
 }

@@ -1,12 +1,18 @@
 const POST_LOGIN_KEY = "auth.postLoginRedirect"
 
+export function resolvePostLoginPath(path?: string | null): string {
+  const normalized = (path ?? "/home").trim()
+  if (!normalized || normalized === "/") return "/home"
+  return normalized
+}
+
 export function redirectToLogin(postLoginRedirect?: string) {
   if (typeof window === "undefined") return
   if (window.location.pathname === "/login") return
 
   if (postLoginRedirect) {
     try {
-      sessionStorage.setItem(POST_LOGIN_KEY, postLoginRedirect)
+      sessionStorage.setItem(POST_LOGIN_KEY, resolvePostLoginPath(postLoginRedirect))
     } catch {
       // ignore
     }
@@ -24,7 +30,7 @@ export function consumePostLoginRedirect(): string | undefined {
   try {
     const v = sessionStorage.getItem(POST_LOGIN_KEY) || undefined
     if (v) sessionStorage.removeItem(POST_LOGIN_KEY)
-    return v || undefined
+    return v ? resolvePostLoginPath(v) : undefined
   } catch {
     return undefined
   }

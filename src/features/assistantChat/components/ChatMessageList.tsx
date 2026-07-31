@@ -1,7 +1,7 @@
 import type { RefObject } from "react"
 import { RotateCw } from "lucide-react"
 import type { AssistantMessage } from "@/api/assistantChat"
-import { MarkdownMessage } from "@/components/ui/markdown-message"
+import { MarkdownMessageLazy } from "@/components/ui/markdown-message-lazy"
 import { LoadingText } from "@/components/ui/loading-text"
 import { TypingDots } from "@/components/ui/typing-dots"
 import { parseMessageContent } from "@/features/assistantChat/lib/parseMessageContent"
@@ -55,7 +55,7 @@ export function ChatMessageList({
                   showTypingDots ? (
                     <TypingDots />
                   ) : (
-                    <MarkdownMessage
+                    <MarkdownMessageLazy
                       content={parsed.text}
                       citationCount={parsed.citations.length}
                       onCitationClick={(index, event) => onCitationClick(index, parsed.citations, event)}

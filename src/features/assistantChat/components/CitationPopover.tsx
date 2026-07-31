@@ -1,4 +1,4 @@
-import { MarkdownMessage } from "@/components/ui/markdown-message"
+import { MarkdownMessageLazy } from "@/components/ui/markdown-message-lazy"
 import type { ActiveCitation } from "@/features/assistantChat/types"
 
 type CitationPopoverProps = {
@@ -25,7 +25,7 @@ export function CitationPopover({ activeCitation, onClose }: CitationPopoverProp
           </div>
         </div>
         <div className="max-h-[420px] overflow-auto bg-background/70 px-4 py-3">
-          <MarkdownMessage content={activeCitation.citation.snippet} />
+          <MarkdownMessageLazy content={activeCitation.citation.snippet} />
         </div>
         <div className="border-t bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground">
           相关度 {activeCitation.citation.score.toFixed(3)}

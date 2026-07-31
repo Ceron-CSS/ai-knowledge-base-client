@@ -5,7 +5,7 @@ import { HttpError } from "@/api/http"
 import { Button, Dialog, Field, Input } from "@/components/ui"
 import { useAuth } from "../context/authContext"
 import { usePasswordPolicyConfig } from "../hooks/usePasswordPolicyConfig"
-import { getPasswordFieldError, validatePasswordPolicy } from "../lib/passwordPolicy"
+import { usePasswordPolicyValidation } from "../hooks/usePasswordPolicyValidation"
 
 type ChangePasswordDialogProps = {
   open: boolean
@@ -21,11 +21,23 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
 
   const userInputs = useMemo(() => (auth.username ? [auth.username] : []), [auth.username])
 
+  const passwordOptions = useMemo(
+    () => ({ oldPassword, userInputs }),
+    [oldPassword, userInputs],
+  )
+
+  const passwordValidation = usePasswordPolicyValidation(
+    newPassword,
+    passwordPolicy,
+    passwordOptions,
+    open,
+  )
+
   const canSubmit = useMemo(() => {
     if (!oldPassword || !newPassword || !confirmPassword || !passwordPolicy) return false
     if (newPassword !== confirmPassword) return false
-    return validatePasswordPolicy(newPassword, passwordPolicy, { oldPassword, userInputs }).ok
-  }, [oldPassword, newPassword, confirmPassword, passwordPolicy, userInputs])
+    return passwordValidation.ok
+  }, [oldPassword, newPassword, confirmPassword, passwordPolicy, passwordValidation.ok])
 
   const pwdMutation = useMutation({
     mutationFn: () => changePassword({ oldPassword, newPassword }),
@@ -75,7 +87,9 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             新密码 <span className="text-destructive">*</span>
           </>
         }
-        error={getPasswordFieldError(newPassword, passwordPolicy, { oldPassword, userInputs })}
+        error={
+          newPassword && passwordPolicy && !passwordValidation.ok ? passwordValidation.message : undefined
+        }
       >
         <Input
           value={newPassword}
