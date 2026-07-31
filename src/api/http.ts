@@ -23,13 +23,27 @@ export class HttpError extends Error {
   }
 }
 
-function joinUrl(base: string, path: string) {
+export function joinApiPath(base: string, path: string) {
   const baseTrimmed = base.replace(/\/+$/, "")
   const pathTrimmed = path.replace(/^\/+/, "")
   return `${baseTrimmed}/${pathTrimmed}`
 }
 
-async function parseErrorBody(response: Response): Promise<ApiErrorBody | undefined> {
+export function buildApiUrl(
+  path: string,
+  query?: Record<string, string | number | boolean | undefined | null>,
+) {
+  const url = new URL(joinApiPath(getApiBaseUrl(), path))
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === null) continue
+      url.searchParams.set(key, String(value))
+    }
+  }
+  return url.toString()
+}
+
+async function readErrorBody(response: Response): Promise<ApiErrorBody | undefined> {
   const contentType = response.headers.get("content-type") ?? ""
   if (!contentType.includes("application/json")) return undefined
   try {
@@ -37,6 +51,53 @@ async function parseErrorBody(response: Response): Promise<ApiErrorBody | undefi
   } catch {
     return undefined
   }
+}
+
+export async function parseApiError(response: Response) {
+  const body = await readErrorBody(response)
+  const message = body?.message ?? `Request failed (${response.status})`
+  return { message, code: body?.code, details: body?.details }
+}
+
+export function handleUnauthorized() {
+  clearAccessToken()
+  redirectToLogin(resolvePostLoginPath(window.location.pathname))
+}
+
+export async function throwIfNotOk(response: Response) {
+  if (response.status === 401) {
+    handleUnauthorized()
+    throw new HttpError(401, "Session expired")
+  }
+  if (!response.ok) {
+    const error = await parseApiError(response)
+    throw new HttpError(response.status, error.message, error.code, error.details)
+  }
+}
+
+export type AuthenticatedFetchOptions = {
+  method?: HttpMethod
+  headers?: Record<string, string>
+  query?: Record<string, string | number | boolean | undefined | null>
+  body?: BodyInit | null
+  signal?: AbortSignal
+}
+
+export async function authenticatedFetch(path: string, options: AuthenticatedFetchOptions = {}) {
+  const token = getAccessToken()
+  const headers: Record<string, string> = {
+    ...options.headers,
+  }
+  if (token) {
+    headers.authorization = `Bearer ${token}`
+  }
+
+  return fetch(buildApiUrl(path, options.query), {
+    method: options.method ?? "GET",
+    headers,
+    body: options.body ?? undefined,
+    signal: options.signal,
+  })
 }
 
 export type RequestOptions = {
@@ -48,40 +109,18 @@ export type RequestOptions = {
 }
 
 export async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const baseUrl = getApiBaseUrl()
-  const url = new URL(joinUrl(baseUrl, path))
-  if (options.query) {
-    for (const [key, value] of Object.entries(options.query)) {
-      if (value === undefined || value === null) continue
-      url.searchParams.set(key, String(value))
-    }
-  }
-
-  const token = getAccessToken()
-  const headers: Record<string, string> = {
-    ...(options.body ? { "content-type": "application/json" } : {}),
-    ...(token ? { authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  }
-
-  const response = await fetch(url.toString(), {
-    method: options.method ?? "GET",
-    headers,
+  const response = await authenticatedFetch(path, {
+    method: options.method,
+    headers: {
+      ...(options.body ? { "content-type": "application/json" } : {}),
+      ...options.headers,
+    },
+    query: options.query,
     body: options.body ? JSON.stringify(options.body) : undefined,
     signal: options.signal,
   })
 
-  if (response.status === 401) {
-    clearAccessToken()
-    redirectToLogin(resolvePostLoginPath(window.location.pathname))
-    throw new HttpError(401, "Session expired")
-  }
-
-  if (!response.ok) {
-    const body = await parseErrorBody(response)
-    const message = body?.message ?? `Request failed (${response.status})`
-    throw new HttpError(response.status, message, body?.code, body?.details)
-  }
+  await throwIfNotOk(response)
 
   if (response.status === 204) {
     return undefined as T

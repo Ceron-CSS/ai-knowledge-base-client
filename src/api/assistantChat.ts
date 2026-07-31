@@ -1,6 +1,5 @@
-import { getApiBaseUrl } from "@/app/env"
-import { getAccessToken } from "@/features/auth"
-import { requestJson } from "@/api/http"
+import { authenticatedFetch, requestJson, throwIfNotOk } from "@/api/http"
+import { readSseJsonStream } from "@/api/http-stream"
 
 export type AssistantConversation = {
   id: string
@@ -82,52 +81,54 @@ export type AssistantFileAttachment = {
 
 export type AssistantAttachment = AssistantImageAttachment | AssistantFileAttachment
 
-function joinUrl(base: string, path: string) {
-  const baseTrimmed = base.replace(/\/+$/, "")
-  const pathTrimmed = path.replace(/^\/+/, "")
-  return `${baseTrimmed}/${pathTrimmed}`
+function isAssistantMessage(value: unknown): value is AssistantMessage {
+  if (!value || typeof value !== "object") return false
+  const message = value as Record<string, unknown>
+  return (
+    typeof message.id === "string" &&
+    typeof message.conversationId === "string" &&
+    (message.role === "user" || message.role === "assistant") &&
+    typeof message.content === "string" &&
+    typeof message.createdAt === "string"
+  )
 }
 
-async function* readSseStream(response: Response): AsyncGenerator<StreamEvent> {
-  if (!response.ok) {
-    const text = await response.text().catch(() => "")
-    throw new Error(text || `Request failed (${response.status})`)
+function isAssistantCitation(value: unknown): value is AssistantCitation {
+  if (!value || typeof value !== "object") return false
+  const citation = value as Record<string, unknown>
+  return (
+    typeof citation.kbId === "string" &&
+    typeof citation.itemId === "string" &&
+    typeof citation.fileName === "string" &&
+    typeof citation.snippet === "string" &&
+    typeof citation.score === "number"
+  )
+}
+
+function parseStreamEvent(parsed: unknown): StreamEvent | null {
+  if (!parsed || typeof parsed !== "object") return null
+  const event = parsed as Record<string, unknown>
+  if (event.type === "delta" && typeof event.delta === "string") {
+    return { type: "delta", delta: event.delta }
   }
-  if (!response.body) throw new Error("Missing response body")
-
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder("utf-8")
-  let buffer = ""
-
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-
-    while (true) {
-      const idx = buffer.indexOf("\n\n")
-      if (idx === -1) break
-      const rawEvent = buffer.slice(0, idx)
-      buffer = buffer.slice(idx + 2)
-
-      const lines = rawEvent.split("\n")
-      for (const line of lines) {
-        const trimmed = line.trimEnd()
-        if (!trimmed.startsWith("data:")) continue
-        const data = trimmed.slice("data:".length).trim()
-        if (!data) continue
-        let parsed: unknown
-        try {
-          parsed = JSON.parse(data)
-        } catch {
-          continue
-        }
-        if (parsed && typeof parsed === "object" && "type" in parsed) {
-          yield parsed as StreamEvent
-        }
-      }
+  if (event.type === "done" && isAssistantMessage(event.message)) {
+    const citations = Array.isArray(event.citations)
+      ? event.citations.filter((item): item is AssistantCitation => isAssistantCitation(item))
+      : undefined
+    return {
+      type: "done",
+      message: event.message,
+      ...(citations?.length ? { citations } : {}),
     }
   }
+  if (event.type === "error" && typeof event.message === "string") {
+    return {
+      type: "error",
+      message: event.message,
+      ...(isAssistantMessage(event.saved) ? { saved: event.saved } : {}),
+    }
+  }
+  return null
 }
 
 export async function streamAssistantReply(args: {
@@ -137,21 +138,17 @@ export async function streamAssistantReply(args: {
   attachments?: AssistantAttachment[]
   signal?: AbortSignal
 }): Promise<AsyncGenerator<StreamEvent>> {
-  const baseUrl = getApiBaseUrl()
-  const token = getAccessToken()
-
-  const url = joinUrl(baseUrl, `/assistants/${args.assistantId}/conversations/${args.conversationId}/messages/stream`)
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
+  const response = await authenticatedFetch(
+    `/assistants/${args.assistantId}/conversations/${args.conversationId}/messages/stream`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: args.text, attachments: args.attachments ?? [] }),
+      signal: args.signal,
     },
-    body: JSON.stringify({ text: args.text, attachments: args.attachments ?? [] }),
-    signal: args.signal,
-  })
+  )
 
-  return readSseStream(response)
+  return readSseJsonStream(response, parseStreamEvent)
 }
 
 export async function uploadAssistantImageAttachment(args: {
@@ -159,22 +156,16 @@ export async function uploadAssistantImageAttachment(args: {
   conversationId: string
   file: File
 }): Promise<AssistantImageAttachment> {
-  const baseUrl = getApiBaseUrl()
-  const token = getAccessToken()
-  const url = joinUrl(baseUrl, `/assistants/${args.assistantId}/conversations/${args.conversationId}/attachments/image`)
   const formData = new FormData()
   formData.set("file", args.file)
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
+  const response = await authenticatedFetch(
+    `/assistants/${args.assistantId}/conversations/${args.conversationId}/attachments/image`,
+    {
+      method: "POST",
+      body: formData,
     },
-    body: formData,
-  })
-  if (!response.ok) {
-    const text = await response.text().catch(() => "")
-    throw new Error(text || `Request failed (${response.status})`)
-  }
+  )
+  await throwIfNotOk(response)
   return (await response.json()) as AssistantImageAttachment
 }
 
@@ -183,21 +174,15 @@ export async function uploadAssistantFileForExtraction(args: {
   conversationId: string
   file: File
 }): Promise<AssistantFileAttachment> {
-  const baseUrl = getApiBaseUrl()
-  const token = getAccessToken()
-  const url = joinUrl(baseUrl, `/assistants/${args.assistantId}/conversations/${args.conversationId}/attachments/extract-file`)
   const formData = new FormData()
   formData.set("file", args.file)
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
+  const response = await authenticatedFetch(
+    `/assistants/${args.assistantId}/conversations/${args.conversationId}/attachments/extract-file`,
+    {
+      method: "POST",
+      body: formData,
     },
-    body: formData,
-  })
-  if (!response.ok) {
-    const text = await response.text().catch(() => "")
-    throw new Error(text || `Request failed (${response.status})`)
-  }
+  )
+  await throwIfNotOk(response)
   return (await response.json()) as AssistantFileAttachment
 }

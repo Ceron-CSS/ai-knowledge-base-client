@@ -100,13 +100,13 @@ The dev server starts on Vite's default port, usually `http://localhost:5173`.
 
 All requests are sent through `src/api/http.ts`, which:
 
-- Reads `VITE_API_BASE_URL`.
-- Attaches `Authorization: Bearer <token>` when a token exists.
-- Serializes query parameters.
-- Normalizes JSON errors through `HttpError`.
-- Redirects unauthenticated users back to `/login`.
+- Reads `VITE_API_BASE_URL` and builds request URLs.
+- Uses `authenticatedFetch` to attach `Authorization: Bearer <token>` when a token exists.
+- Serializes query parameters and supports `AbortSignal` cancellation.
+- Normalizes JSON errors through `parseApiError` and `HttpError`.
+- Redirects unauthenticated users back to `/login` via `handleUnauthorized`.
 
-Streaming and multipart flows use `fetch` directly:
+Streaming and multipart requests reuse the same layer; parsers live in `src/api/http-stream.ts`:
 
 - `src/api/kb.ts` streams chunk preview responses from `/kb/:id/chunk-preview` as NDJSON.
 - `src/api/assistantChat.ts` streams chat responses from `/assistants/:id/conversations/:conversationId/messages/stream` as SSE.

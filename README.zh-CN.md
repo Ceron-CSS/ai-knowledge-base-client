@@ -100,13 +100,13 @@ npm run dev
 
 所有请求都会通过 `src/api/http.ts` 发送，它会：
 
-- 读取 `VITE_API_BASE_URL`。
-- 在存在 token 时附加 `Authorization: Bearer <token>`。
-- 序列化查询参数。
-- 通过 `HttpError` 统一 JSON 错误格式。
-- 将未认证用户重定向回 `/login`。
+- 读取 `VITE_API_BASE_URL` 并拼接 URL。
+- 通过 `authenticatedFetch` 在存在 token 时附加 `Authorization: Bearer <token>`。
+- 序列化查询参数，并支持 `AbortSignal` 取消。
+- 通过 `parseApiError` 和 `HttpError` 统一 JSON 错误格式。
+- 通过 `handleUnauthorized` 将未认证用户重定向回 `/login`。
 
-流式和 multipart 流程会直接使用 `fetch`：
+流式和 multipart 请求也复用上述能力；解析逻辑在 `src/api/http-stream.ts`：
 
 - `src/api/kb.ts` 从 `/kb/:id/chunk-preview` 以 NDJSON 形式流式接收分块预览响应。
 - `src/api/assistantChat.ts` 从 `/assistants/:id/conversations/:conversationId/messages/stream` 以 SSE 形式流式接收聊天响应。

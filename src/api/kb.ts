@@ -1,7 +1,5 @@
-import { requestJson } from "@/api/http"
-import { HttpError } from "@/api/http"
-import { getApiBaseUrl } from "@/app/env"
-import { getAccessToken } from "@/features/auth"
+import { authenticatedFetch, requestJson, throwIfNotOk } from "@/api/http"
+import { readNdjsonStream } from "@/api/http-stream"
 
 export type Kb = {
   id: string
@@ -129,55 +127,29 @@ export type ChunkPreviewChunk = {
   text: string
 }
 
+function parseChunkPreviewChunk(parsed: unknown): ChunkPreviewChunk | null {
+  if (!parsed || typeof parsed !== "object") return null
+  const chunk = parsed as Record<string, unknown>
+  if (typeof chunk.index !== "number" || typeof chunk.charCount !== "number" || typeof chunk.text !== "string") {
+    return null
+  }
+  return { index: chunk.index, charCount: chunk.charCount, text: chunk.text }
+}
+
 export async function streamKbChunkPreview(
   kbId: string,
   body: ChunkPreviewRequest,
   onChunk: (chunk: ChunkPreviewChunk) => void,
   signal?: AbortSignal,
 ) {
-  const token = getAccessToken()
-  const response = await fetch(`${getApiBaseUrl()}/kb/${kbId}/chunk-preview`, {
+  const response = await authenticatedFetch(`/kb/${kbId}/chunk-preview`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-    },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
     signal,
   })
 
-  if (!response.ok) {
-    let message = `Request failed (${response.status})`
-    try {
-      const payload = (await response.json()) as { message?: string }
-      if (payload?.message) message = payload.message
-    } catch {
-      // ignore
-    }
-    throw new HttpError(response.status, message)
-  }
-
-  if (!response.body) return
-
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ""
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split("\n")
-    buffer = lines.pop() ?? ""
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed) continue
-      onChunk(JSON.parse(trimmed) as ChunkPreviewChunk)
-    }
-  }
-
-  const tail = buffer.trim()
-  if (tail) onChunk(JSON.parse(tail) as ChunkPreviewChunk)
+  await readNdjsonStream(response, onChunk, parseChunkPreviewChunk)
 }
 
 export async function fetchKbChunkPreview(
@@ -197,27 +169,15 @@ export type ExtractedFile = {
 }
 
 export async function extractKbFileText(kbId: string, file: File): Promise<ExtractedFile> {
-  const token = getAccessToken()
   const formData = new FormData()
   formData.append("file", file)
 
-  const response = await fetch(`${getApiBaseUrl()}/kb/${kbId}/extract-file`, {
+  const response = await authenticatedFetch(`/kb/${kbId}/extract-file`, {
     method: "POST",
-    headers: token ? { authorization: `Bearer ${token}` } : undefined,
     body: formData,
   })
 
-  if (!response.ok) {
-    let message = `Request failed (${response.status})`
-    try {
-      const payload = (await response.json()) as { message?: string }
-      if (payload?.message) message = payload.message
-    } catch {
-      // ignore
-    }
-    throw new HttpError(response.status, message)
-  }
-
+  await throwIfNotOk(response)
   return (await response.json()) as ExtractedFile
 }
 
