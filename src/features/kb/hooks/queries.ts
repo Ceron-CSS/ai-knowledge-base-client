@@ -5,6 +5,8 @@ import {
   deleteKbItem,
   listKbItems,
   listKbs,
+  retryKbItemExtraction,
+  retryKbItemIndexing,
   setKbEnabled,
   setKbItemEnabled,
   updateKb,
@@ -114,6 +116,35 @@ export function useKbItems(kbId: string, params?: KbItemListParams) {
     queryKey: kbKeys.items(kbId, effectiveParams),
     queryFn: () => listKbItems(kbId, effectiveParams),
     enabled: !!kbId,
+    refetchInterval: (query) => {
+      const rows = query.state.data?.items ?? []
+      const busy = rows.some(
+        (item) => item.status === "extracting" || item.status === "indexing",
+      )
+      return busy ? 2500 : false
+    },
+  })
+}
+
+export function useRetryKbItemExtraction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ kbId, itemId }: { kbId: string; itemId: string }) =>
+      retryKbItemExtraction(kbId, itemId),
+    onSuccess: async (_data, vars) => {
+      await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
+    },
+  })
+}
+
+export function useRetryKbItemIndexing() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ kbId, itemId }: { kbId: string; itemId: string }) =>
+      retryKbItemIndexing(kbId, itemId),
+    onSuccess: async (_data, vars) => {
+      await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
+    },
   })
 }
 

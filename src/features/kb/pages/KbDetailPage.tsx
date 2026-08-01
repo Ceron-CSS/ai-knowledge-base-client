@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { Input } from "@/components/ui/input"
 import { KbFileUploadDialog } from "@/features/kb/components/KbFileUploadDialog"
+import { KbItemStatusDialog } from "@/features/kb/components/KbItemStatusDialog"
 import { useKbDetailPage } from "@/features/kb/hooks/useKbDetailPage"
 
 export function KbDetailPage() {
@@ -62,6 +63,23 @@ export function KbDetailPage() {
         onPickFile={(file) => void kb.handlePickFile(file)}
         onDragOver={kb.handleDragOver}
         onDragLeave={() => kb.setDragOver(false)}
+      />
+
+      <KbItemStatusDialog
+        open={!!kb.statusItem}
+        kbId={id}
+        item={kb.statusItem}
+        onOpenChange={(open) => {
+          if (!open) kb.setStatusItem(null)
+        }}
+        onRetryExtraction={
+          kb.statusItem?.status === "extraction_failed" ? kb.onRetryStatusItem : undefined
+        }
+        onRetryIndexing={
+          kb.statusItem?.status === "indexing_failed" ? kb.onRetryStatusItem : undefined
+        }
+        onContinueDraft={kb.statusItem?.status === "draft" ? kb.onContinueDraft : undefined}
+        retrying={kb.retrying}
       />
 
       <ConfirmDeleteDialog

@@ -68,6 +68,7 @@ export function useCitationPopover({ assistantId }: UseCitationPopoverOptions) {
         kbId: activeCitation.citation.kbId,
         itemId: activeCitation.citation.itemId,
         chunkIndex: activeCitation.citation.chunkIndex,
+        pageStart: activeCitation.citation.pageStart,
       })
       setActiveCitation(null)
       resetActionState()

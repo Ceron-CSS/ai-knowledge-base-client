@@ -10,6 +10,10 @@ const LoginPage = lazyPage(() => import("@/features/auth/pages/LoginPage"), "Log
 const HomePage = lazyPage(() => import("@/features/home/pages/HomePage"), "HomePage")
 const KbPage = lazyPage(() => import("@/features/kb/pages/KbPage"), "KbPage")
 const KbDetailPage = lazyPage(() => import("@/features/kb/pages/KbDetailPage"), "KbDetailPage")
+const KbItemDetailPage = lazyPage(
+  () => import("@/features/kb/pages/KbItemDetailPage"),
+  "KbItemDetailPage",
+)
 const KbUploadPreviewPage = lazyPage(() => import("@/features/kb/pages/KbUploadPreviewPage"), "KbUploadPreviewPage")
 const ModelProviderPage = lazyPage(() => import("@/features/modelProviders/pages/ModelProviderPage"), "ModelProviderPage")
 const AssistantListPage = lazyPage(() => import("@/features/assistants/pages/AssistantListPage"), "AssistantListPage")
@@ -46,6 +50,7 @@ export const router = createBrowserRouter([
           { path: "home", element: withPageSuspense(<HomePage />) },
           { path: "kb", element: withPageSuspense(<KbPage />) },
           { path: "kb/:id", element: withPageSuspense(<KbDetailPage />) },
+          { path: "kb/:id/items/:itemId", element: withPageSuspense(<KbItemDetailPage />) },
           { path: "kb/:id/upload", element: withPageSuspense(<KbUploadPreviewPage />) },
           { path: "model-providers", element: withPageSuspense(<ModelProviderPage />) },
           { path: "assistants", element: withPageSuspense(<AssistantListPage />) },

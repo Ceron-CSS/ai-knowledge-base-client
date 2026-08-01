@@ -33,7 +33,9 @@ export function parseMessageContent(content: string): ParsedMessageContent {
                 typeof v.fileName === "string" &&
                 typeof v.snippet === "string" &&
                 typeof v.score === "number" &&
-                (v.chunkIndex === undefined || typeof v.chunkIndex === "number")
+                (v.chunkIndex === undefined || typeof v.chunkIndex === "number") &&
+                (v.pageStart === undefined || typeof v.pageStart === "number") &&
+                (v.pageEnd === undefined || typeof v.pageEnd === "number")
               )
             })
             .map((item) => ({
@@ -43,6 +45,8 @@ export function parseMessageContent(content: string): ParsedMessageContent {
               snippet: item.snippet,
               score: item.score,
               ...(typeof item.chunkIndex === "number" ? { chunkIndex: item.chunkIndex } : {}),
+              ...(typeof item.pageStart === "number" ? { pageStart: item.pageStart } : {}),
+              ...(typeof item.pageEnd === "number" ? { pageEnd: item.pageEnd } : {}),
             }))
             .slice(0, 8)
         }

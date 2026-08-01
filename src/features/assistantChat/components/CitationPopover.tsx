@@ -63,6 +63,15 @@ export function CitationPopover({
             {typeof activeCitation.citation.chunkIndex === "number" ? (
               <span className="ml-2">分片 #{activeCitation.citation.chunkIndex + 1}</span>
             ) : null}
+            {typeof activeCitation.citation.pageStart === "number" ? (
+              <span className="ml-2">
+                页 {activeCitation.citation.pageStart}
+                {typeof activeCitation.citation.pageEnd === "number" &&
+                activeCitation.citation.pageEnd !== activeCitation.citation.pageStart
+                  ? `-${activeCitation.citation.pageEnd}`
+                  : ""}
+              </span>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-1">
             <Button

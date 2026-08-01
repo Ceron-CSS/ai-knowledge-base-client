@@ -9,6 +9,8 @@ export type SearchHit = {
   snippet: string
   score: number
   retrievalSource: string
+  pageStart?: number | null
+  pageEnd?: number | null
 }
 
 export type SearchParams = {

@@ -10,10 +10,15 @@ export type KbUploadNavigationState = {
   chunks?: string[]
   /** 0-based chunk index from retrieval; used to highlight the target slice. */
   highlightChunkIndex?: number
+  /** 1-based PDF page from citation. */
+  sourcePage?: number
   chunkConfig?: {
     mode: ChunkPreviewMode
     separators: ChunkPreviewSeparator[]
     maxLength: number
     trimSpaces: boolean
   }
+  /** File-import flow: wait for extraction then configure chunks. */
+  ingestItemId?: string
+  mode?: "manual" | "import"
 }

@@ -54,6 +54,8 @@ export function useRetrievalDebugPage() {
           kbId: hit.kbId,
           itemId: hit.itemId,
           chunkIndex: hit.chunkIndex,
+          chunkId: hit.chunkId,
+          pageStart: hit.pageStart ?? undefined,
         })
       } catch (e) {
         setError(e instanceof HttpError || e instanceof Error ? e.message : "打开文档失败")

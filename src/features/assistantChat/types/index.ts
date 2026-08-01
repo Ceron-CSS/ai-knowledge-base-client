@@ -7,6 +7,8 @@ export type ParsedCitation = {
   snippet: string
   score: number
   chunkIndex?: number
+  pageStart?: number
+  pageEnd?: number
 }
 export type ActiveCitation = {
   index: number

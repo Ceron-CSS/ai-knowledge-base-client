@@ -84,6 +84,10 @@ export type KbItem = {
   charCount: number
   chunkCount: number
   enabled: boolean
+  status?: string
+  indexingStatus?: "ready" | "indexing" | "failed" | "disabled"
+  hasOriginalFile?: boolean
+  previewMode?: "original" | "text"
   createdAt: string
   updatedAt: string
 }
@@ -106,17 +110,31 @@ export function listKbItems(kbId: string, params: KbItemListParams = {}) {
   })
 }
 
+export type KbItemChunkRecord = {
+  index: number
+  text: string
+  pageStart?: number | null
+  pageEnd?: number | null
+  sourceKind?: string | null
+  chunkId: string
+}
+
 export type KbItemDetail = {
   id: string
   fileName: string
   content: string
   chunks: string[]
+  chunkRecords?: KbItemChunkRecord[]
   chunkConfig?: {
     mode: ChunkPreviewMode
     separators: ChunkPreviewSeparator[]
     maxLength: number
     trimSpaces: boolean
   }
+  status?: string
+  pageRevision?: string | null
+  hasOriginalFile?: boolean
+  previewMode?: "original" | "text"
 }
 
 export function getKbItemDetail(kbId: string, itemId: string) {
@@ -190,23 +208,157 @@ export async function fetchKbChunkPreview(
   return chunks
 }
 
-export type ExtractedFile = {
+export type ImportItemResponse = {
+  itemId: string
+  status: string
   fileName: string
-  fileType: string
-  text: string
 }
 
-export async function extractKbFileText(kbId: string, file: File): Promise<ExtractedFile> {
+export async function importKbItem(
+  kbId: string,
+  file: File,
+  options?: { allowDuplicate?: boolean },
+): Promise<ImportItemResponse> {
   const formData = new FormData()
   formData.append("file", file)
-
-  const response = await authenticatedFetch(`/kb/${kbId}/extract-file`, {
+  const response = await authenticatedFetch(`/kb/${kbId}/items/import`, {
     method: "POST",
     body: formData,
+    query: options?.allowDuplicate ? { allowDuplicate: true } : undefined,
+  })
+  await throwIfNotOk(response)
+  return (await response.json()) as ImportItemResponse
+}
+
+export type IngestionWarning = {
+  pageNumber: number
+  errorCode?: string | null
+  extractionMethod: string
+}
+
+export type IngestionStatus = {
+  itemId: string
+  status: string
+  pageRevision?: string | null
+  pageCount?: number | null
+  progressCurrent?: number | null
+  progressTotal?: number | null
+  errorCode?: string | null
+  warnings: IngestionWarning[]
+  heartbeatAt?: string | null
+  expiresAt?: string | null
+  canRetryExtraction: boolean
+  canRetryIndexing: boolean
+  hasOriginalFile: boolean
+  previewMode: "original" | "text"
+}
+
+export function getKbItemIngestion(kbId: string, itemId: string) {
+  return requestJson<IngestionStatus>(`/kb/${kbId}/items/${itemId}/ingestion`)
+}
+
+export type KbItemPage = {
+  pageNumber: number
+  text: string
+  extractionMethod: string
+  errorCode?: string | null
+  width?: number | null
+  height?: number | null
+}
+
+export function listKbItemPages(kbId: string, itemId: string) {
+  return requestJson<KbItemPage[]>(`/kb/${kbId}/items/${itemId}/pages`)
+}
+
+export type ItemChunkPreviewChunk = ChunkPreviewChunk & {
+  pageStart?: number
+  pageEnd?: number
+  sourceKind?: string
+}
+
+export type ItemChunkPreviewMeta = {
+  pageRevision: string
+  configHash: string
+}
+
+export async function streamKbItemChunkPreview(
+  kbId: string,
+  itemId: string,
+  body: {
+    mode: ChunkPreviewMode
+    separators: ChunkPreviewSeparator[]
+    maxLength: number
+    trimSpaces: boolean
+  },
+  onMeta: (meta: ItemChunkPreviewMeta) => void,
+  onChunk: (chunk: ItemChunkPreviewChunk) => void,
+  signal?: AbortSignal,
+) {
+  const response = await authenticatedFetch(`/kb/${kbId}/items/${itemId}/chunk-preview`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
   })
 
+  await readNdjsonStream(response, onChunk, (parsed) => {
+    if (!parsed || typeof parsed !== "object") return null
+    const row = parsed as Record<string, unknown>
+    if (row.type === "meta") {
+      if (typeof row.pageRevision === "string" && typeof row.configHash === "string") {
+        onMeta({ pageRevision: row.pageRevision, configHash: row.configHash })
+      }
+      return null
+    }
+    const chunk = parseChunkPreviewChunk(row)
+    if (!chunk) return null
+    return {
+      ...chunk,
+      pageStart: typeof row.pageStart === "number" ? row.pageStart : undefined,
+      pageEnd: typeof row.pageEnd === "number" ? row.pageEnd : undefined,
+      sourceKind: typeof row.sourceKind === "string" ? row.sourceKind : undefined,
+    }
+  })
+}
+
+export function finalizeKbItem(
+  kbId: string,
+  itemId: string,
+  body: {
+    chunkConfig: {
+      mode: ChunkPreviewMode
+      separators: ChunkPreviewSeparator[]
+      maxLength: number
+      trimSpaces: boolean
+    }
+    pageRevision: string
+    configHash: string
+  },
+) {
+  return requestJson<{ itemId: string; status: string }>(`/kb/${kbId}/items/${itemId}/finalize`, {
+    method: "POST",
+    body,
+  })
+}
+
+export function retryKbItemExtraction(kbId: string, itemId: string) {
+  return requestJson<{ itemId: string; status: string }>(
+    `/kb/${kbId}/items/${itemId}/retry-extraction`,
+    { method: "POST" },
+  )
+}
+
+export function retryKbItemIndexing(kbId: string, itemId: string) {
+  return requestJson<{ itemId: string; status: string }>(
+    `/kb/${kbId}/items/${itemId}/retry-indexing`,
+    { method: "POST" },
+  )
+}
+
+export async function fetchKbItemFileBytes(kbId: string, itemId: string): Promise<ArrayBuffer> {
+  const response = await authenticatedFetch(`/kb/${kbId}/items/${itemId}/file`)
   await throwIfNotOk(response)
-  return (await response.json()) as ExtractedFile
+  return response.arrayBuffer()
 }
 
 export function createKbItem(

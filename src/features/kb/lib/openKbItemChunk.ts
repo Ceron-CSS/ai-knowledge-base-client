@@ -1,24 +1,23 @@
-import { getKbItemDetail } from "@/api/kb"
 import type { NavigateFunction } from "react-router-dom"
 
 type OpenKbItemChunkParams = {
   kbId: string
   itemId: string
   chunkIndex?: number
+  chunkId?: string
+  pageStart?: number
 }
 
-/** 打开知识库文档分段预览，可选高亮指定分片（0-based）。 */
-export async function openKbItemChunk(navigate: NavigateFunction, params: OpenKbItemChunkParams) {
-  const detail = await getKbItemDetail(params.kbId, params.itemId)
-  navigate(`/kb/${params.kbId}/upload`, {
-    state: {
-      itemId: params.itemId,
-      fileName: detail.fileName,
-      text: detail.content,
-      chunks: detail.chunks,
-      chunkConfig: detail.chunkConfig,
-      ...(typeof params.chunkIndex === "number" ? { highlightChunkIndex: params.chunkIndex } : {}),
-    },
-  })
-  return detail
+/** 打开文档详情：可定位原文页或高亮分片。 */
+export function openKbItemChunk(navigate: NavigateFunction, params: OpenKbItemChunkParams) {
+  const search = new URLSearchParams()
+  const hasPage = typeof params.pageStart === "number" && params.pageStart > 0
+  search.set("tab", hasPage ? "source" : "chunks")
+  if (hasPage) search.set("page", String(Math.floor(params.pageStart!)))
+  if (typeof params.chunkIndex === "number" && Number.isFinite(params.chunkIndex)) {
+    search.set("chunkIndex", String(Math.max(0, Math.floor(params.chunkIndex))))
+  }
+  if (params.chunkId) search.set("chunk", params.chunkId)
+
+  navigate(`/kb/${params.kbId}/items/${params.itemId}?${search.toString()}`)
 }

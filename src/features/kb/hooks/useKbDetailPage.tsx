@@ -1,15 +1,32 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, RotateCcw, Trash2 } from "lucide-react"
 import type { KbItem } from "@/api/kb"
-import { extractKbFileText, getKbItemDetail } from "@/api/kb"
+import { getKbItemDetail, importKbItem } from "@/api/kb"
 import { DEFAULT_PAGE_SIZE } from "@/api/listQuery"
 import { Button } from "@/components/ui/button"
 import type { DataTableColumn } from "@/components/ui/data-table"
+import { message } from "@/components/ui/message"
 import { Switch } from "@/components/ui/switch"
-import { useDeleteKbItem, useKbItems, useSetKbItemEnabled } from "@/features/kb/hooks/queries"
+import {
+  useDeleteKbItem,
+  useKbItems,
+  useRetryKbItemExtraction,
+  useRetryKbItemIndexing,
+  useSetKbItemEnabled,
+} from "@/features/kb/hooks/queries"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
+
+const STATUS_LABELS: Record<string, string> = {
+  extracting: "抽取中",
+  draft: "待确认",
+  indexing: "索引中",
+  active: "可用",
+  extraction_failed: "抽取失败",
+  indexing_failed: "索引失败",
+  disabled: "已禁用",
+}
 
 type UseKbDetailPageOptions = {
   kbId: string
@@ -39,13 +56,17 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   const items = useKbItems(kbId, itemParams)
   const setEnabled = useSetKbItemEnabled()
   const deleteItem = useDeleteKbItem()
+  const retryExtraction = useRetryKbItemExtraction()
+  const retryIndexing = useRetryKbItemIndexing()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [statusItem, setStatusItem] = useState<KbItem | null>(null)
   const [deleting, setDeleting] = useState<KbItem | null>(null)
+  const [retryingItemId, setRetryingItemId] = useState<string | null>(null)
 
   const list = items.data?.items ?? []
   const total = items.data?.total ?? 0
@@ -72,11 +93,35 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
     setDeleting(null)
   }
 
+  const openImportWizard = useCallback(
+    (item: KbItem, fileName?: string) => {
+      navigate(`/kb/${kbId}/upload`, {
+        state: {
+          mode: "import",
+          ingestItemId: item.id,
+          fileName: fileName ?? item.fileName,
+        },
+      })
+    },
+    [kbId, navigate],
+  )
+
   const onEdit = useCallback(
     async (itemId: string) => {
       setEditingItemId(itemId)
       try {
         const detail = await getKbItemDetail(kbId, itemId)
+        if (detail.hasOriginalFile) {
+          navigate(`/kb/${kbId}/upload`, {
+            state: {
+              mode: "import",
+              ingestItemId: itemId,
+              fileName: detail.fileName,
+              chunkConfig: detail.chunkConfig,
+            },
+          })
+          return
+        }
         navigate(`/kb/${kbId}/upload`, {
           state: {
             itemId,
@@ -93,16 +138,47 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
     [kbId, navigate],
   )
 
+  const onRetry = useCallback(
+    async (item: KbItem) => {
+      setRetryingItemId(item.id)
+      try {
+        if (item.status === "extraction_failed") {
+          await retryExtraction.mutateAsync({ kbId, itemId: item.id })
+          message.success("已重新排队抽取")
+          setStatusItem(null)
+          openImportWizard(item)
+          return
+        }
+        if (item.status === "indexing_failed") {
+          await retryIndexing.mutateAsync({ kbId, itemId: item.id })
+          message.success("已重新排队索引")
+          setStatusItem(null)
+        }
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : "重试失败")
+      } finally {
+        setRetryingItemId(null)
+      }
+    },
+    [kbId, openImportWizard, retryExtraction, retryIndexing],
+  )
+
   async function handlePickFile(file: File | null) {
     if (!file) return
     setUploadError(null)
     setUploading(true)
     try {
-      const extracted = await extractKbFileText(kbId, file)
+      const imported = await importKbItem(kbId, file)
       setUploadOpen(false)
-      navigate(`/kb/${kbId}/upload`, { state: extracted })
+      navigate(`/kb/${kbId}/upload`, {
+        state: {
+          mode: "import",
+          ingestItemId: imported.itemId,
+          fileName: imported.fileName,
+        },
+      })
     } catch (e) {
-      setUploadError(e instanceof Error ? e.message : "文件解析失败")
+      setUploadError(e instanceof Error ? e.message : "文件上传失败")
     } finally {
       setUploading(false)
     }
@@ -113,14 +189,53 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
     if (!uploading) setDragOver(true)
   }
 
+  const busy = setEnabled.isPending || deleteItem.isPending || !!retryingItemId
+
   const columns = useMemo<Array<DataTableColumn<KbItem>>>(
     () => [
       {
         key: "fileName",
-        header: "文件名称",
+        header: "文档名称",
         className: "w-[22%]",
         cellClassName: "max-w-[18rem] truncate",
-        render: (item) => <span title={item.fileName}>{item.fileName}</span>,
+        render: (item) => (
+          <Button
+            variant="link"
+            className="h-auto max-w-full truncate px-0 font-normal hover:no-underline"
+            onClick={() => navigate(`/kb/${kbId}/items/${item.id}`)}
+            title={item.fileName}
+          >
+            {item.fileName}
+          </Button>
+        ),
+      },
+      {
+        key: "status",
+        header: "状态",
+        className: "w-[12%]",
+        render: (item) => {
+          const label = STATUS_LABELS[item.status ?? ""] ?? item.status ?? "—"
+          const interactive =
+            item.status === "extraction_failed" ||
+            item.status === "indexing_failed" ||
+            item.status === "draft"
+          if (!interactive) {
+            return <span className="text-muted-foreground">{label}</span>
+          }
+          return (
+            <Button
+              variant="link"
+              className={[
+                "h-auto px-0 font-normal hover:no-underline",
+                item.status?.endsWith("_failed") ? "text-destructive" : "text-muted-foreground",
+              ].join(" ")}
+              onClick={() => setStatusItem(item)}
+              title="查看状态详情"
+            >
+              {label}
+            </Button>
+          )
+        },
       },
       {
         key: "charCount",
@@ -144,7 +259,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
           <Switch
             checked={item.enabled}
             size="sm"
-            disabled={setEnabled.isPending || deleteItem.isPending}
+            disabled={busy}
             aria-label={item.enabled ? "禁用文档" : "启用文档"}
             title={item.enabled ? "禁用" : "启用"}
             onCheckedChange={() => void onToggle(item.id, item.enabled)}
@@ -168,36 +283,53 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
       {
         key: "actions",
         header: "操作",
-        className: "w-[10%] text-center",
+        className: "w-[12%] text-center",
         cellClassName: "text-center",
-        render: (item) => (
-          <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => void onEdit(item.id)}
-              disabled={setEnabled.isPending || deleteItem.isPending || editingItemId === item.id}
-              loading={editingItemId === item.id}
-              title="编辑"
-              aria-label="编辑"
-            >
-              <Pencil />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setDeleting(item)}
-              disabled={setEnabled.isPending || deleteItem.isPending}
-              title="删除"
-              aria-label="删除"
-            >
-              <Trash2 />
-            </Button>
-          </div>
-        ),
+        render: (item) => {
+          const canRetry =
+            item.status === "extraction_failed" || item.status === "indexing_failed"
+          return (
+            <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
+              {canRetry ? (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => void onRetry(item)}
+                  disabled={busy}
+                  loading={retryingItemId === item.id}
+                  title={item.status === "extraction_failed" ? "重试抽取" : "重试索引"}
+                  aria-label={item.status === "extraction_failed" ? "重试抽取" : "重试索引"}
+                >
+                  <RotateCcw />
+                </Button>
+              ) : null}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => void onEdit(item.id)}
+                disabled={busy || editingItemId === item.id}
+                loading={editingItemId === item.id}
+                title="编辑"
+                aria-label="编辑"
+              >
+                <Pencil />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setDeleting(item)}
+                disabled={busy}
+                title="删除"
+                aria-label="删除"
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          )
+        },
       },
     ],
-    [deleteItem.isPending, editingItemId, onEdit, onToggle, setEnabled.isPending],
+    [busy, editingItemId, kbId, navigate, onEdit, onRetry, onToggle, retryingItemId],
   )
 
   return {
@@ -218,11 +350,23 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
     dragOver,
     setDragOver,
     fileInputRef,
+    statusItem,
+    setStatusItem,
     deleting,
     setDeleting,
     deleteItem,
     confirmDelete,
     handlePickFile,
     handleDragOver,
+    retrying: !!retryingItemId,
+    onRetryStatusItem: () => {
+      if (statusItem) void onRetry(statusItem)
+    },
+    onContinueDraft: () => {
+      if (!statusItem) return
+      const item = statusItem
+      setStatusItem(null)
+      openImportWizard(item)
+    },
   }
 }

@@ -38,6 +38,8 @@ export type AssistantCitation = {
   snippet: string
   score: number
   chunkIndex?: number
+  pageStart?: number
+  pageEnd?: number
 }
 
 export function listAssistantConversations(assistantId: string, params: AssistantConversationListParams = {}) {
@@ -112,7 +114,9 @@ function isAssistantCitation(value: unknown): value is AssistantCitation {
     typeof citation.fileName === "string" &&
     typeof citation.snippet === "string" &&
     typeof citation.score === "number" &&
-    (citation.chunkIndex === undefined || typeof citation.chunkIndex === "number")
+    (citation.chunkIndex === undefined || typeof citation.chunkIndex === "number") &&
+    (citation.pageStart === undefined || typeof citation.pageStart === "number") &&
+    (citation.pageEnd === undefined || typeof citation.pageEnd === "number")
   )
 }
 
