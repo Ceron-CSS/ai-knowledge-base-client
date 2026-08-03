@@ -21,13 +21,13 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     action: "点击下一步会进入知识库页面，后续可以从这里开始导入资料。",
   },
   {
-    title: "模型供应商",
+    title: "模型提供商",
     subtitle: "这里配置助手调用的大模型能力。",
     Icon: Cpu,
     route: "/model-providers",
     target: "nav-model-providers",
-    points: ["维护 OpenAI 兼容的供应商配置", "设置 API 地址和密钥", "统一管理助手可选择的模型服务"],
-    action: "发布助手前，需要先准备至少一个可用的模型供应商。",
+    points: ["维护 OpenAI 兼容的模型提供商", "设置 API 地址和密钥", "统一管理助手可选择的模型服务"],
+    action: "发布助手前，需要先准备至少一个可用的模型提供商。",
   },
   {
     title: "问答助手",

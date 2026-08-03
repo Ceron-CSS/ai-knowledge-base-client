@@ -7,6 +7,9 @@ export type ModelConfig = {
   provider: ModelProvider
   apiUrl: string
   apiKeyMasked: string
+  toolCallingEnabled: boolean
+  toolCallingVerifiedAt: string | null
+  toolCallingVerifiedModel: string | null
   createdAt: string
   updatedAt: string
 }

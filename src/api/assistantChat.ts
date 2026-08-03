@@ -73,9 +73,26 @@ export function listAssistantMessages(assistantId: string, conversationId: strin
 }
 
 export type StreamEvent =
-  | { type: "delta"; delta: string }
-  | { type: "done"; message: AssistantMessage; citations?: AssistantCitation[] }
-  | { type: "error"; message: string; saved?: AssistantMessage }
+  | { type: "run_started"; runId: string; requestedExecutionMode?: string }
+  | { type: "tool_started"; runId: string; toolStep: number; toolCall: { id: string; name: string } }
+  | {
+      type: "tool_finished"
+      runId: string
+      toolStep: number
+      toolCall: { id: string; name: string; durationMs?: number }
+      summary?: Record<string, unknown>
+    }
+  | { type: "tool_rejected"; runId: string; toolCall: { id: string; name: string }; code?: string }
+  | { type: "generation_started"; runId: string }
+  | { type: "delta"; delta: string; runId?: string }
+  | {
+      type: "done"
+      message: AssistantMessage
+      citations?: AssistantCitation[]
+      runId?: string
+      effectiveExecutionMode?: string
+    }
+  | { type: "error"; message: string; saved?: AssistantMessage; runId?: string }
 
 export type AssistantImageAttachment = {
   kind: "image"
@@ -123,8 +140,81 @@ function isAssistantCitation(value: unknown): value is AssistantCitation {
 function parseStreamEvent(parsed: unknown): StreamEvent | null {
   if (!parsed || typeof parsed !== "object") return null
   const event = parsed as Record<string, unknown>
+  if (event.type === "run_started" && typeof event.runId === "string") {
+    return {
+      type: "run_started",
+      runId: event.runId,
+      ...(typeof event.requestedExecutionMode === "string"
+        ? { requestedExecutionMode: event.requestedExecutionMode }
+        : {}),
+    }
+  }
+  if (
+    event.type === "tool_started" &&
+    typeof event.runId === "string" &&
+    typeof event.toolStep === "number" &&
+    event.toolCall &&
+    typeof event.toolCall === "object"
+  ) {
+    const toolCall = event.toolCall as Record<string, unknown>
+    if (typeof toolCall.id === "string" && typeof toolCall.name === "string") {
+      return {
+        type: "tool_started",
+        runId: event.runId,
+        toolStep: event.toolStep,
+        toolCall: { id: toolCall.id, name: toolCall.name },
+      }
+    }
+  }
+  if (
+    event.type === "tool_finished" &&
+    typeof event.runId === "string" &&
+    typeof event.toolStep === "number" &&
+    event.toolCall &&
+    typeof event.toolCall === "object"
+  ) {
+    const toolCall = event.toolCall as Record<string, unknown>
+    if (typeof toolCall.id === "string" && typeof toolCall.name === "string") {
+      return {
+        type: "tool_finished",
+        runId: event.runId,
+        toolStep: event.toolStep,
+        toolCall: {
+          id: toolCall.id,
+          name: toolCall.name,
+          ...(typeof toolCall.durationMs === "number" ? { durationMs: toolCall.durationMs } : {}),
+        },
+        ...(event.summary && typeof event.summary === "object"
+          ? { summary: event.summary as Record<string, unknown> }
+          : {}),
+      }
+    }
+  }
+  if (
+    event.type === "tool_rejected" &&
+    typeof event.runId === "string" &&
+    event.toolCall &&
+    typeof event.toolCall === "object"
+  ) {
+    const toolCall = event.toolCall as Record<string, unknown>
+    if (typeof toolCall.id === "string" && typeof toolCall.name === "string") {
+      return {
+        type: "tool_rejected",
+        runId: event.runId,
+        toolCall: { id: toolCall.id, name: toolCall.name },
+        ...(typeof event.code === "string" ? { code: event.code } : {}),
+      }
+    }
+  }
+  if (event.type === "generation_started" && typeof event.runId === "string") {
+    return { type: "generation_started", runId: event.runId }
+  }
   if (event.type === "delta" && typeof event.delta === "string") {
-    return { type: "delta", delta: event.delta }
+    return {
+      type: "delta",
+      delta: event.delta,
+      ...(typeof event.runId === "string" ? { runId: event.runId } : {}),
+    }
   }
   if (event.type === "done" && isAssistantMessage(event.message)) {
     const citations = Array.isArray(event.citations)
@@ -134,6 +224,10 @@ function parseStreamEvent(parsed: unknown): StreamEvent | null {
       type: "done",
       message: event.message,
       ...(citations?.length ? { citations } : {}),
+      ...(typeof event.runId === "string" ? { runId: event.runId } : {}),
+      ...(typeof event.effectiveExecutionMode === "string"
+        ? { effectiveExecutionMode: event.effectiveExecutionMode }
+        : {}),
     }
   }
   if (event.type === "error" && typeof event.message === "string") {
@@ -141,6 +235,7 @@ function parseStreamEvent(parsed: unknown): StreamEvent | null {
       type: "error",
       message: event.message,
       ...(isAssistantMessage(event.saved) ? { saved: event.saved } : {}),
+      ...(typeof event.runId === "string" ? { runId: event.runId } : {}),
     }
   }
   return null

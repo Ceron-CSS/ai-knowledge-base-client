@@ -12,8 +12,8 @@ export function ModelProviderPage() {
   return (
     <div className="space-y-2">
       <div>
-        <Breadcrumb items={[{ label: "模型供应商" }]} />
-        <p className="mt-1 text-sm text-muted-foreground">管理模型供应商配置(每种供应商仅允许一个配置)</p>
+        <Breadcrumb items={[{ label: "模型提供商" }]} />
+        <p className="mt-1 text-sm text-muted-foreground">管理模型提供商（每种仅允许配置一个）</p>
       </div>
 
       <div className="flex items-center justify-between gap-4">
@@ -28,15 +28,15 @@ export function ModelProviderPage() {
             clearable
             value={providers.query}
             onChange={(e) => providers.setQuery(e.target.value)}
-            placeholder="搜索供应商名称"
+            placeholder="搜索模型提供商"
           />
           <span className="group relative inline-flex">
             <Button variant="primary" size="lg" onClick={providers.openCreate} disabled={!providers.canCreate}>
-              新建供应商配置
+              新建模型提供商
             </Button>
             {!providers.canCreate ? (
               <span className="pointer-events-none absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
-                所有供应商都已配置
+                所有模型提供商都已配置
               </span>
             ) : null}
           </span>

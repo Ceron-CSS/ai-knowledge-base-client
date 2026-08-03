@@ -27,10 +27,10 @@ export function ModelProviderDeleteDialog({
       open={!!config}
       onCancel={onCancel}
       onConfirm={onConfirm}
-      title="确认删除供应商配置"
+      title="确认删除模型提供商"
       description={
         config && !hasLinkedAssistants
-          ? `将删除${providerLabel(config.provider)}供应商配置，此操作不可恢复`
+          ? `将删除「${providerLabel(config.provider)}」模型提供商，此操作不可恢复`
           : undefined
       }
       errorText={hasError ? "删除失败，请重试" : null}
@@ -39,7 +39,7 @@ export function ModelProviderDeleteDialog({
       {config && hasLinkedAssistants ? (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            以下问答助手正在使用「{providerLabel(config.provider)}」配置，删除后将<b>取消发布</b>
+            以下问答助手正在使用「{providerLabel(config.provider)}」，删除后将<b>取消发布</b>
             这些助手：
           </p>
           <ModelProviderLinkedAssistantsList assistants={linkedAssistants} />

@@ -30,11 +30,11 @@ export function ModelProviderFormDialog({
   onFormChange,
 }: ModelProviderFormDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()} title={editing ? "编辑供应商配置" : "添加供应商配置"}>
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()} title={editing ? "编辑模型提供商" : "新建模型提供商"}>
       <div className="grid gap-4">
         <div>
           <label className="block text-sm font-medium">
-            供应商 <span className="text-destructive">*</span>
+            模型提供商 <span className="text-destructive">*</span>
           </label>
           <Select
             className="mt-2"

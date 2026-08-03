@@ -201,12 +201,13 @@ export function useStreamingReply({
             clearPendingMessages()
             setStreamError(ev.message || "请求失败")
           }
-        } else {
+        } else if (ev.type === "done") {
           typewriter.flush()
           typewriter.stop()
           clearPendingMessages()
           await invalidateConversationQueries(conversationId)
         }
+        // run_started / tool_* / generation_started are ignored by the chat UI.
       }
     } catch (error) {
       typewriter.stop()

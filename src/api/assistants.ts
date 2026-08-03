@@ -9,6 +9,7 @@ export type Assistant = {
   baseModel: string | null
   systemPrompt: string | null
   kbIds: string[]
+  executionMode: "workflow" | "agent"
   createdBy: string
   createdAt: string
   updatedAt: string
@@ -30,6 +31,7 @@ export function createAssistant(body: {
   baseModel: string
   systemPrompt?: string
   kbIds: string[]
+  executionMode?: "workflow" | "agent"
 }) {
   return requestJson<Assistant>("/assistants", { method: "POST", body })
 }
@@ -41,6 +43,7 @@ export function createAndPublishAssistant(body: {
   baseModel: string
   systemPrompt?: string
   kbIds: string[]
+  executionMode?: "workflow" | "agent"
 }) {
   return requestJson<Assistant>("/assistants/create-and-publish", { method: "POST", body })
 }
@@ -54,6 +57,7 @@ export function updateAssistant(
     baseModel?: string
     systemPrompt?: string | null
     kbIds?: string[]
+    executionMode?: "workflow" | "agent"
   },
 ) {
   return requestJson<Assistant>(`/assistants/${id}`, { method: "PATCH", body })

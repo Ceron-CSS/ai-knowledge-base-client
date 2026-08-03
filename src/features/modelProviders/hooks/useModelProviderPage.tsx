@@ -41,8 +41,8 @@ export function useModelProviderPage() {
   const countLabel = useMemo(() => {
     const total = list.length
     const filtered = filteredList.length
-    if (query.trim()) return `${filtered}/${total} 个供应商配置`
-    return `${total} 个供应商配置`
+    if (query.trim()) return `${filtered}/${total} 个模型提供商`
+    return `${total} 个模型提供商`
   }, [list.length, filteredList.length, query])
   const loadErrorText = modelConfigs.error instanceof Error ? modelConfigs.error.message : ""
 
@@ -98,20 +98,20 @@ export function useModelProviderPage() {
       {
         key: "apiUrl",
         header: "API URL",
-        className: "w-[42%]",
+        className: "w-[50%]",
         cellClassName: "truncate",
         render: (item) => <span title={item.apiUrl}>{item.apiUrl}</span>,
       },
       {
         key: "apiKey",
         header: "API KEY",
-        className: "w-[22%]",
+        className: "w-[20%]",
         render: (item) => item.apiKeyMasked,
       },
       {
         key: "actions",
         header: "操作",
-        className: "w-[10%] text-center",
+        className: "w-[12%] text-center",
         cellClassName: "text-center",
         render: (item) => (
           <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">

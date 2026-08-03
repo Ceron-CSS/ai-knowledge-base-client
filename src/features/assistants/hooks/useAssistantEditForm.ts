@@ -36,6 +36,7 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
   const [baseModel, setBaseModel] = useState(DEFAULT_BASE_MODEL)
   const [systemPrompt, setSystemPrompt] = useState("")
   const [kbIds, setKbIds] = useState<string[]>([])
+  const [executionMode, setExecutionMode] = useState<"workflow" | "agent">("workflow")
   const [error, setError] = useState<string | null>(null)
 
   const kbPicker = useKbPicker()
@@ -58,7 +59,10 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     ? baseModel
     : (baseModelOptions[0]?.value ?? "")
 
-  const [syncedExistingId, setSyncedExistingId] = useState(existing?.id)
+  // Hydrate when assistant data first arrives or the edited id changes.
+  // Keep synced id starting as undefined so React Query cache hits still fill
+  // the form (initializing from existing?.id would skip that case).
+  const [syncedExistingId, setSyncedExistingId] = useState<string | undefined>(undefined)
   if (existing && existing.id !== syncedExistingId) {
     setSyncedExistingId(existing.id)
     setName(existing.name)
@@ -67,8 +71,9 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     setBaseModel(existing.baseModel ?? DEFAULT_BASE_MODEL)
     setSystemPrompt(existing.systemPrompt ?? "")
     setKbIds(existing.kbIds ?? [])
+    setExecutionMode(existing.executionMode ?? "workflow")
+    setError(null)
   }
-
   const disabledKbNames = useMemo(() => {
     return kbPicker.items
       .filter((kb) => !kb.enabled && kbIds.includes(kb.id))
@@ -83,6 +88,14 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     publishAssistant.isPending ||
     unpublishAssistant.isPending
 
+  const selectedConfig = resolvedModelConfigId ? configMap.get(resolvedModelConfigId) : undefined
+  const agentSupported = !!selectedConfig?.toolCallingEnabled
+  const agentDisabledReason = !selectedConfig
+    ? "请先选择模型配置"
+    : !selectedConfig.toolCallingEnabled
+      ? "当前模型提供商不支持 Tool Calling / Agent 模式"
+      : null
+
   function buildPayload() {
     const trimmedName = name.trim()
     return {
@@ -92,6 +105,7 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
       baseModel: resolvedBaseModel,
       systemPrompt: systemPrompt.trim() ? systemPrompt.trim() : undefined,
       kbIds,
+      executionMode,
     }
   }
 
@@ -104,6 +118,7 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
       baseModel: resolvedBaseModel,
       systemPrompt: systemPrompt.trim() ? systemPrompt.trim() : null,
       kbIds,
+      executionMode,
     }
   }
 
@@ -187,6 +202,10 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     setSystemPrompt,
     kbIds,
     setKbIds,
+    executionMode,
+    setExecutionMode,
+    agentSupported,
+    agentDisabledReason,
     error,
     configOptions,
     baseModelOptions,

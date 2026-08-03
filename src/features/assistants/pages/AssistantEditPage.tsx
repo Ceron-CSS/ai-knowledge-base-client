@@ -32,6 +32,10 @@ export function AssistantEditPage() {
     setSystemPrompt,
     kbIds,
     setKbIds,
+    executionMode,
+    setExecutionMode,
+    agentSupported,
+    agentDisabledReason,
     error,
     configOptions,
     baseModelOptions,
@@ -140,7 +144,7 @@ export function AssistantEditPage() {
                 />
                 {!configOptions.length && !modelConfigs.isLoading ? (
                   <div className="mt-2 text-xs text-muted-foreground">
-                    暂无可用模型配置，请先去"模型"页面添加供应商配置
+                    暂无可用模型配置，请先去“模型提供商”页面添加
                   </div>
                 ) : null}
               </div>
@@ -150,6 +154,44 @@ export function AssistantEditPage() {
                   基础模型 <span className="text-destructive">*</span>
                 </label>
                 <Select className="mt-2" value={baseModel} onValueChange={setBaseModel} options={baseModelOptions} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">执行模式</label>
+                <div className="mt-2 inline-flex rounded-md border p-1">
+                  <button
+                    type="button"
+                    className={`rounded px-3 py-1.5 text-sm ${
+                      executionMode === "workflow" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                    }`}
+                    onClick={() => setExecutionMode("workflow")}
+                  >
+                    Workflow
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded px-3 py-1.5 text-sm ${
+                      executionMode === "agent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                    }`}
+                    onClick={() => {
+                      if (!agentSupported) return
+                      setExecutionMode("agent")
+                    }}
+                    disabled={!agentSupported}
+                    title={agentDisabledReason ?? undefined}
+                  >
+                    Agent
+                  </button>
+                </div>
+                {!agentSupported ? (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    {agentDisabledReason ?? "当前配置不支持 Agent 模式"}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Agent 模式会在受控边界内动态调用知识库工具；默认仍建议使用 Workflow。
+                  </div>
+                )}
               </div>
 
               <div>
