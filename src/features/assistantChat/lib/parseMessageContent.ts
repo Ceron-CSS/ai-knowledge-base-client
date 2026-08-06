@@ -56,11 +56,17 @@ export function parseMessageContent(content: string): ParsedMessageContent {
     }
   }
 
+  citations = dedupeCitationsByChunk(citations)
+
   const start = baseContent.indexOf(ATTACHMENT_META_SEPARATOR)
-  if (start === -1) return { text: baseContent, images: [], files: [], citations }
+  if (start === -1) {
+    return { text: scrubDisplayText(baseContent), images: [], files: [], citations }
+  }
   const end = baseContent.indexOf(ATTACHMENT_META_END, start + ATTACHMENT_META_SEPARATOR.length)
-  if (end === -1) return { text: baseContent, images: [], files: [], citations }
-  const text = baseContent.slice(0, start)
+  if (end === -1) {
+    return { text: scrubDisplayText(baseContent), images: [], files: [], citations }
+  }
+  const text = scrubDisplayText(baseContent.slice(0, start))
   const raw = baseContent.slice(start + ATTACHMENT_META_SEPARATOR.length, end).trim()
   try {
     const parsed = JSON.parse(raw) as unknown
@@ -85,4 +91,42 @@ export function parseMessageContent(content: string): ParsedMessageContent {
   } catch {
     return { text, images: [], files: [], citations }
   }
+}
+
+/** 展示侧清理旧消息里的检索套话 / 片段范围，避免 [6] 残留成不可点标记。 */
+function scrubDisplayText(text: string) {
+  return text
+    .replace(/\[(\d{1,3})\]\s*[~\-–—～到至]\s*\[(\d{1,3})\]/g, "")
+    .replace(/片段\s*(?:\[?\d{1,3}\]?\s*[~\-–—～到至]\s*\[?\d{1,3}\]?|\d{1,3}\s*[~\-–—～到至]\s*\d{1,3})/g, "")
+    .replace(/(?:在您提供的|根据(?:您提供的)?|基于(?:提供的)?)\s*知识上下文[（(][^）)]*[）)]\s*中[，,、]?/g, "")
+    .replace(/知识上下文[（(][^）)]*[）)]/g, "")
+    .replace(/[（(]\s*[）)]/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
+function dedupeCitationsByChunk(citations: ParsedCitation[]) {
+  const seen = new Set<string>()
+  const deduped: ParsedCitation[] = []
+  for (const citation of citations) {
+    const key = `${citation.itemId}:${citation.chunkIndex ?? ""}:${citation.fileName}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    deduped.push(citation)
+  }
+  return deduped
+}
+
+/** 引用来源列表按文档去重，正文 [n] 仍按分片索引对应。 */
+export function dedupeCitationsByItem(citations: ParsedCitation[]) {
+  const seen = new Set<string>()
+  const deduped: ParsedCitation[] = []
+  for (const citation of citations) {
+    const key = citation.itemId || citation.fileName
+    if (seen.has(key)) continue
+    seen.add(key)
+    deduped.push(citation)
+  }
+  return deduped
 }

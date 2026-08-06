@@ -23,6 +23,7 @@ const RetrievalDebugPage = lazyPage(
   () => import("@/features/retrievalDebug/pages/RetrievalDebugPage"),
   "RetrievalDebugPage",
 )
+const AgentRunsPage = lazyPage(() => import("@/features/agentRuns/pages/AgentRunsPage"), "AgentRunsPage")
 
 function withPageSuspense(element: ReactNode) {
   return <Suspense fallback={<PageFallback />}>{element}</Suspense>
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
           { path: "assistants/:id", element: withPageSuspense(<AssistantEditPage />) },
           { path: "assistants/:id/chat", element: withPageSuspense(<AssistantChatPage />) },
           { path: "retrieval-debug", element: withPageSuspense(<RetrievalDebugPage />) },
+          { path: "agent-runs", element: withPageSuspense(<AgentRunsPage />) },
           { path: "*", element: <NotFoundPage /> },
         ],
       },

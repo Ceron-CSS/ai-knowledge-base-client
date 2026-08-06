@@ -65,10 +65,42 @@ export function KbItemDetailPage() {
     return found >= 0 ? found : null
   }, [chunkIdParam, chunkRecords, highlightChunkIndex])
 
+  const activeChunk = useMemo(() => {
+    if (activeChunkIndex == null) return null
+    return chunkRecords.find((chunk) => chunk.index === activeChunkIndex) ?? null
+  }, [activeChunkIndex, chunkRecords])
+
+  const sourceInitialPage = useMemo(() => {
+    if (Number.isFinite(page) && page > 0 && searchParams.has("page")) return Math.floor(page)
+    const chunkPage = activeChunk?.pageStart
+    if (typeof chunkPage === "number" && chunkPage > 0) return Math.floor(chunkPage)
+    return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1
+  }, [activeChunk?.pageStart, page, searchParams])
+
   useEffect(() => {
     if (tab !== "chunks" || activeChunkIndex == null) return
     highlightRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })
   }, [tab, activeChunkIndex, chunkRecords.length])
+
+  // PDF 无页码时无法在原文定位，回退到分片视图高亮
+  useEffect(() => {
+    if (!detail || tab !== "source" || activeChunkIndex == null) return
+    const lower = detail.fileName.toLowerCase()
+    if (!lower.endsWith(".pdf")) return
+    const urlHasPage = searchParams.has("page") && Number.isFinite(page) && page > 0
+    const chunkPage = activeChunk?.pageStart
+    const hasChunkPage = typeof chunkPage === "number" && chunkPage > 0
+    if (urlHasPage) return
+    if (hasChunkPage) {
+      const params = new URLSearchParams(searchParams)
+      params.set("page", String(Math.floor(chunkPage)))
+      setSearchParams(params, { replace: true })
+      return
+    }
+    const params = new URLSearchParams(searchParams)
+    params.set("tab", "chunks")
+    setSearchParams(params, { replace: true })
+  }, [activeChunk?.pageStart, activeChunkIndex, detail, page, searchParams, setSearchParams, tab])
 
   function setTab(next: DetailTab) {
     const params = new URLSearchParams(searchParams)
@@ -159,7 +191,8 @@ export function KbItemDetailPage() {
             fileName={detail.fileName}
             text={detail.content}
             textEditable={false}
-            initialPage={Number.isFinite(page) && page > 0 ? page : 1}
+            initialPage={sourceInitialPage}
+            highlightText={activeChunk?.text ?? null}
           />
         ) : null}
 

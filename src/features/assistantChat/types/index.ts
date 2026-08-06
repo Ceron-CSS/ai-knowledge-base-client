@@ -10,14 +10,6 @@ export type ParsedCitation = {
   pageStart?: number
   pageEnd?: number
 }
-export type ActiveCitation = {
-  index: number
-  citation: ParsedCitation
-  top: number
-  left: number
-  messageId: string
-  conversationId: string
-}
 
 export type ParsedMessageContent = {
   text: string

@@ -28,6 +28,7 @@ export type AssistantMessage = {
   conversationId: string
   role: "user" | "assistant"
   content: string
+  runId?: string | null
   createdAt: string
 }
 

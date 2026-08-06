@@ -2,7 +2,6 @@ import { useMemo, useState } from "react"
 import { useAssistant } from "@/features/assistants"
 import { useAttachmentPreviews } from "@/features/assistantChat/hooks/useAttachmentPreviews"
 import { useChatComposer } from "@/features/assistantChat/hooks/useChatComposer"
-import { useCitationPopover } from "@/features/assistantChat/hooks/useCitationPopover"
 import { useConversationState } from "@/features/assistantChat/hooks/useConversationState"
 import { useAssistantMessages } from "@/features/assistantChat/hooks/queries"
 import { useStreamingReply } from "@/features/assistantChat/hooks/useStreamingReply"
@@ -20,7 +19,6 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
   const conversation = useConversationState({ assistantId, blockedByUnpublished })
   const composer = useChatComposer()
   const attachments = useAttachmentPreviews()
-  const citation = useCitationPopover({ assistantId })
 
   const messagesQuery = useAssistantMessages(
     assistantId,
@@ -68,18 +66,6 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
     streamError: streaming.streamError,
     previewImage,
     setPreviewImage,
-    activeCitation: citation.activeCitation,
-    closeCitationPopover: citation.closeCitationPopover,
-    openingSource: citation.openingSource,
-    loadingFullChunk: citation.loadingFullChunk,
-    fullChunkText: citation.fullChunkText,
-    showingFullChunk: citation.showingFullChunk,
-    feedbackPending: citation.feedbackPending,
-    feedbackSubmitted: citation.feedbackSubmitted,
-    openSource: citation.openSource,
-    viewFullChunk: citation.viewFullChunk,
-    copyCitation: citation.copyCitation,
-    feedbackIrrelevant: citation.feedbackIrrelevant,
     composerExpanded: composer.composerExpanded,
     confirmDelete: conversation.confirmDelete,
     setConfirmDelete: conversation.setConfirmDelete,
@@ -92,7 +78,6 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
     blockedByUnpublished,
     adjustComposerHeight: composer.adjustComposerHeight,
     selectConversation: conversation.selectConversation,
-    openCitationPopover: citation.openCitationPopover,
     startNewConversation: conversation.startNewConversation,
     onDeleteConversation: conversation.onDeleteConversation,
     startRenameConversation: conversation.startRenameConversation,

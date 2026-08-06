@@ -8,6 +8,7 @@ import {
   type AssistantAttachment,
   type AssistantMessage,
 } from "@/api/assistantChat"
+import { cancelAgentRun } from "@/api/agentRuns"
 import { useTypewriter } from "@/features/assistantChat/hooks/useTypewriter"
 import { message } from "@/components/ui/message"
 
@@ -54,6 +55,7 @@ export function useStreamingReply({
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const activeRunIdRef = useRef<string | null>(null)
 
   const typewriter = useTypewriter((text) => {
     setPendingAssistant((prev) => (prev ? { ...prev, content: text } : prev))
@@ -102,7 +104,13 @@ export function useStreamingReply({
   }
 
   function stopGeneration() {
+    const runId = activeRunIdRef.current
     abortRef.current?.abort()
+    if (runId) {
+      void cancelAgentRun(runId).catch(() => {
+        // 取消标记失败不阻断 UI；启动恢复任务会兜底
+      })
+    }
   }
 
   function resend() {
@@ -137,6 +145,7 @@ export function useStreamingReply({
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
+    activeRunIdRef.current = null
 
     let conversationId = selectedConversationId
     let messageCommitted = false
@@ -187,7 +196,9 @@ export function useStreamingReply({
         signal: controller.signal,
       })
       for await (const ev of stream) {
-        if (ev.type === "delta") {
+        if (ev.type === "run_started") {
+          activeRunIdRef.current = ev.runId
+        } else if (ev.type === "delta") {
           typewriter.enqueue(ev.delta)
         } else if (ev.type === "error") {
           typewriter.flush()
@@ -207,7 +218,6 @@ export function useStreamingReply({
           clearPendingMessages()
           await invalidateConversationQueries(conversationId)
         }
-        // run_started / tool_* / generation_started are ignored by the chat UI.
       }
     } catch (error) {
       typewriter.stop()
@@ -221,6 +231,7 @@ export function useStreamingReply({
       }
     } finally {
       setSending(false)
+      activeRunIdRef.current = null
       if (abortRef.current === controller) abortRef.current = null
     }
   }

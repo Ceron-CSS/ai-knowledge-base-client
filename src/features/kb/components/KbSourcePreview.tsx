@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from "react"
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react"
 import { fetchKbItemFileBytes } from "@/api/kb"
 import { LoadingText } from "@/components/ui/loading-text"
 import { MarkdownMessage } from "@/components/ui/markdown-message"
@@ -16,6 +16,8 @@ type KbSourcePreviewProps = {
   textEditable?: boolean
   onTextChange?: (value: string) => void
   initialPage?: number
+  /** 召回分片原文，用于在 Markdown/TXT 原文中定位高亮 */
+  highlightText?: string | null
 }
 
 type PreviewKind = "pdf" | "markdown" | "text" | "docx" | "unknown"
@@ -34,14 +36,74 @@ function decodeTextFile(bytes: ArrayBuffer) {
   return decoded.replace(/^\uFEFF/, "")
 }
 
+function findHighlightRange(content: string, highlightText: string) {
+  const needle = highlightText.trim()
+  if (!needle) return null
+  const direct = content.indexOf(needle)
+  if (direct >= 0) return { start: direct, end: direct + needle.length }
+
+  // 宽松匹配：压缩空白后再找，再映射回原文区间
+  const compact = (value: string) => value.replace(/\s+/g, "")
+  const compactContent = compact(content)
+  const compactNeedle = compact(needle)
+  if (!compactNeedle) return null
+  const compactIndex = compactContent.indexOf(compactNeedle)
+  if (compactIndex < 0) return null
+
+  let seen = 0
+  let start = -1
+  let end = -1
+  for (let i = 0; i < content.length; i += 1) {
+    if (/\s/.test(content[i]!)) continue
+    if (seen === compactIndex) start = i
+    seen += 1
+    if (seen === compactIndex + compactNeedle.length) {
+      end = i + 1
+      break
+    }
+  }
+  if (start < 0 || end < 0) return null
+  return { start, end }
+}
+
+function HighlightedPlainText({ content, highlightText }: { content: string; highlightText: string }) {
+  const hitRef = useRef<HTMLElement | null>(null)
+  const range = useMemo(() => findHighlightRange(content, highlightText), [content, highlightText])
+
+  useEffect(() => {
+    hitRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })
+  }, [content, highlightText, range?.start])
+
+  if (!range) {
+    return (
+      <pre className="h-full overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm leading-6">{content}</pre>
+    )
+  }
+
+  return (
+    <pre className="h-full overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm leading-6">
+      {content.slice(0, range.start)}
+      <mark
+        ref={hitRef}
+        className="rounded-sm bg-amber-200/80 px-0.5 text-foreground ring-1 ring-amber-400/50"
+      >
+        {content.slice(range.start, range.end)}
+      </mark>
+      {content.slice(range.end)}
+    </pre>
+  )
+}
+
 function OriginalTextFilePreview({
   kbId,
   itemId,
   kind,
+  highlightText,
 }: {
   kbId: string
   itemId: string
   kind: "markdown" | "text"
+  highlightText?: string | null
 }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -76,13 +138,25 @@ function OriginalTextFilePreview({
     )
   }
   if (error) {
-    return (
-      <div className="h-full overflow-y-auto p-4 text-sm text-destructive">{error}</div>
-    )
+    return <div className="h-full overflow-y-auto p-4 text-sm text-destructive">{error}</div>
   }
   if (!content.trim()) {
     return <div className="h-full p-3 text-sm text-muted-foreground">原文件为空</div>
   }
+
+  if (highlightText?.trim()) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="shrink-0 border-b bg-amber-50 px-3 py-1.5 text-xs text-amber-900">
+          已在原文中高亮召回片段
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <HighlightedPlainText content={content} highlightText={highlightText} />
+        </div>
+      </div>
+    )
+  }
+
   if (kind === "markdown") {
     return (
       <div className="h-full overflow-y-auto p-4">
@@ -105,6 +179,7 @@ export function KbSourcePreview({
   textEditable = false,
   onTextChange,
   initialPage = 1,
+  highlightText = null,
 }: KbSourcePreviewProps) {
   const kind = getPreviewKind(fileName)
   const hasOriginalFile = Boolean(itemId)
@@ -119,7 +194,12 @@ export function KbSourcePreview({
 
       {hasOriginalFile && itemId && (kind === "markdown" || kind === "text") ? (
         <div className="min-h-0 flex-1 overflow-hidden">
-          <OriginalTextFilePreview kbId={kbId} itemId={itemId} kind={kind} />
+          <OriginalTextFilePreview
+            kbId={kbId}
+            itemId={itemId}
+            kind={kind}
+            highlightText={highlightText}
+          />
         </div>
       ) : null}
 
@@ -153,11 +233,14 @@ export function KbSourcePreview({
       ) : null}
 
       {!hasOriginalFile && !textEditable ? (
-        <pre className="h-full overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm leading-6">
-          {text.trim() ? text : "暂无预览内容"}
-        </pre>
+        highlightText?.trim() ? (
+          <HighlightedPlainText content={text} highlightText={highlightText} />
+        ) : (
+          <pre className="h-full overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm leading-6">
+            {text.trim() ? text : "暂无预览内容"}
+          </pre>
+        )
       ) : null}
     </div>
   )
 }
-

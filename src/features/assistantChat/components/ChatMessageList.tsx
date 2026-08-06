@@ -4,8 +4,8 @@ import type { AssistantMessage } from "@/api/assistantChat"
 import { MarkdownMessageLazy } from "@/components/ui/markdown-message-lazy"
 import { LoadingText } from "@/components/ui/loading-text"
 import { TypingDots } from "@/components/ui/typing-dots"
+import { MessageCitations, openCitationInNewTab } from "@/features/assistantChat/components/MessageCitations"
 import { parseMessageContent } from "@/features/assistantChat/lib/parseMessageContent"
-import type { ParsedCitation } from "@/features/assistantChat/types"
 
 type ChatMessageListProps = {
   messagesLoading: boolean
@@ -15,15 +15,9 @@ type ChatMessageListProps = {
   sending: boolean
   streamError: string | null
   bottomRef: RefObject<HTMLDivElement | null>
-  onCitationClick: (
-    index: number,
-    citations: ParsedCitation[],
-    event: React.MouseEvent<HTMLButtonElement>,
-    messageId: string,
-    conversationId: string,
-  ) => void
   onPreviewImage: (image: { url: string; name?: string }) => void
   onResend?: () => void
+  onOpenRunTrace?: (runId: string) => void
 }
 
 export function ChatMessageList({
@@ -34,9 +28,9 @@ export function ChatMessageList({
   sending,
   streamError,
   bottomRef,
-  onCitationClick,
   onPreviewImage,
   onResend,
+  onOpenRunTrace,
 }: ChatMessageListProps) {
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
@@ -64,9 +58,10 @@ export function ChatMessageList({
                     <MarkdownMessageLazy
                       content={parsed.text}
                       citationCount={parsed.citations.length}
-                      onCitationClick={(index, event) =>
-                        onCitationClick(index, parsed.citations, event, m.id, m.conversationId)
-                      }
+                      onCitationClick={(citationIndex) => {
+                        const citation = parsed.citations[citationIndex]
+                        if (citation) openCitationInNewTab(citation)
+                      }}
                     />
                   )
                 ) : (
@@ -93,6 +88,18 @@ export function ChatMessageList({
                         {f.fileName}
                       </span>
                     ))}
+                  </div>
+                ) : null}
+                {m.role === "assistant" && !showTypingDots ? <MessageCitations citations={parsed.citations} /> : null}
+                {m.role === "assistant" && m.runId && onOpenRunTrace && !showTypingDots ? (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      onClick={() => onOpenRunTrace(m.runId!)}
+                    >
+                      执行详情
+                    </button>
                   </div>
                 ) : null}
               </div>

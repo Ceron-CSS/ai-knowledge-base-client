@@ -1,10 +1,11 @@
+import { useState } from "react"
 import { useParams } from "react-router-dom"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Dialog } from "@/components/ui/dialog"
+import { AgentRunTraceDrawer } from "@/features/assistantChat/components/AgentRunTraceDrawer"
 import { ChatComposer } from "@/features/assistantChat/components/ChatComposer"
 import { ChatMessageList } from "@/features/assistantChat/components/ChatMessageList"
-import { CitationPopover } from "@/features/assistantChat/components/CitationPopover"
 import { ConversationSidebar } from "@/features/assistantChat/components/ConversationSidebar"
 import { useAssistantChat } from "@/features/assistantChat/hooks/useAssistantChat"
 import { normalizeConversationTitle } from "@/features/assistantChat/lib/conversationTitle"
@@ -12,6 +13,7 @@ import { normalizeConversationTitle } from "@/features/assistantChat/lib/convers
 export function AssistantChatPage() {
   const params = useParams()
   const assistantId = params.id ?? ""
+  const [traceRunId, setTraceRunId] = useState<string | null>(null)
 
   const chat = useAssistantChat({ assistantId })
 
@@ -59,9 +61,9 @@ export function AssistantChatPage() {
             sending={chat.sending}
             streamError={chat.streamError}
             bottomRef={chat.bottomRef}
-            onCitationClick={chat.openCitationPopover}
             onPreviewImage={chat.setPreviewImage}
             onResend={chat.resend}
+            onOpenRunTrace={setTraceRunId}
           />
 
           <ChatComposer
@@ -110,20 +112,7 @@ export function AssistantChatPage() {
             </div>
           ) : null}
         </Dialog>
-        <CitationPopover
-          activeCitation={chat.activeCitation}
-          onClose={chat.closeCitationPopover}
-          openingSource={chat.openingSource}
-          loadingFullChunk={chat.loadingFullChunk}
-          showingFullChunk={chat.showingFullChunk}
-          fullChunkText={chat.fullChunkText}
-          feedbackPending={chat.feedbackPending}
-          feedbackSubmitted={chat.feedbackSubmitted}
-          onOpenSource={() => void chat.openSource()}
-          onViewFullChunk={() => void chat.viewFullChunk()}
-          onCopy={() => void chat.copyCitation()}
-          onFeedbackIrrelevant={() => void chat.feedbackIrrelevant()}
-        />
+        <AgentRunTraceDrawer open={!!traceRunId} runId={traceRunId} onClose={() => setTraceRunId(null)} />
       </div>
     </div>
   )
