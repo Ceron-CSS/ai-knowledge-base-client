@@ -86,8 +86,8 @@ export function useModelProviderPage() {
         className: "w-[18%]",
         render: (item) => (
           <Button
-            variant="link"
-            className="h-auto px-0 font-normal hover:no-underline"
+            variant="ghost"
+            className="h-auto px-0 font-normal text-foreground hover:bg-transparent hover:text-primary"
             onClick={() => openEdit(item)}
             title={`编辑 ${providerLabel(item.provider)}`}
           >

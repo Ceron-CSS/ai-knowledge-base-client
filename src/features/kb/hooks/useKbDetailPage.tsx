@@ -200,8 +200,8 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         cellClassName: "max-w-[18rem] truncate",
         render: (item) => (
           <Button
-            variant="link"
-            className="h-auto max-w-full truncate px-0 font-normal hover:no-underline"
+            variant="ghost"
+            className="h-auto max-w-full truncate px-0 font-normal text-foreground hover:bg-transparent hover:text-primary"
             onClick={() => navigate(`/kb/${kbId}/items/${item.id}`)}
             title={item.fileName}
           >
@@ -220,14 +220,16 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
             item.status === "indexing_failed" ||
             item.status === "draft"
           if (!interactive) {
-            return <span className="text-muted-foreground">{label}</span>
+            return <span>{label}</span>
           }
           return (
             <Button
-              variant="link"
+              variant="ghost"
               className={[
-                "h-auto px-0 font-normal hover:no-underline",
-                item.status?.endsWith("_failed") ? "text-destructive" : "text-muted-foreground",
+                "h-auto px-0 font-normal hover:bg-transparent",
+                item.status?.endsWith("_failed")
+                  ? "text-destructive hover:text-destructive"
+                  : "text-foreground hover:text-foreground",
               ].join(" ")}
               onClick={() => setStatusItem(item)}
               title="查看状态详情"
@@ -270,14 +272,14 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         key: "createdAt",
         header: "创建时间",
         className: "w-[15%]",
-        cellClassName: "text-muted-foreground tabular-nums",
+        cellClassName: "tabular-nums",
         render: (item) => new Date(item.createdAt).toLocaleString(),
       },
       {
         key: "updatedAt",
         header: "更新时间",
         className: "w-[15%]",
-        cellClassName: "text-muted-foreground tabular-nums",
+        cellClassName: "tabular-nums",
         render: (item) => new Date(item.updatedAt).toLocaleString(),
       },
       {

@@ -36,8 +36,8 @@ export function useKbTableColumns({
         className: "w-[10%]",
         render: (kb) => (
           <Button
-            variant="link"
-            className="h-auto max-w-[18rem] truncate px-0 font-normal hover:no-underline"
+            variant="ghost"
+            className="h-auto max-w-[18rem] truncate px-0 font-normal text-foreground hover:bg-transparent hover:text-primary"
             onClick={() => navigate(`/kb/${kb.id}`)}
             title={kb.name}
           >
@@ -49,7 +49,6 @@ export function useKbTableColumns({
         key: "description",
         header: "描述",
         className: "w-[18%]",
-        cellClassName: "text-muted-foreground",
         render: (kb) => (
           <div className="max-w-[28rem] truncate" title={kb.description || ""}>
             {kb.description || "-"}
@@ -74,14 +73,14 @@ export function useKbTableColumns({
         key: "createdAt",
         header: "创建时间",
         className: "w-[14%]",
-        cellClassName: "tabular-nums text-muted-foreground",
+        cellClassName: "tabular-nums",
         render: (kb) => new Date(kb.createdAt).toLocaleString(),
       },
       {
         key: "updatedAt",
         header: "修改时间",
         className: "w-[14%]",
-        cellClassName: "tabular-nums text-muted-foreground",
+        cellClassName: "tabular-nums",
         render: (kb) => new Date(kb.updatedAt).toLocaleString(),
       },
       {

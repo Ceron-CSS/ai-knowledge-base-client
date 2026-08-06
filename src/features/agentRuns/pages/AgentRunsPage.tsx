@@ -95,7 +95,7 @@ export function AgentRunsPage() {
         key: "createdAt",
         header: "时间",
         render: (row) => (
-          <span className="whitespace-nowrap text-xs text-muted-foreground">{formatRunTime(row.createdAt)}</span>
+          <span className="whitespace-nowrap text-xs">{formatRunTime(row.createdAt)}</span>
         ),
       },
       {
@@ -135,7 +135,7 @@ export function AgentRunsPage() {
         header: "端到端",
         render: (row) => (
           <span
-            className="tabular-nums text-muted-foreground"
+            className="tabular-nums"
             title={row.summary.latencyMs != null ? `${row.summary.latencyMs} ms` : undefined}
           >
             {formatLatency(row.summary.latencyMs)}
