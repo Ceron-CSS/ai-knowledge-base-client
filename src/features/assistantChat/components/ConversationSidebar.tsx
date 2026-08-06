@@ -55,7 +55,7 @@ export function ConversationSidebar({
   onConfirmDelete,
 }: ConversationSidebarProps) {
   return (
-    <aside className="flex w-72 shrink-0 flex-col rounded-lg border bg-background">
+    <aside className="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-card shadow-sm">
       <div className="border-b p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 truncate text-sm font-medium" title={assistantName ?? ""}>

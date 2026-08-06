@@ -55,7 +55,7 @@ export function Dialog({
       />
       <div
         className={cn(
-          "relative flex w-full flex-col border bg-background shadow-lg",
+          "relative flex w-full flex-col border border-border bg-card shadow-lg",
           fullscreen
             ? "h-dvh max-w-none rounded-none p-4"
             : "max-w-2xl rounded-lg p-5",
@@ -67,7 +67,7 @@ export function Dialog({
             <div className="min-w-0">
               {title ? <div className="text-base font-semibold">{title}</div> : null}
               {description ? (
-                <div className="mt-1 text-sm text-muted-foreground">{description}</div>
+                <div className="text-sm text-muted-foreground">{description}</div>
               ) : null}
             </div>
             {headerActions ? <div className="flex shrink-0 items-center gap-2">{headerActions}</div> : null}

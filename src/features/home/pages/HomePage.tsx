@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { LoadingText } from "@/components/ui/loading-text"
+import { Page, PageBody } from "@/components/ui/page-header"
 import { DashboardStatCards } from "@/features/home/components/DashboardStatCards"
 import { TechStackSection } from "@/features/home/components/TechStackSection"
 import { WorkflowSection } from "@/features/home/components/WorkflowSection"
@@ -23,38 +23,39 @@ export function HomePage() {
 
   if (stats.isLoading) {
     return (
-      <div className="space-y-2">
-        <Breadcrumb items={[{ label: "主页" }]} />
-        <div className="flex rounded-lg border bg-background px-4 py-10">
-          <LoadingText className="mx-auto">加载中</LoadingText>
-        </div>
-      </div>
+      <Page>
+        <PageBody>
+          <div className="flex rounded-lg border border-border bg-card px-4 py-10 shadow-sm">
+            <LoadingText className="mx-auto">加载中</LoadingText>
+          </div>
+        </PageBody>
+      </Page>
     )
   }
 
   const showDocDist = data ? hasKbDocDistData(data.kbDocDist) : false
 
   return (
-    <div className="space-y-4">
-      <Breadcrumb items={[{ label: "主页" }]} />
+    <Page>
+      <PageBody className="space-y-4">
+        <DashboardStatCards data={data} />
 
-      <DashboardStatCards data={data} />
+        <div className={`grid gap-4 ${showDocDist ? "lg:grid-cols-[3fr_1fr]" : ""}`}>
+          <Suspense
+            fallback={
+              <div className="flex h-64 items-center justify-center rounded-lg border border-border bg-card shadow-sm">
+                <LoadingText>加载图表</LoadingText>
+              </div>
+            }
+          >
+            <DailyRequestsChart dailyRequests={data?.dailyRequests ?? []} />
+            {data ? <KbDocDistChart kbDocDist={data.kbDocDist} /> : null}
+          </Suspense>
+        </div>
 
-      <div className={`grid gap-4 ${showDocDist ? "lg:grid-cols-[3fr_1fr]" : ""}`}>
-        <Suspense
-          fallback={
-            <div className="flex h-64 items-center justify-center rounded-lg border bg-background">
-              <LoadingText>加载图表</LoadingText>
-            </div>
-          }
-        >
-          <DailyRequestsChart dailyRequests={data?.dailyRequests ?? []} />
-          {data ? <KbDocDistChart kbDocDist={data.kbDocDist} /> : null}
-        </Suspense>
-      </div>
-
-      <TechStackSection />
-      <WorkflowSection />
-    </div>
+        <TechStackSection />
+        <WorkflowSection />
+      </PageBody>
+    </Page>
   )
 }

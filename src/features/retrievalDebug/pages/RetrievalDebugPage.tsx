@@ -1,8 +1,8 @@
 import { ExternalLink, Search } from "lucide-react"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
+import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Textarea } from "@/components/ui/textarea"
 import { useRetrievalDebugPage } from "@/features/retrievalDebug/hooks/useRetrievalDebugPage"
@@ -18,15 +18,14 @@ export function RetrievalDebugPage() {
   const page = useRetrievalDebugPage()
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Breadcrumb items={[{ label: "召回调试台" }]} />
-        <p className="mt-1 text-sm text-muted-foreground">
-          选择知识库并输入查询，查看混合召回片段、相关度分数与来源文档
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        items={[{ label: "召回调试台" }]}
+        description="选择知识库并输入查询，查看混合召回片段、相关度分数与来源文档"
+      />
 
-      <section className="rounded-lg border bg-background p-4">
+      <PageBody className="space-y-4">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_120px_auto]">
           <div>
             <label className="mb-1.5 block text-sm font-medium">知识库</label>
@@ -105,7 +104,7 @@ export function RetrievalDebugPage() {
             const openKey = `${hit.itemId}:${hit.chunkIndex}`
             const opening = page.openingKey === openKey
             return (
-              <article key={`${hit.chunkId}-${index}`} className="rounded-lg border bg-background p-4">
+              <article key={`${hit.chunkId}-${index}`} className="rounded-lg border border-border bg-card p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -139,6 +138,7 @@ export function RetrievalDebugPage() {
           })}
         </div>
       </section>
-    </div>
+      </PageBody>
+    </Page>
   )
 }

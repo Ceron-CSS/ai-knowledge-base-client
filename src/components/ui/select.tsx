@@ -37,8 +37,8 @@ export function Select({
     >
       <BaseSelect.Trigger
         className={cn(
-          "group flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 text-sm outline-none transition",
-          "focus-visible:ring-2 focus-visible:ring-ring/50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+          "group flex h-10 w-full items-center justify-between rounded-md border border-input bg-card px-3 text-sm outline-none transition",
+          "focus-visible:ring-2 focus-visible:ring-primary/20 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
           className,
         )}
       >

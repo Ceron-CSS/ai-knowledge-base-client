@@ -15,7 +15,7 @@ export function TechStackSection() {
               </div>
               <div className="min-w-0">
                 <CardTitle className="text-sm">{title}</CardTitle>
-                <CardDescription className="mt-1 text-xs leading-relaxed">{description}</CardDescription>
+                <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
               </div>
             </div>
           </CardHeader>

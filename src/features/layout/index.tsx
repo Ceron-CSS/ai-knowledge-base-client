@@ -10,14 +10,14 @@ export function AppLayout() {
   const onboarding = useOnboarding(auth.username)
 
   return (
-    <div className="flex h-svh overflow-hidden">
+    <div className="flex h-svh overflow-hidden bg-background">
       <AppSidebar
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
         onOpenOnboarding={onboarding.openGuide}
       />
 
-      <main className="min-w-0 flex-1 overflow-auto p-6">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">
         <Outlet />
       </main>
 

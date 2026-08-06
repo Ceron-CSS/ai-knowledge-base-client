@@ -94,12 +94,12 @@ function DataTable<T>({
       <DataTableContainer className={containerClassName}>
         <table className={cn("w-full table-fixed text-left text-sm", tableClassName)}>
           <thead>
-            <tr className="border-b bg-muted">
+            <tr className="border-b border-border bg-[#F1F5F9]">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={cn(
-                    "px-4 py-3 align-middle text-sm font-bold text-foreground",
+                    "px-4 py-3 align-middle text-sm font-semibold text-[#17243D]",
                     column.className,
                   )}
                 >
@@ -110,7 +110,10 @@ function DataTable<T>({
           </thead>
           <tbody className="font-normal">
             {data.map((item) => (
-              <tr key={getRowKey(item)} className="border-b font-normal last:border-b-0">
+              <tr
+                key={getRowKey(item)}
+                className="border-b font-normal transition-colors last:border-b-0 hover:bg-muted/40"
+              >
                 {columns.map((column) => (
                   <td
                     key={column.key}
@@ -131,7 +134,7 @@ function DataTable<T>({
 }
 
 function DataTableContainer({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("overflow-x-auto rounded-lg border bg-background", className)} {...props} />
+  return <div className={cn("overflow-x-auto rounded-lg border border-border bg-card shadow-sm", className)} {...props} />
 }
 
 type DataTableEmptyProps = ComponentProps<"div"> & {
@@ -142,7 +145,7 @@ function DataTableEmpty({ className, children, loading = false, ...props }: Data
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-1.5 rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground",
+        "flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-sm",
         className,
       )}
       {...props}

@@ -224,7 +224,7 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
       <aside
-        className="flex h-full w-full max-w-xl flex-col border-l bg-background shadow-xl"
+        className="flex h-full w-full max-w-xl flex-col border-l border-border bg-card shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b px-4 py-3">

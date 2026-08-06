@@ -19,7 +19,7 @@ export function WorkflowSection() {
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-medium leading-tight">{title}</div>
-                  <div className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</div>
+                  <div className="text-xs leading-relaxed text-muted-foreground">{description}</div>
                 </div>
               </div>
               {index < workflowSteps.length - 1 ? (

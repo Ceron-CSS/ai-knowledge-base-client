@@ -1,5 +1,6 @@
 export { Button, buttonVariants } from "./button"
 export { Breadcrumb, type BreadcrumbItem } from "./breadcrumb"
+export { Page, PageBody, PageHeader } from "./page-header"
 export {
   Card,
   CardAction,

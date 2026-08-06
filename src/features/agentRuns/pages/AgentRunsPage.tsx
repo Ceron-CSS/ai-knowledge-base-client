@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query"
 import { Activity } from "lucide-react"
 import { getAgentRunMetrics, listAgentRuns, type AgentRunListItem } from "@/api/agentRuns"
 import { listAssistants } from "@/api/assistants"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { Select } from "@/components/ui/select"
 import { AgentRunTraceDrawer } from "@/features/assistantChat/components/AgentRunTraceDrawer"
 
@@ -168,14 +168,13 @@ export function AgentRunsPage() {
   const metrics = metricsQuery.data
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Breadcrumb items={[{ label: "Agent 运行" }]} />
-        <p className="mt-1 text-sm text-muted-foreground">
-          首字等待是用户真正干等的时间；流式输出期间内容已在边出边看
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        items={[{ label: "Agent 运行" }]}
+        description="首字等待是用户真正干等的时间；流式输出期间内容已在边出边看"
+      />
 
+      <PageBody className="space-y-2">
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <MetricCard label="近 7 日运行" value={metrics ? String(metrics.totalRuns) : "-"} />
         <MetricCard label="成功率" value={metrics ? `${(metrics.successRate * 100).toFixed(1)}%` : "-"} />
@@ -200,7 +199,7 @@ export function AgentRunsPage() {
         />
       </section>
 
-      <section className="flex flex-wrap items-end gap-3 rounded-lg border bg-background p-4">
+      <section className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
         <FilterSelect
           label="助手"
           value={assistantId}
@@ -258,7 +257,7 @@ export function AgentRunsPage() {
           开始日期
           <input
             type="date"
-            className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+            className="h-9 rounded-md border border-input bg-card px-2 text-sm text-foreground"
             value={dateFrom}
             onChange={(event) => {
               setDateFrom(event.target.value)
@@ -270,7 +269,7 @@ export function AgentRunsPage() {
           结束日期
           <input
             type="date"
-            className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+            className="h-9 rounded-md border border-input bg-card px-2 text-sm text-foreground"
             value={dateTo}
             onChange={(event) => {
               setDateTo(event.target.value)
@@ -300,15 +299,16 @@ export function AgentRunsPage() {
         runId={selectedRunId}
         onClose={() => setSelectedRunId(null)}
       />
-    </div>
+      </PageBody>
+    </Page>
   )
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-background p-4">
+    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Activity className="h-3.5 w-3.5" />
+        <Activity className="h-3.5 w-3.5 text-primary" />
         {label}
       </div>
       <div className="mt-2 text-xl font-semibold tabular-nums">{value}</div>

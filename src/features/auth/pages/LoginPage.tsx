@@ -168,7 +168,7 @@ export function LoginPage() {
 
         <div className="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur-sm ring-1 ring-foreground/5 sm:p-8">
           <div
-            className="relative grid grid-cols-2 rounded-lg bg-[#F0F5FF] p-1"
+            className="relative grid grid-cols-2 rounded-lg bg-accent p-1"
             role="tablist"
             aria-label="登录或注册"
           >
@@ -187,7 +187,7 @@ export function LoginPage() {
                 aria-selected={mode === tab}
                 className={cn(
                   "relative z-10 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  mode === tab ? "text-[#4a8ef6]" : "text-muted-foreground hover:text-[#4a8ef6]/70",
+                  mode === tab ? "text-primary" : "text-muted-foreground hover:text-primary/70",
                 )}
                 onClick={() => switchMode(tab)}
               >

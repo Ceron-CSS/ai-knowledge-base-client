@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom"
 import type { Assistant } from "@/api/assistants"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import { MultiSelect } from "@/components/ui/multi-select"
+import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useAssistantEditForm } from "@/features/assistants/hooks/useAssistantEditForm"
@@ -53,20 +53,17 @@ export function AssistantEditPage() {
   const title = isNew ? "创建问答助手" : "配置问答助手"
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Breadcrumb
-            items={[
-              { label: "问答助手", href: "/assistants" },
-              { label: title },
-            ]}
-          />
-          <p className="mt-1 text-sm text-muted-foreground">填写配置后点击保存或发布（发布后可在对话页面使用）</p>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        items={[
+          { label: "问答助手", href: "/assistants" },
+          { label: title },
+        ]}
+        description="填写配置后点击保存或发布（发布后可在对话页面使用）"
+      />
 
-      <div className="rounded-lg border bg-background p-4">
+      <PageBody className="space-y-4">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="grid gap-6">
           {!isNew && existingQuery.isLoading ? (
             <LoadingText className="justify-start">加载中</LoadingText>
@@ -245,6 +242,7 @@ export function AssistantEditPage() {
           </div>
         </div>
       </div>
-    </div>
+      </PageBody>
+    </Page>
   )
 }

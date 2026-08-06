@@ -28,7 +28,7 @@ export function AssistantCard({
 }: AssistantCardProps) {
   return (
     <div
-      className="rounded-lg border bg-background p-4 text-left shadow-sm transition hover:cursor-pointer hover:bg-muted/30 hover:shadow-md"
+      className="rounded-lg border border-border bg-card p-4 text-left shadow-sm transition hover:cursor-pointer hover:border-primary/30 hover:shadow-md"
       role="button"
       tabIndex={0}
       onClick={onGoChat}

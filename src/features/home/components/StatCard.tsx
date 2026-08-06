@@ -11,7 +11,7 @@ export function StatCard({ icon, label, value, href }: StatCardProps) {
   return (
     <Link
       to={href}
-      className="flex items-center gap-3 rounded-lg border bg-card p-4 text-card-foreground shadow-sm transition hover:bg-muted/30"
+      className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm transition hover:border-primary/30 hover:shadow-md"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         {icon}

@@ -1,10 +1,10 @@
 import { useParams } from "react-router-dom"
 import type { ChunkPreviewSeparator } from "@/api/kb"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import { MultiSelect } from "@/components/ui/multi-select"
+import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { KbSourcePreview } from "@/features/kb/components/KbSourcePreview"
 import { CHUNK_SEPARATOR_OPTIONS } from "@/features/kb/constants/chunkPreview"
 import { useKbUploadPreview } from "@/features/kb/hooks/useKbUploadPreview"
@@ -14,18 +14,15 @@ export function KbUploadPreviewPage() {
   const wizard = useKbUploadPreview({ kbId: id })
 
   return (
-    <div className="flex h-[calc(100vh-55px)] flex-col overflow-hidden">
-      <div>
-        <Breadcrumb
-          items={[
-            { label: "知识库", href: "/kb" },
-            { label: "文档列表", href: `/kb/${id}` },
-            { label: "导入文档" },
-          ]}
-        />
-        <p className="mt-1 text-sm text-muted-foreground">
-          先确认原文，再配置分片并预览，最后提交索引
-        </p>
+    <Page fill>
+      <PageHeader
+        items={[
+          { label: "知识库", href: "/kb" },
+          { label: "文档列表", href: `/kb/${id}` },
+          { label: "导入文档" },
+        ]}
+        description="先确认原文，再配置分片并预览，最后提交索引"
+      >
         {wizard.fileName ? (
           <p className="mt-1 text-xs text-muted-foreground">当前文件：{wizard.fileName}</p>
         ) : null}
@@ -50,9 +47,10 @@ export function KbUploadPreviewPage() {
             </ul>
           </div>
         ) : null}
-      </div>
+      </PageHeader>
 
-      <ol className="mt-4 flex flex-wrap gap-2">
+      <PageBody className="flex min-h-0 flex-col overflow-hidden pt-4">
+      <ol className="mb-4 flex flex-wrap gap-2">
         {wizard.steps.map((item, index) => {
           const active = item.id === wizard.step
           const done = index < wizard.stepIndex
@@ -75,7 +73,7 @@ export function KbUploadPreviewPage() {
         })}
       </ol>
 
-      <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-background">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="min-h-0 flex-1 overflow-hidden p-4">
           {wizard.extracting ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
@@ -279,6 +277,7 @@ export function KbUploadPreviewPage() {
           </div>
         ) : null}
       </div>
-    </div>
+      </PageBody>
+    </Page>
   )
 }

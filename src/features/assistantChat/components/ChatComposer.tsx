@@ -136,7 +136,7 @@ export function ChatComposer({
         </div>
       ) : null}
 
-      <div className={`rounded-2xl border bg-background px-3 ${composerExpanded ? "py-3" : "py-2"}`}>
+      <div className={`rounded-2xl border border-border bg-card px-3 shadow-sm ${composerExpanded ? "py-3" : "py-2"}`}>
         <input
           ref={attachmentInputRef}
           type="file"

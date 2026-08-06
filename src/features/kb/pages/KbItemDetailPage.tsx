@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { getKbItemDetail, type KbItemChunkRecord, type KbItemDetail } from "@/api/kb"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { LoadingText } from "@/components/ui/loading-text"
+import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { KbSourcePreview } from "@/features/kb/components/KbSourcePreview"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
 
@@ -109,25 +109,20 @@ export function KbItemDetailPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-55px)] flex-col overflow-hidden">
-      <div className="shrink-0">
-        <Breadcrumb
-          items={[
-            { label: "知识库", href: "/kb" },
-            { label: "文档列表", href: `/kb/${kbId}` },
-            { label: detail?.fileName ?? "文档详情" },
-          ]}
-        />
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-base font-medium">{detail?.fileName ?? "文档详情"}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {detail?.hasOriginalFile || detail?.previewMode === "original"
-                ? "查看原文与分片"
-                : "历史文档未保留原文件，仅可查看文本与分片"}
-            </p>
-          </div>
-          <div className="flex gap-2">
+    <Page fill>
+      <PageHeader
+        items={[
+          { label: "知识库", href: "/kb" },
+          { label: "文档列表", href: `/kb/${kbId}` },
+          { label: detail?.fileName ?? "文档详情" },
+        ]}
+        description={
+          detail?.hasOriginalFile || detail?.previewMode === "original"
+            ? "查看原文与分片"
+            : "历史文档未保留原文件，仅可查看文本与分片"
+        }
+        actions={
+          <>
             <Button variant="outline" onClick={() => navigate(`/kb/${kbId}`)}>
               返回列表
             </Button>
@@ -155,10 +150,10 @@ export function KbItemDetailPage() {
             >
               编辑分片
             </Button>
-          </div>
-        </div>
-
-        <div className="mt-4 flex gap-2">
+          </>
+        }
+      >
+        <div className="mt-3 flex gap-2">
           <Button
             variant={tab === "source" ? "primary" : "outline"}
             size="sm"
@@ -174,9 +169,10 @@ export function KbItemDetailPage() {
             分片视图
           </Button>
         </div>
-      </div>
+      </PageHeader>
 
-      <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-lg border bg-background p-4">
+      <PageBody className="flex min-h-0 flex-col overflow-hidden pt-4">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card p-4 shadow-sm">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             <LoadingText>正在加载文档</LoadingText>
@@ -240,6 +236,7 @@ export function KbItemDetailPage() {
           </div>
         ) : null}
       </div>
-    </div>
+      </PageBody>
+    </Page>
   )
 }

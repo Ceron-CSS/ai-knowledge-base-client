@@ -12,22 +12,22 @@ const buttonVariants = cva(
         default:
           "bg-primary text-primary-foreground [a]:hover:bg-primary/80 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "border-border bg-card hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        primary:
+          "border-transparent bg-primary text-primary-foreground hover:bg-[#0059E4] disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground dark:hover:bg-muted/50",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-accent-foreground",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
-        primary:
-          "border-transparent bg-[#0065FD] text-white hover:bg-[#0059E4] disabled:opacity-50",
         "dialog-cancel":
-          "border-transparent bg-[#F4F7FA] text-slate-900 hover:bg-[#E8EDF3] disabled:opacity-60",
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-accent disabled:opacity-60",
         "dialog-outline":
-          "border-black bg-white text-slate-900 hover:bg-[#F4F7FA] disabled:opacity-60",
+          "border-border bg-card text-foreground hover:bg-accent disabled:opacity-60",
         "dialog-danger":
-          "border-transparent bg-[#F25050] text-white hover:bg-[#E24343] focus-visible:border-[#F25050]/40 focus-visible:ring-[#F25050]/20 disabled:opacity-50",
+          "border-transparent bg-destructive text-white hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:opacity-50",
       },
       size: {
         default:

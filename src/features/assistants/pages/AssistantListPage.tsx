@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
+import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import type { Assistant } from "@/api/assistants"
 import { AssistantCard } from "@/features/assistants/components/AssistantCard"
 import {
@@ -89,68 +89,65 @@ export function AssistantListPage() {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Breadcrumb items={[{ label: "问答助手" }]} />
-          <p className="mt-1 text-sm text-muted-foreground">管理问答助手的配置与发布状态</p>
-        </div>
-      </div>
+    <Page>
+      <PageHeader items={[{ label: "问答助手" }]} description="管理问答助手的配置与发布状态" />
 
-      <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-        <div>{countLabel}</div>
-        <div className="flex items-center gap-1.5">
-          <Input
-            clearable
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索助手名称"
-          />
-          <Button variant="primary" size="lg" onClick={() => navigate("/assistants/new")}>
-            新建问答助手
-          </Button>
-        </div>
-      </div>
-
-      {assistants.isLoading ? (
-        <div className="flex rounded-lg border bg-background px-4 py-10">
-          <LoadingText className="mx-auto">加载中</LoadingText>
-        </div>
-      ) : assistants.isError ? (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-destructive">
-          加载失败，请检查后端服务
-        </div>
-      ) : filteredItems.length ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredItems.map((a) => (
-            <AssistantCard
-              key={a.id}
-              assistant={a}
-              menuOpen={menuOpenFor === a.id}
-              menuRef={menuRef}
-              onGoChat={() => goChat(a)}
-              onEdit={() => navigate(`/assistants/${encodeURIComponent(a.id)}`)}
-              onToggleMenu={() => setMenuOpenFor((cur) => (cur === a.id ? null : a.id))}
-              onPublish={(e) => handlePublish(a, e)}
-              onUnpublish={(e) => handleUnpublish(a, e)}
-              onDelete={() => startDelete(a)}
+      <PageBody className="space-y-2">
+        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+          <div>{countLabel}</div>
+          <div className="flex items-center gap-1.5">
+            <Input
+              clearable
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索助手名称"
             />
-          ))}
+            <Button variant="primary" size="lg" onClick={() => navigate("/assistants/new")}>
+              新建问答助手
+            </Button>
+          </div>
         </div>
-      ) : (
-        <div className="rounded-lg border bg-background px-4 py-10 text-center text-sm text-muted-foreground">
-          {items.length ? "没有匹配的问答助手" : "暂无数据"}
-        </div>
-      )}
 
-      <ConfirmDeleteDialog
-        open={!!deleting}
-        onCancel={cancelDelete}
-        onConfirm={confirmDelete}
-        description={deleting ? `将删除问答助手「${deleting.name}」，此操作不可恢复` : undefined}
-        errorText={deleteAssistant.isError ? "删除失败，请重试" : null}
-        confirming={deleteAssistant.isPending}
-      />
-    </div>
+        {assistants.isLoading ? (
+          <div className="flex rounded-lg border border-border bg-card px-4 py-10 shadow-sm">
+            <LoadingText className="mx-auto">加载中</LoadingText>
+          </div>
+        ) : assistants.isError ? (
+          <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-destructive shadow-sm">
+            加载失败，请检查后端服务
+          </div>
+        ) : filteredItems.length ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredItems.map((a) => (
+              <AssistantCard
+                key={a.id}
+                assistant={a}
+                menuOpen={menuOpenFor === a.id}
+                menuRef={menuRef}
+                onGoChat={() => goChat(a)}
+                onEdit={() => navigate(`/assistants/${encodeURIComponent(a.id)}`)}
+                onToggleMenu={() => setMenuOpenFor((cur) => (cur === a.id ? null : a.id))}
+                onPublish={(e) => handlePublish(a, e)}
+                onUnpublish={(e) => handleUnpublish(a, e)}
+                onDelete={() => startDelete(a)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-sm">
+            {items.length ? "没有匹配的问答助手" : "暂无数据"}
+          </div>
+        )}
+
+        <ConfirmDeleteDialog
+          open={!!deleting}
+          onCancel={cancelDelete}
+          onConfirm={confirmDelete}
+          description={deleting ? `将删除问答助手「${deleting.name}」，此操作不可恢复` : undefined}
+          errorText={deleteAssistant.isError ? "删除失败，请重试" : null}
+          confirming={deleteAssistant.isPending}
+        />
+      </PageBody>
+    </Page>
   )
 }

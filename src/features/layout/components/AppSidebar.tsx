@@ -14,13 +14,13 @@ export function AppSidebar({ collapsed, onToggleCollapsed, onOpenOnboarding }: A
   return (
     <aside
       className={cn(
-        "flex shrink-0 flex-col overflow-hidden border-r bg-background p-3 transition-[width] duration-200 ease-in-out",
+        "flex shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar p-3 transition-[width] duration-200 ease-in-out",
         collapsed ? "w-16" : "w-56",
       )}
     >
       <SidebarNav collapsed={collapsed} />
 
-      <div className={cn("relative flex items-center gap-0.5", collapsed && "flex-col")}>
+      <div className={cn("relative mt-2 flex items-center gap-0.5", collapsed && "flex-col")}>
         <AppSettingsMenu collapsed={collapsed} onOpenOnboarding={onOpenOnboarding} />
         <Button
           type="button"
