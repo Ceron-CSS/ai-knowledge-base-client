@@ -36,7 +36,6 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
   const [baseModel, setBaseModel] = useState(DEFAULT_BASE_MODEL)
   const [systemPrompt, setSystemPrompt] = useState("")
   const [kbIds, setKbIds] = useState<string[]>([])
-  const [executionMode, setExecutionMode] = useState<"workflow" | "agent">("workflow")
   const [error, setError] = useState<string | null>(null)
 
   const kbPicker = useKbPicker()
@@ -71,7 +70,6 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     setBaseModel(existing.baseModel ?? DEFAULT_BASE_MODEL)
     setSystemPrompt(existing.systemPrompt ?? "")
     setKbIds(existing.kbIds ?? [])
-    setExecutionMode(existing.executionMode ?? "workflow")
     setError(null)
   }
   const disabledKbNames = useMemo(() => {
@@ -88,13 +86,8 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     publishAssistant.isPending ||
     unpublishAssistant.isPending
 
-  const selectedConfig = resolvedModelConfigId ? configMap.get(resolvedModelConfigId) : undefined
-  const agentSupported = !!selectedConfig?.toolCallingEnabled
-  const agentDisabledReason = !selectedConfig
-    ? "请先选择模型配置"
-    : !selectedConfig.toolCallingEnabled
-      ? "当前模型提供商不支持 Tool Calling / Agent 模式"
-      : null
+  // Ordinary users do not pick Workflow/Agent; platform default is auto.
+  const executionMode = "auto" as const
 
   function buildPayload() {
     const trimmedName = name.trim()
@@ -202,10 +195,6 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     setSystemPrompt,
     kbIds,
     setKbIds,
-    executionMode,
-    setExecutionMode,
-    agentSupported,
-    agentDisabledReason,
     error,
     configOptions,
     baseModelOptions,

@@ -115,12 +115,20 @@ export function useModelProviderPage() {
         cellClassName: "text-center",
         render: (item) => (
           <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
-            <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)} title="编辑" aria-label="编辑">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
+              onClick={() => openEdit(item)}
+              title="编辑"
+              aria-label="编辑"
+            >
               <Pencil />
             </Button>
             <Button
               variant="ghost"
               size="icon-sm"
+              className="text-foreground/80 hover:bg-destructive/10 hover:text-destructive"
               onClick={() => void handleDelete(item)}
               disabled={deleteModel.isPending || checkingDeleteLinked}
               title="删除"

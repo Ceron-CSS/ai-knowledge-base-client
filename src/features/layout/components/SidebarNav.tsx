@@ -20,6 +20,7 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
             <NavLink
               key={to}
               to={to}
+              end={to === "/evals"}
               data-onboarding-target={onboardingTarget}
               title={collapsed ? label : undefined}
               className={({ isActive }) =>

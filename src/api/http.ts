@@ -64,13 +64,25 @@ export function handleUnauthorized() {
   redirectToLogin(resolvePostLoginPath(window.location.pathname))
 }
 
-export async function throwIfNotOk(response: Response) {
-  if (response.status === 401) {
-    handleUnauthorized()
-    throw new HttpError(401, "Session expired")
+function isLoginCredentialRequest(response: Response) {
+  try {
+    const { pathname } = new URL(response.url)
+    return pathname === "/auth/login" || pathname.endsWith("/auth/login")
+  } catch {
+    return false
   }
+}
+
+export async function throwIfNotOk(response: Response) {
   if (!response.ok) {
     const error = await parseApiError(response)
+    if (response.status === 401) {
+      // 登录接口的 401 表示账号密码错误，不能当成会话过期
+      if (!isLoginCredentialRequest(response)) {
+        handleUnauthorized()
+        throw new HttpError(401, "Session expired", error.code, error.details)
+      }
+    }
     throw new HttpError(response.status, error.message, error.code, error.details)
   }
 }

@@ -1,6 +1,6 @@
 <div align="center">
 
-# AI Knowledge Base Client
+# Agentic RAG 知识库评测与优化平台 — Client
 
 <p>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React" /></a>
@@ -17,7 +17,7 @@
   <a href="README.zh-CN.md">中文</a>
 </p>
 
-<p>AI 知识库管理平台的前端项目，基于 React、TypeScript 和 Vite 构建。</p>
+<p>Agentic RAG 知识库评测与优化平台的前端项目，基于 React、TypeScript 和 Vite 构建。</p>
 
 </div>
 

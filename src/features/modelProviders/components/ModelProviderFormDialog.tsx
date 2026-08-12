@@ -4,6 +4,7 @@ import { Dialog } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { MODEL_PROVIDERS } from "@/features/modelProviders/constants/providers"
+import { getModelProviderFormError } from "@/features/modelProviders/lib/modelProviderForm"
 import type { ModelProviderFormState } from "@/features/modelProviders/types"
 
 type ModelProviderFormDialogProps = {
@@ -29,6 +30,8 @@ export function ModelProviderFormDialog({
   onSubmit,
   onFormChange,
 }: ModelProviderFormDialogProps) {
+  const canSave = !getModelProviderFormError(form, { isEditing: !!editing })
+
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()} title={editing ? "编辑模型提供商" : "新建模型提供商"}>
       <div className="grid gap-4">
@@ -102,7 +105,13 @@ export function ModelProviderFormDialog({
           >
             取消
           </Button>
-          <Button variant="primary" size="dialog" onClick={onSubmit} loading={submitting}>
+          <Button
+            variant="primary"
+            size="dialog"
+            onClick={onSubmit}
+            loading={submitting}
+            disabled={!canSave}
+          >
             保存
           </Button>
         </div>

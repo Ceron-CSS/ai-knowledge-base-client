@@ -18,9 +18,16 @@ function statusLabel(status: string) {
 }
 
 function sourceLabel(source: string) {
-  if (source === "chat") return "聊天"
-  if (source === "eval") return "评测"
+  if (source === "chat") return "问答助手"
+  if (source === "eval") return "评测与优化"
   return source
+}
+
+function executionModeLabel(mode: string) {
+  if (mode === "agent") return "智能代理"
+  if (mode === "auto") return "自动选择"
+  if (mode === "workflow") return "标准问答"
+  return mode
 }
 
 /** 例：2026/5/31 01:07:49 */
@@ -110,8 +117,8 @@ export function AgentRunsPage() {
       },
       {
         key: "executionMode",
-        header: "模式",
-        render: (row) => (row.executionMode === "agent" ? "Agent" : "Workflow"),
+        header: "回答策略",
+        render: (row) => executionModeLabel(row.executionMode),
       },
       {
         key: "question",
@@ -144,7 +151,7 @@ export function AgentRunsPage() {
       },
       {
         key: "tools",
-        header: "Agent工具",
+        header: "工具调用",
         render: (row) => <span className="tabular-nums">{row.summary.toolCallCount}</span>,
       },
       {
@@ -170,8 +177,8 @@ export function AgentRunsPage() {
   return (
     <Page>
       <PageHeader
-        items={[{ label: "Agent 运行" }]}
-        description="首字等待是用户真正干等的时间；流式输出期间内容已在边出边看"
+        items={[{ label: "运行记录" }]}
+        description="查看每次回答的耗时、工具调用与详细过程；首字等待是用户真正干等的时间"
       />
 
       <PageBody className="space-y-2">
@@ -190,7 +197,7 @@ export function AgentRunsPage() {
         />
         <MetricCard label="平均工具次数" value={metrics ? metrics.avgToolCallCount.toFixed(2) : "-"} />
         <MetricCard
-          label="Planner 回退率"
+          label="策略回退率"
           value={metrics ? `${(metrics.plannerFallbackRate * 100).toFixed(1)}%` : "-"}
         />
         <MetricCard
@@ -236,21 +243,22 @@ export function AgentRunsPage() {
           }}
           options={[
             { value: "", label: "全部来源" },
-            { value: "chat", label: "聊天" },
-            { value: "eval", label: "评测" },
+            { value: "chat", label: "问答助手" },
+            { value: "eval", label: "评测与优化" },
           ]}
         />
         <FilterSelect
-          label="模式"
+          label="回答策略"
           value={executionMode}
           onChange={(value) => {
             setExecutionMode(value)
             setPage(1)
           }}
           options={[
-            { value: "", label: "全部模式" },
-            { value: "workflow", label: "Workflow" },
-            { value: "agent", label: "Agent" },
+            { value: "", label: "全部策略" },
+            { value: "workflow", label: "标准问答" },
+            { value: "agent", label: "智能代理" },
+            { value: "auto", label: "自动选择" },
           ]}
         />
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">

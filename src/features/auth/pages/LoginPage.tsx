@@ -48,9 +48,10 @@ export function LoginPage() {
   const navigate = useNavigate()
   const { data: passwordPolicy } = usePasswordPolicyConfig()
   const [mode, setMode] = useState<"login" | "register">("login")
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
+  const [username, setUsername] = useState("test")
+  const [password, setPassword] = useState("test")
   const [password2, setPassword2] = useState("")
+  const [registerAttempted, setRegisterAttempted] = useState(false)
   const [oauthHash] = useState(parseOAuthHash)
 
   useEffect(() => {
@@ -83,6 +84,7 @@ export function LoginPage() {
     mutationFn: () => register({ username: username.trim(), password }),
     onSuccess: () => {
       setMode("login")
+      setRegisterAttempted(false)
       setPassword("")
       setPassword2("")
       registerMutation.reset()
@@ -112,9 +114,7 @@ export function LoginPage() {
           trimmedUsername &&
             password &&
             password2 &&
-            passwordsMatch &&
             passwordPolicy &&
-            registerPasswordCheck.ok &&
             !registerMutation.isPending,
         )
 
@@ -135,19 +135,31 @@ export function LoginPage() {
 
   const errorText = mode === "login" ? loginErrorText : registerErrorText
   const passwordFieldError =
-    mode === "register" && password && passwordPolicy && !registerPasswordCheck.ok
+    registerAttempted &&
+    mode === "register" &&
+    password &&
+    passwordPolicy &&
+    !registerPasswordCheck.ok
       ? registerPasswordCheck.message
       : undefined
   const confirmPasswordError =
-    mode === "register" && password && password2 && password !== password2
+    registerAttempted && mode === "register" && password && password2 && password !== password2
       ? "两次密码不一致"
       : null
   const registerErrors = [passwordFieldError, confirmPasswordError, registerErrorText].filter(
     (message): message is string => Boolean(message),
   )
 
+  const submitRegister = () => {
+    if (!canSubmit) return
+    setRegisterAttempted(true)
+    if (!passwordsMatch || !registerPasswordCheck.ok) return
+    registerMutation.mutate()
+  }
+
   const switchMode = (next: "login" | "register") => {
     setMode(next)
+    setRegisterAttempted(false)
     if (next === "login") registerMutation.reset()
     else loginMutation.reset()
   }
@@ -163,7 +175,9 @@ export function LoginPage() {
 
       <div className="relative w-full max-w-md -translate-y-2.5">
         <div className="mb-4 flex flex-col items-center text-center">
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight">AI 知识库管理平台</h1>
+          <h1 className="mt-4 px-2 text-xl font-semibold tracking-tight leading-snug sm:text-2xl">
+            Agentic RAG 知识库评测与优化平台
+          </h1>
         </div>
 
         <div className="rounded-2xl border bg-card/95 p-6 shadow-sm backdrop-blur-sm ring-1 ring-foreground/5 sm:p-8">
@@ -218,7 +232,7 @@ export function LoginPage() {
                 onKeyDown={(e) => {
                   if (e.key !== "Enter") return
                   if (mode === "login") loginMutation.mutate()
-                  if (mode === "register") registerMutation.mutate()
+                  if (mode === "register") submitRegister()
                 }}
               />
             </Field>
@@ -232,7 +246,7 @@ export function LoginPage() {
                   type="password"
                   autoComplete="new-password"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") registerMutation.mutate()
+                    if (e.key === "Enter") submitRegister()
                   }}
                 />
               </Field>
@@ -260,7 +274,7 @@ export function LoginPage() {
             loading={mode === "login" ? loginMutation.isPending : registerMutation.isPending}
             onClick={() => {
               if (mode === "login") loginMutation.mutate()
-              if (mode === "register") registerMutation.mutate()
+              if (mode === "register") submitRegister()
             }}
           >
             {mode === "login" ? "登录" : "注册"}

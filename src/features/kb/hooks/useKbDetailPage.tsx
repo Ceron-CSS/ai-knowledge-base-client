@@ -296,6 +296,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
                 <Button
                   variant="ghost"
                   size="icon-sm"
+                  className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
                   onClick={() => void onRetry(item)}
                   disabled={busy}
                   loading={retryingItemId === item.id}
@@ -308,6 +309,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
               <Button
                 variant="ghost"
                 size="icon-sm"
+                className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
                 onClick={() => void onEdit(item.id)}
                 disabled={busy || editingItemId === item.id}
                 loading={editingItemId === item.id}
@@ -319,6 +321,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
               <Button
                 variant="ghost"
                 size="icon-sm"
+                className="text-foreground/80 hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setDeleting(item)}
                 disabled={busy}
                 title="删除"

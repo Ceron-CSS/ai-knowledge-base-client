@@ -1,0 +1,147 @@
+import type { EvalRunResult } from "@/api/evals"
+import { Button } from "@/components/ui/button"
+import { Dialog } from "@/components/ui/dialog"
+import {
+  evalRunStatusLabel,
+  formatLatencyMs,
+  formatMetricNumber,
+} from "@/features/evals/lib/labels"
+
+type EvalResultDetailDrawerProps = {
+  open: boolean
+  result: EvalRunResult | null
+  question?: string
+  referenceAnswer?: string | null
+  onClose: () => void
+  onOpenTrace?: (agentRunId: string) => void
+}
+
+export function EvalResultDetailDrawer({
+  open,
+  result,
+  question,
+  referenceAnswer,
+  onClose,
+  onOpenTrace,
+}: EvalResultDetailDrawerProps) {
+  if (!result) {
+    return (
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()} title="问题结果">
+        <div className="text-sm text-muted-foreground">未选择结果</div>
+      </Dialog>
+    )
+  }
+
+  const judge = (key: string) => {
+    const value = result.metrics[key]
+    if (!value || typeof value !== "object") return null
+    const obj = value as { score?: number; explanation?: string }
+    return obj
+  }
+
+  const faithfulness = judge("faithfulness")
+  const relevancy = judge("answerRelevancy")
+  const citation = judge("citationSupport")
+  const decisionSummary =
+    result.metrics.decisionSummary && typeof result.metrics.decisionSummary === "object"
+      ? (result.metrics.decisionSummary as Record<string, unknown>)
+      : null
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+      title="问题结果详情"
+      contentClassName="max-w-3xl"
+      bodyClassName="max-h-[min(70vh,720px)] overflow-y-auto pr-1"
+    >
+      <div className="space-y-4 text-sm">
+        <Field label="状态" value={evalRunStatusLabel(result.status)} />
+        <Field label="问题" value={question || result.queryId} />
+        <Field label="参考答案" value={referenceAnswer || "-"} />
+        <Field
+          label="检索指标"
+          value={`Recall ${formatMetricNumber(result.metrics.recallAtK)} · Precision ${formatMetricNumber(result.metrics.precisionAtK)} · Hit ${formatMetricNumber(result.metrics.hitAtK, 0)} · MRR ${formatMetricNumber(result.metrics.mrrAtK)} · NDCG ${formatMetricNumber(result.metrics.ndcgAtK)} · ${formatLatencyMs(result.durationMs ?? result.metrics.latencyMs)}`}
+        />
+        <Field
+          label="召回 Chunk"
+          value={
+            result.retrievedChunkIds.length
+              ? result.retrievedChunkIds.map((id, i) => `${i + 1}. ${id}`).join("\n")
+              : "-"
+          }
+          pre
+        />
+        <Field label="相关标签" value={result.relevantChunkIds.join(", ") || "-"} />
+        <Field label="生成答案" value={result.generatedAnswer || "-"} pre />
+        {decisionSummary ? (
+          <Field
+            label="Agent 决策摘要"
+            value={[
+              `模式 ${String(decisionSummary.effectiveExecutionMode ?? "-")}`,
+              `检索 ${Array.isArray(decisionSummary.selectedModes) ? decisionSummary.selectedModes.join(" → ") || "-" : "-"}`,
+              `topK ${String(decisionSummary.initialTopK ?? "-")} → ${String(decisionSummary.finalTopK ?? "-")}`,
+              `轮次 ${String(decisionSummary.retrievalPasses ?? "-")}`,
+              `rerank ${decisionSummary.rerankUsed ? "是" : "否"}`,
+              `扩上下文 ${decisionSummary.contextExpanded ? "是" : "否"}`,
+              `停止 ${String(decisionSummary.stopReason ?? "-")}`,
+            ].join(" · ")}
+          />
+        ) : null}
+        {faithfulness ? (
+          <Field
+            label="Faithfulness（模型评审）"
+            value={`分数 ${formatMetricNumber(faithfulness.score)} · ${faithfulness.explanation || ""}`}
+          />
+        ) : null}
+        {relevancy ? (
+          <Field
+            label="Answer Relevancy（模型评审）"
+            value={`分数 ${formatMetricNumber(relevancy.score)} · ${relevancy.explanation || ""}`}
+          />
+        ) : null}
+        {citation ? (
+          <Field
+            label="Citation Support"
+            value={`分数 ${formatMetricNumber(citation.score)} · ${citation.explanation || ""}`}
+          />
+        ) : null}
+        {result.error ? <Field label="错误" value={result.error} /> : null}
+      </div>
+
+      <div className="mt-4 flex justify-end gap-3">
+        {result.agentRunId && onOpenTrace ? (
+          <Button variant="outline" size="dialog" onClick={() => onOpenTrace(result.agentRunId!)}>
+            打开 Agent Trace
+          </Button>
+        ) : null}
+        <Button variant="primary" size="dialog" onClick={onClose}>
+          关闭
+        </Button>
+      </div>
+    </Dialog>
+  )
+}
+
+function Field({
+  label,
+  value,
+  pre,
+}: {
+  label: string
+  value: string
+  pre?: boolean
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
+      {pre ? (
+        <pre className="whitespace-pre-wrap break-words rounded-md bg-muted/40 p-3 text-sm">{value}</pre>
+      ) : (
+        <div className="whitespace-pre-wrap break-words">{value}</div>
+      )}
+    </div>
+  )
+}

@@ -1,6 +1,6 @@
 <div align="center">
 
-# AI Knowledge Base Client
+# Agentic RAG Knowledge Base Evaluation & Optimization Platform — Client
 
 <p>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React" /></a>
@@ -17,7 +17,7 @@
   <a href="README.zh-CN.md">中文</a>
 </p>
 
-<p>React + TypeScript + Vite frontend for the AI knowledge base management platform.</p>
+<p>React + TypeScript + Vite frontend for the Agentic RAG Knowledge Base Evaluation & Optimization Platform.</p>
 
 </div>
 

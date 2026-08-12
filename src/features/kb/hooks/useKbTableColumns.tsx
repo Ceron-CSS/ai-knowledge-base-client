@@ -109,6 +109,7 @@ export function useKbTableColumns({
               <Button
                 variant="ghost"
                 size="icon-sm"
+                className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
                 onClick={() => navigate(`/kb/${kb.id}`)}
                 disabled={deletePending}
                 title="管理"
@@ -119,6 +120,7 @@ export function useKbTableColumns({
               <Button
                 variant="ghost"
                 size="icon-sm"
+                className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
                 onClick={() => onEdit(kb)}
                 disabled={setEnabledPending}
                 title="设置"
@@ -129,6 +131,7 @@ export function useKbTableColumns({
               <Button
                 variant="ghost"
                 size="icon-sm"
+                className="text-foreground/80 hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => void onDelete(kb)}
                 disabled={setEnabledPending || deletePending || checkingLinked}
                 title="删除"

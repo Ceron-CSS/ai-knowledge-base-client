@@ -47,7 +47,10 @@ function statusLabel(status: string) {
 }
 
 function modeLabel(mode: string) {
-  return mode === "agent" ? "Agent" : "Workflow"
+  if (mode === "agent") return "智能代理"
+  if (mode === "auto") return "自动选择"
+  if (mode === "workflow") return "标准问答"
+  return mode
 }
 
 function formatScore(value: unknown) {
@@ -73,11 +76,11 @@ function stepLabel(name: string) {
     prepare_direct_generation: "准备直答",
     generate_answer: "模型生成",
     verify_citations: "引用校验",
-    agent_planner: "Planner",
+    agent_planner: "策略规划",
     execute_tool: "执行工具",
     generation_guard: "生成守卫",
     build_insufficient_answer: "不足回答",
-    workflow_fallback_exit: "回退 Workflow",
+    workflow_fallback_exit: "回退标准流程",
   }
   return map[name] || name
 }
@@ -238,7 +241,7 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
         </div>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-auto p-4">
-          {loading && !detail ? <LoadingText className="justify-start">加载 Trace</LoadingText> : null}
+          {loading && !detail ? <LoadingText className="justify-start">加载中</LoadingText> : null}
           {error ? <div className="text-sm text-destructive">{error}</div> : null}
           {detail ? (
             <>
@@ -248,7 +251,7 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
                   <div>状态：{statusLabel(detail.status)}</div>
                   <div>模式：{modeLabel(detail.executionMode)}</div>
                   <div>模型：{detail.model || "-"}</div>
-                  <div>Agent 工具：{detail.summary.toolCallCount}</div>
+                  <div>工具调用：{detail.summary.toolCallCount}</div>
                   <div>引用：{detail.summary.usedCitationCount}</div>
                 </div>
                 <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
@@ -280,7 +283,7 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
                   </div>
                 ) : null}
                 {detail.traceUnavailable ? (
-                  <div className="text-sm text-muted-foreground">当前 Trace 版本不可用，仅展示摘要。</div>
+                  <div className="text-sm text-muted-foreground">当前过程详情不可用，仅展示摘要。</div>
                 ) : null}
               </section>
 

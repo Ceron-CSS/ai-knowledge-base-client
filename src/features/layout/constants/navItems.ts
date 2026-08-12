@@ -1,4 +1,14 @@
-import { Activity, BookOpen, Bot, Cpu, Home, Search, type LucideIcon } from "lucide-react"
+import {
+  Activity,
+  BookOpen,
+  Bot,
+  Cpu,
+  FlaskConical,
+  Home,
+  Search,
+  Shield,
+  type LucideIcon,
+} from "lucide-react"
 
 export type NavItem = {
   to: string
@@ -45,16 +55,28 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "观测",
     items: [
       {
+        to: "/agent-runs",
+        label: "运行记录",
+        Icon: Activity,
+        onboardingTarget: "nav-agent-runs",
+      },
+      {
         to: "/retrieval-debug",
         label: "召回调试台",
         Icon: Search,
         onboardingTarget: "nav-retrieval-debug",
       },
       {
-        to: "/agent-runs",
-        label: "Agent 运行",
-        Icon: Activity,
-        onboardingTarget: "nav-agent-runs",
+        to: "/evals",
+        label: "评测与优化",
+        Icon: FlaskConical,
+        onboardingTarget: "nav-evals",
+      },
+      {
+        to: "/evals/policies",
+        label: "Agent 策略中心",
+        Icon: Shield,
+        onboardingTarget: "nav-agent-policies",
       },
     ],
   },

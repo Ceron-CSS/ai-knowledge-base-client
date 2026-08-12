@@ -19,11 +19,16 @@ const ModelProviderPage = lazyPage(() => import("@/features/modelProviders/pages
 const AssistantListPage = lazyPage(() => import("@/features/assistants/pages/AssistantListPage"), "AssistantListPage")
 const AssistantEditPage = lazyPage(() => import("@/features/assistants/pages/AssistantEditPage"), "AssistantEditPage")
 const AssistantChatPage = lazyPage(() => import("@/features/assistantChat/pages/AssistantChatPage"), "AssistantChatPage")
-const RetrievalDebugPage = lazyPage(
-  () => import("@/features/retrievalDebug/pages/RetrievalDebugPage"),
-  "RetrievalDebugPage",
-)
+const RetrievalDebugPage = lazyPage(() => import("@/features/retrievalDebug/pages/RetrievalDebugPage"), "RetrievalDebugPage")
 const AgentRunsPage = lazyPage(() => import("@/features/agentRuns/pages/AgentRunsPage"), "AgentRunsPage")
+const EvalDatasetListPage = lazyPage(() => import("@/features/evals/pages/EvalDatasetListPage"), "EvalDatasetListPage")
+const EvalDatasetDetailPage = lazyPage(() => import("@/features/evals/pages/EvalDatasetDetailPage"), "EvalDatasetDetailPage")
+const EvalRunDetailPage = lazyPage(() => import("@/features/evals/pages/EvalRunDetailPage"), "EvalRunDetailPage")
+const EvalComparePage = lazyPage(() => import("@/features/evals/pages/EvalComparePage"), "EvalComparePage")
+const AgentPolicyCenterPage = lazyPage(
+  () => import("@/features/evals/pages/AgentPolicyCenterPage"),
+  "AgentPolicyCenterPage",
+)
 
 function withPageSuspense(element: ReactNode) {
   return <Suspense fallback={<PageFallback />}>{element}</Suspense>
@@ -59,6 +64,11 @@ export const router = createBrowserRouter([
           { path: "assistants/:id/chat", element: withPageSuspense(<AssistantChatPage />) },
           { path: "retrieval-debug", element: withPageSuspense(<RetrievalDebugPage />) },
           { path: "agent-runs", element: withPageSuspense(<AgentRunsPage />) },
+          { path: "evals", element: withPageSuspense(<EvalDatasetListPage />) },
+          { path: "evals/policies", element: withPageSuspense(<AgentPolicyCenterPage />) },
+          { path: "evals/runs/:runId", element: withPageSuspense(<EvalRunDetailPage />) },
+          { path: "evals/:datasetId/compare", element: withPageSuspense(<EvalComparePage />) },
+          { path: "evals/:datasetId", element: withPageSuspense(<EvalDatasetDetailPage />) },
           { path: "*", element: <NotFoundPage /> },
         ],
       },
