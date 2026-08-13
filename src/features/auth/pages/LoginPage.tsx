@@ -176,7 +176,7 @@ export function LoginPage() {
       <div className="relative w-full max-w-md -translate-y-2.5">
         <div className="mb-4 flex flex-col items-center text-center">
           <h1 className="mt-4 px-2 text-xl font-semibold tracking-tight leading-snug sm:text-2xl">
-            Agentic RAG 知识库评测与优化平台
+            Agentic RAG 质量工程平台
           </h1>
         </div>
 

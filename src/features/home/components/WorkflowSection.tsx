@@ -7,7 +7,7 @@ export function WorkflowSection() {
     <Card size="sm">
       <CardHeader>
         <CardTitle className="text-sm">系统工作流程</CardTitle>
-        <CardDescription className="text-xs">从用户操作到 AI 流式响应的核心链路。</CardDescription>
+        <CardDescription className="text-xs">从知识入库到 Agentic RAG 问答，再到评测优化的核心链路。</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-5 md:gap-5">
