@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react"
 import { LoadingText } from "@/components/ui/loading-text"
 import { Page, PageBody } from "@/components/ui/page-header"
 import { DashboardStatCards } from "@/features/home/components/DashboardStatCards"
+import { StrategyWorkbenchSection } from "@/features/home/components/StrategyWorkbenchSection"
 import { TechStackSection } from "@/features/home/components/TechStackSection"
 import { WorkflowSection } from "@/features/home/components/WorkflowSection"
 import { useDashboardStats } from "@/features/home/hooks/queries"
@@ -37,8 +38,10 @@ export function HomePage() {
 
   return (
     <Page>
-      <PageBody className="space-y-4">
+      <PageBody className="space-y-5">
+        <StrategyWorkbenchSection data={data} />
         <DashboardStatCards data={data} />
+        <WorkflowSection />
 
         <div className={`grid gap-4 ${showDocDist ? "lg:grid-cols-[3fr_1fr]" : ""}`}>
           <Suspense
@@ -54,7 +57,6 @@ export function HomePage() {
         </div>
 
         <TechStackSection />
-        <WorkflowSection />
       </PageBody>
     </Page>
   )

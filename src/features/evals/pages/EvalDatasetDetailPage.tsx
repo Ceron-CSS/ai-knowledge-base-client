@@ -58,14 +58,14 @@ export function EvalDatasetDetailPage() {
     <Page>
       <PageHeader
         items={[
-          { label: "评测与优化", href: "/evals" },
+          { label: "评测与策略", href: "/evals" },
           { label: dataset?.name || (page.dataset.isLoading ? "加载中…" : "数据集") },
         ]}
-        description={dataset?.description || "维护评测问题、参考答案与相关 Chunk 标签；策略发布请前往 Agent 策略中心"}
+        description={dataset?.description || "维护评测问题、参考答案与相关 Chunk 标签；策略发布请前往 Agent Policy"}
         actions={
           dataset ? (
             <Button variant="outline" size="lg" onClick={() => navigate("/evals/policies")}>
-              Agent 策略中心
+              Agent Policy
             </Button>
           ) : null
         }
@@ -262,7 +262,7 @@ function EmptyStateGuide({
       <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
         已有 {runCount} 次运行。可在运行历史勾选两次 Run 对比；候选策略胜出后去{" "}
         <Link className="text-foreground underline-offset-2 hover:underline" to="/evals/policies">
-          Agent 策略中心
+          Agent Policy
         </Link>{" "}
         发布。
       </div>

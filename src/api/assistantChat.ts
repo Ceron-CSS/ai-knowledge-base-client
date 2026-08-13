@@ -305,7 +305,12 @@ export type CitationFeedbackPayload = {
   chunkIndex?: number
   fileName: string
   snippet: string
-  feedback?: "irrelevant"
+  feedback?:
+    | "irrelevant"
+    | "answer_incorrect"
+    | "citation_not_supporting"
+    | "missing_expected_source"
+    | "should_have_abstained"
 }
 
 export type CitationFeedback = {

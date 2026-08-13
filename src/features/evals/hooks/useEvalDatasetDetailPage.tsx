@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useParams } from "react-router-dom"
 import { Pencil, Trash2 } from "lucide-react"
 import type { EvalQuery } from "@/api/evals"
@@ -48,12 +48,12 @@ export function useEvalDatasetDetailPage() {
     patchQuery.reset()
   }
 
-  function startEdit(query: EvalQuery) {
+  const startEdit = useCallback((query: EvalQuery) => {
     setEditingQuery(query)
     setEditorOpen(true)
     createQuery.reset()
     patchQuery.reset()
-  }
+  }, [createQuery, patchQuery])
 
   function cancelEditor() {
     setEditorOpen(false)
@@ -66,6 +66,8 @@ export function useEvalDatasetDetailPage() {
     question: string
     referenceAnswer: string | null
     relevantChunkIds: string[]
+    questionType?: string | null
+    shouldAbstain?: boolean
   }) {
     if (editingQuery) {
       await patchQuery.mutateAsync({ queryId: editingQuery.id, body })
@@ -110,6 +112,16 @@ export function useEvalDatasetDetailPage() {
         header: "相关 Chunk",
         cellClassName: "tabular-nums",
         render: (row) => row.relevantChunkIds.length,
+      },
+      {
+        key: "type",
+        header: "类型",
+        render: (row) => (
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
+            {formatQuestionType(row.questionType)}
+            {row.shouldAbstain ? " · 应拒答" : ""}
+          </span>
+        ),
       },
       {
         key: "updatedAt",
@@ -177,4 +189,19 @@ export function useEvalDatasetDetailPage() {
     deleteError: deleteQuery.isError,
     unlabeledCount: items.filter((q) => q.relevantChunkIds.length === 0).length,
   }
+}
+
+function formatQuestionType(value: string | null) {
+  if (!value) return "未分类"
+  const labels: Record<string, string> = {
+    single_fact: "单事实",
+    paraphrase: "同义表达",
+    multi_condition: "多条件",
+    cross_chunk: "跨 Chunk",
+    similar_distractor: "相似干扰",
+    insufficient_evidence: "证据不足",
+    small_talk: "闲聊",
+    online_failure: "线上失败",
+  }
+  return labels[value] ?? value
 }

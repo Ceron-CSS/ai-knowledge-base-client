@@ -18,6 +18,7 @@ type ChatMessageListProps = {
   onPreviewImage: (image: { url: string; name?: string }) => void
   onResend?: () => void
   onOpenRunTrace?: (runId: string) => void
+  onCreateEvalQuery?: (messageId: string) => void
 }
 
 export function ChatMessageList({
@@ -31,6 +32,7 @@ export function ChatMessageList({
   onPreviewImage,
   onResend,
   onOpenRunTrace,
+  onCreateEvalQuery,
 }: ChatMessageListProps) {
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
@@ -91,15 +93,26 @@ export function ChatMessageList({
                   </div>
                 ) : null}
                 {m.role === "assistant" && !showTypingDots ? <MessageCitations citations={parsed.citations} /> : null}
-                {m.role === "assistant" && m.runId && onOpenRunTrace && !showTypingDots ? (
-                  <div className="mt-2">
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-                      onClick={() => onOpenRunTrace(m.runId!)}
-                    >
-                      执行详情
-                    </button>
+                {m.role === "assistant" && !showTypingDots ? (
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    {m.runId && onOpenRunTrace ? (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                        onClick={() => onOpenRunTrace(m.runId!)}
+                      >
+                        执行详情
+                      </button>
+                    ) : null}
+                    {onCreateEvalQuery ? (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                        onClick={() => onCreateEvalQuery(m.id)}
+                      >
+                        加入评测集
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

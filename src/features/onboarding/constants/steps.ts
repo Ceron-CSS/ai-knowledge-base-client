@@ -1,4 +1,4 @@
-import { BookOpen, Bot, Cpu, Home, Settings } from "lucide-react"
+import { Activity, BookOpen, Bot, Cpu, FlaskConical, Home, Search, Settings, Shield } from "lucide-react"
 import type { OnboardingStep } from "../types"
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -37,6 +37,42 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     target: "nav-assistants",
     points: ["创建面向不同场景的助手", "绑定知识库并配置模型", "进入对话页面测试回答效果"],
     action: "配置完成后，进入聊天页用真实问题验证知识命中情况。",
+  },
+  {
+    title: "评测数据集",
+    subtitle: "这里把线上问题沉淀成可复跑的策略验证集。",
+    Icon: FlaskConical,
+    route: "/evals",
+    target: "nav-evals",
+    points: ["维护评测问题和参考答案", "标注相关 Chunk", "运行 Workflow baseline 与 Agent candidate"],
+    action: "遇到回答失败时，可以从聊天页创建 EvalQuery 草稿，再回到这里完成标注。",
+  },
+  {
+    title: "Agent Policy",
+    subtitle: "这里管理候选策略、草稿和线上 active policy。",
+    Icon: Shield,
+    route: "/evals/policies",
+    target: "nav-agent-policies",
+    points: ["从 active 或 candidate run 创建 draft", "查看发布门槛和风险提示", "人工确认后发布唯一 active policy"],
+    action: "策略不是自动上线；先用 EvalRun 证据验证，再由管理员确认发布。",
+  },
+  {
+    title: "Agent Runs",
+    subtitle: "这里下钻每次 Agent 的结构化执行 Trace。",
+    Icon: Activity,
+    route: "/agent-runs",
+    target: "nav-agent-runs",
+    points: ["查看工具调用、检索 Pass 和耗时", "定位 fallback 或预算耗尽", "从 Trace 打开引用原文"],
+    action: "评测对比出现 improved 或 regressed 时，从这里解释 Agent 到底做了什么。",
+  },
+  {
+    title: "召回调试台",
+    subtitle: "这里用单条查询检查检索候选和原文证据。",
+    Icon: Search,
+    route: "/retrieval-debug",
+    target: "nav-retrieval-debug",
+    points: ["比较不同检索模式", "检查 Chunk 排名和分数", "打开文档详情定位原文"],
+    action: "当某个样本退化时，先用调试台验证是检索问题还是 Agent 决策问题。",
   },
   {
     title: "设置",

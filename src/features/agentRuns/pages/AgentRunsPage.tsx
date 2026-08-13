@@ -19,7 +19,7 @@ function statusLabel(status: string) {
 
 function sourceLabel(source: string) {
   if (source === "chat") return "问答助手"
-  if (source === "eval") return "评测与优化"
+  if (source === "eval") return "评测与策略"
   return source
 }
 
@@ -177,7 +177,7 @@ export function AgentRunsPage() {
   return (
     <Page>
       <PageHeader
-        items={[{ label: "运行记录" }]}
+        items={[{ label: "Agent Runs" }]}
         description="查看每次回答的耗时、工具调用与详细过程；首字等待是用户真正干等的时间"
       />
 
@@ -244,7 +244,7 @@ export function AgentRunsPage() {
           options={[
             { value: "", label: "全部来源" },
             { value: "chat", label: "问答助手" },
-            { value: "eval", label: "评测与优化" },
+            { value: "eval", label: "评测与策略" },
           ]}
         />
         <FilterSelect

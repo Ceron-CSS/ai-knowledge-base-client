@@ -8,6 +8,7 @@ import {
   useActivateAgentPolicy,
   useAgentPolicies,
   useAgentPolicyActivations,
+  useCreateAgentPolicy,
 } from "@/features/evals/hooks/queries"
 import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 
@@ -27,12 +28,15 @@ export function EvalAgentPolicyPanel({
   const policies = useAgentPolicies()
   const history = useAgentPolicyActivations(!compact)
   const activate = useActivateAgentPolicy()
+  const createPolicy = useCreateAgentPolicy()
   const [pendingPolicyId, setPendingPolicyId] = useState<string | null>(null)
 
   const pending = (policies.data ?? []).find((item) => item.id === pendingPolicyId)
   const highlighted = (policies.data ?? []).find((item) => item.id === highlightPolicyId)
   const errorText =
-    activate.error instanceof HttpError
+    createPolicy.error instanceof HttpError
+      ? createPolicy.error.message
+      : activate.error instanceof HttpError
       ? activate.error.message
       : activate.error instanceof Error
         ? activate.error.message
@@ -47,9 +51,9 @@ export function EvalAgentPolicyPanel({
       <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <div className="text-sm font-medium">去策略中心发布</div>
+            <div className="text-sm font-medium">去 Agent Policy 发布</div>
             <p className="text-xs text-muted-foreground">
-              策略发布是平台级能力。候选策略评测通过后，请在 Agent 策略中心确认发布为线上
+              策略发布是平台级能力。候选策略评测通过后，请在 Agent Policy 确认发布为线上
               active；历史 Run 快照不会被改写。
             </p>
             {highlighted ? (
@@ -60,6 +64,24 @@ export function EvalAgentPolicyPanel({
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
+            {highlighted && highlighted.id !== "workflow-baseline-v1" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                loading={createPolicy.isPending}
+                onClick={() =>
+                  void createPolicy.mutateAsync({
+                    name: `${highlighted.name} · ${evidenceEvalRunId ? evidenceEvalRunId.slice(0, 8) : "candidate"} 草稿`,
+                    sourcePolicyId: highlighted.id,
+                    description: evidenceEvalRunId
+                      ? `基于 candidate EvalRun ${evidenceEvalRunId} 创建，用于调整后再次验证。`
+                      : "基于当前候选策略创建，用于调整后再次验证。",
+                  })
+                }
+              >
+                基于本次运行创建草稿
+              </Button>
+            ) : null}
             {highlighted &&
             !highlighted.isActive &&
             highlighted.id !== "workflow-baseline-v1" &&
@@ -74,7 +96,7 @@ export function EvalAgentPolicyPanel({
               </Button>
             ) : null}
             <Button variant="outline" size="sm" onClick={() => navigate(centerHref)}>
-              打开策略中心
+              打开 Agent Policy
             </Button>
           </div>
         </div>
@@ -82,11 +104,6 @@ export function EvalAgentPolicyPanel({
         <ConfirmDeleteDialog
           open={Boolean(pendingPolicyId)}
           title="确认发布 Agent Policy"
-          description={
-            pending
-              ? `该策略发布后会成为线上 active policy。所有使用 auto/agent 的聊天会读取新策略。历史评测 Run 的策略快照不会被改写。将发布「${pending.name} (${pending.version})」。`
-              : undefined
-          }
           confirmLabel="确认发布"
           confirming={activate.isPending}
           errorText={errorText}
@@ -102,7 +119,9 @@ export function EvalAgentPolicyPanel({
             })
             setPendingPolicyId(null)
           }}
-        />
+        >
+          <ReleaseGateChecklist policy={pending} evidenceEvalRunId={evidenceEvalRunId} />
+        </ConfirmDeleteDialog>
       </section>
     )
   }
@@ -115,13 +134,13 @@ export function EvalAgentPolicyPanel({
           <p className="mt-1 text-xs text-muted-foreground">
             内置 v1/v2 仅为 seed。请复制为 draft、评测对比后，在{" "}
             <Link className="text-foreground underline-offset-2 hover:underline" to="/evals/policies">
-              Agent 策略中心
+              Agent Policy
             </Link>{" "}
             发布；历史评测快照不会被改写。
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate(centerHref)}>
-          打开策略中心
+          打开 Agent Policy
         </Button>
       </div>
 
@@ -202,11 +221,6 @@ export function EvalAgentPolicyPanel({
       <ConfirmDeleteDialog
         open={Boolean(pendingPolicyId)}
         title="确认发布 Agent Policy"
-        description={
-          pending
-            ? `该策略发布后会成为线上 active policy。所有使用 auto/agent 的聊天会读取新策略。历史评测 Run 的策略快照不会被改写。将发布「${pending.name} (${pending.version})」。`
-            : undefined
-        }
         confirmLabel="确认发布"
         confirming={activate.isPending}
         errorText={errorText}
@@ -222,7 +236,37 @@ export function EvalAgentPolicyPanel({
           })
           setPendingPolicyId(null)
         }}
-      />
+      >
+        <ReleaseGateChecklist policy={pending} evidenceEvalRunId={evidenceEvalRunId} />
+      </ConfirmDeleteDialog>
     </section>
+  )
+}
+
+function ReleaseGateChecklist({
+  policy,
+  evidenceEvalRunId,
+}: {
+  policy?: { name: string; version: string } | null
+  evidenceEvalRunId?: string | null
+}) {
+  return (
+    <div className="space-y-3 text-sm">
+      <p className="text-muted-foreground">
+        {policy
+          ? `将发布「${policy.name} (${policy.version})」为线上 active policy。历史 EvalRun 的策略快照不会被改写。`
+          : "将发布该策略为线上 active policy。历史 EvalRun 的策略快照不会被改写。"}
+      </p>
+      <div className="rounded-md border border-amber-300/60 bg-amber-50/70 p-3 text-amber-950">
+        发布前请确认以下门槛已经人工检查：
+      </div>
+      <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+        <li>已关联真实 EvalRun：{evidenceEvalRunId ? evidenceEvalRunId : "未检测到，请谨慎发布"}</li>
+        <li>regressed 样本已复核，并记录退化原因。</li>
+        <li>关键检索和引用指标未低于 Workflow baseline。</li>
+        <li>P95 延迟、成本代理、fallback 和预算耗尽比例在可接受范围内。</li>
+        <li>没有未解释的系统错误；必要时先创建新的 Draft Policy 再复跑。</li>
+      </ul>
+    </div>
   )
 }

@@ -14,8 +14,8 @@ export function EvalDatasetListPage() {
   return (
     <Page>
       <PageHeader
-        items={[{ label: "评测与优化" }]}
-        description="维护评测数据集与问题标签；策略发版请使用 Agent 策略中心"
+        items={[{ label: "评测与策略" }]}
+        description="维护评测数据集与问题标签；策略发版请使用 Agent Policy"
       />
 
       <PageBody className="space-y-2">
@@ -54,7 +54,7 @@ export function EvalDatasetListPage() {
               placeholder="搜索数据集名称/说明"
             />
             <Button variant="outline" size="lg" onClick={() => navigate("/evals/policies")}>
-              Agent 策略中心
+              Agent Policy
             </Button>
             <Button variant="primary" size="lg" onClick={page.startCreate}>
               新建数据集

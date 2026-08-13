@@ -1,21 +1,59 @@
 import { useState } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useParams } from "react-router-dom"
+import { createEvalQueryFromAssistantMessage, type EvalFeedbackType } from "@/api/evals"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
+import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
+import { Select } from "@/components/ui/select"
 import { AgentRunTraceDrawer } from "@/features/assistantChat/components/AgentRunTraceDrawer"
 import { ChatComposer } from "@/features/assistantChat/components/ChatComposer"
 import { ChatMessageList } from "@/features/assistantChat/components/ChatMessageList"
 import { ConversationSidebar } from "@/features/assistantChat/components/ConversationSidebar"
 import { useAssistantChat } from "@/features/assistantChat/hooks/useAssistantChat"
 import { normalizeConversationTitle } from "@/features/assistantChat/lib/conversationTitle"
+import { evalKeys, useEvalDatasets } from "@/features/evals/hooks/queries"
+
+const feedbackOptions: Array<{ value: EvalFeedbackType; label: string }> = [
+  { value: "answer_incorrect", label: "回答不正确" },
+  { value: "citation_not_supporting", label: "引用不支持回答" },
+  { value: "missing_expected_source", label: "没有找到应该命中的资料" },
+  { value: "should_have_abstained", label: "应当拒答但系统给出了答案" },
+]
 
 export function AssistantChatPage() {
   const params = useParams()
   const assistantId = params.id ?? ""
   const [traceRunId, setTraceRunId] = useState<string | null>(null)
+  const [evalDraftMessageId, setEvalDraftMessageId] = useState<string | null>(null)
+  const [targetDatasetId, setTargetDatasetId] = useState("")
+  const [feedbackType, setFeedbackType] = useState<EvalFeedbackType>("answer_incorrect")
+  const qc = useQueryClient()
 
   const chat = useAssistantChat({ assistantId })
+  const evalDatasets = useEvalDatasets()
+  const createEvalDraft = useMutation({
+    mutationFn: () => {
+      if (!evalDraftMessageId || !targetDatasetId || !chat.selectedConversationId) {
+        throw new Error("请选择评测集")
+      }
+      return createEvalQueryFromAssistantMessage(targetDatasetId, {
+        assistantId,
+        conversationId: chat.selectedConversationId,
+        messageId: evalDraftMessageId,
+        feedbackType,
+      })
+    },
+    onSuccess: async (query) => {
+      await qc.invalidateQueries({ queryKey: evalKeys.datasets() })
+      await qc.invalidateQueries({ queryKey: evalKeys.dataset(query.datasetId) })
+      await qc.invalidateQueries({ queryKey: evalKeys.queries(query.datasetId) })
+      setEvalDraftMessageId(null)
+    },
+  })
+  const datasetOptions =
+    evalDatasets.data?.map((dataset) => ({ value: dataset.id, label: dataset.name })) ?? []
 
   return (
     <Page fill>
@@ -73,6 +111,11 @@ export function AssistantChatPage() {
               onPreviewImage={chat.setPreviewImage}
               onResend={chat.resend}
               onOpenRunTrace={setTraceRunId}
+              onCreateEvalQuery={(messageId) => {
+                setEvalDraftMessageId(messageId)
+                setTargetDatasetId((current) => current || datasetOptions[0]?.value || "")
+                createEvalDraft.reset()
+              }}
             />
 
             <ChatComposer
@@ -126,6 +169,65 @@ export function AssistantChatPage() {
             runId={traceRunId}
             onClose={() => setTraceRunId(null)}
           />
+          <Dialog
+            open={!!evalDraftMessageId}
+            onOpenChange={(open) => {
+              if (!open) setEvalDraftMessageId(null)
+            }}
+            title="加入评测集"
+            description="从这次线上失败创建 EvalQuery 草稿，稍后补充参考答案和相关 Chunk 标签。"
+          >
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">目标评测集</label>
+                <Select
+                  value={targetDatasetId}
+                  onValueChange={setTargetDatasetId}
+                  options={datasetOptions}
+                  placeholder={evalDatasets.isLoading ? "正在加载评测集" : "选择评测集"}
+                  disabled={evalDatasets.isLoading || datasetOptions.length === 0}
+                />
+                {datasetOptions.length === 0 && !evalDatasets.isLoading ? (
+                  <div className="mt-1.5 text-xs text-muted-foreground">
+                    还没有评测集，请先到评测与策略中创建数据集。
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">反馈类型</label>
+                <Select
+                  value={feedbackType}
+                  onValueChange={(value) => setFeedbackType(value as EvalFeedbackType)}
+                  options={feedbackOptions}
+                />
+              </div>
+
+              {createEvalDraft.isError ? (
+                <div className="text-sm text-destructive">创建草稿失败，请检查评测集和对话消息是否仍存在。</div>
+              ) : null}
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="dialog-cancel"
+                  size="dialog"
+                  onClick={() => setEvalDraftMessageId(null)}
+                  disabled={createEvalDraft.isPending}
+                >
+                  取消
+                </Button>
+                <Button
+                  variant="primary"
+                  size="dialog"
+                  onClick={() => createEvalDraft.mutate()}
+                  disabled={!targetDatasetId}
+                  loading={createEvalDraft.isPending}
+                >
+                  创建草稿
+                </Button>
+              </div>
+            </div>
+          </Dialog>
         </div>
       </PageBody>
     </Page>

@@ -5,6 +5,7 @@ import type { EvalRun } from "@/api/evals"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { useEvalRuns } from "@/features/evals/hooks/queries"
+import { FixedSeedUiDemoBadge, isFixedSeedUiDemoRun } from "@/features/evals/lib/demoRun"
 import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 import {
   evalExecutionModeLabel,
@@ -69,7 +70,12 @@ export function EvalRunHistoryPanel({
       {
         key: "name",
         header: "名称",
-        render: (row) => row.name || "-",
+        render: (row) => (
+          <div className="flex max-w-[220px] flex-col gap-1">
+            <span className="truncate">{row.name || "-"}</span>
+            {isFixedSeedUiDemoRun(row) ? <FixedSeedUiDemoBadge /> : null}
+          </div>
+        ),
       },
       {
         key: "status",

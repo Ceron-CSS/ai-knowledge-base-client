@@ -17,7 +17,7 @@
   <a href="README.zh-CN.md">中文</a>
 </p>
 
-<p>Agentic RAG 质量工程平台的前端项目，基于 React、TypeScript 和 Vite 构建。</p>
+<p>用于对比 Workflow baseline、Agent Policy candidate、Trace 证据和策略发布的 React + TypeScript + Vite 前端。</p>
 
 </div>
 
@@ -37,15 +37,32 @@
 | Markdown | react-markdown + remark-gfm |
 | 密码强度 | @zxcvbn-ts |
 
+## 产品主流程
+
+前端围绕 Agentic RAG 质量闭环组织：
+
+```text
+可追溯知识底座
+  -> 评测数据集与 Chunk 标注
+  -> Workflow baseline 对比 Agent Policy candidate
+  -> 质量 / 延迟 / 成本对比
+  -> improved / regressed 样本下钻
+  -> Agent Trace 与原文证据
+  -> 发布验证通过的 Active Policy
+```
+
 ## 功能特性
 
 - **认证**：JWT 登录、注册、GitHub OAuth、修改密码与密码强度校验。
 - **布局**：登录后应用框架，可折叠侧边栏导航，支持明暗主题切换（快捷键 `D`）。
-- **首页仪表盘**：知识库、文档、助手、模型、请求趋势和文档分布统计。
-- **知识库**：增删改查，启用/停用，排序，关联助手检查，文档上传与分块预览。
+- **首页**：当前提供知识库、文档、助手、模型和请求趋势统计，目标入口是最近 Benchmark 对比与策略验证工作台。
+- **知识库**：增删改查，启用/停用，排序，关联助手检查，文档上传、抽取预览、Chunk 预览和原文证据下钻。
 - **模型供应商**：阿里云百炼、DeepSeek、OpenAI 兼容服务商配置。
 - **问答助手**：创建/编辑、模型配置、系统提示词、发布状态、关联知识库。
 - **助手聊天**：会话历史、重命名/删除、SSE 流式响应、引用来源、Markdown 渲染、图片与文档附件。
+- **Agent Runs**：结构化运行记录与 Trace 入口，查看工具调用、检索决策、fallback、耗时和错误。
+- **Retrieval Debug**：围绕指定知识库和查询参数检查召回行为。
+- **评测与策略**：评测数据集、Chunk 标注、异步 EvalRun 进度、运行详情、baseline/candidate 对比和 Agent Policy 管理。
 - **新手引导**：首次使用时的页面引导（`onboarding` 模块）。
 
 ## 项目结构
@@ -61,6 +78,8 @@ client/
 |   |   |-- kb.ts                知识库与文档
 |   |   |-- assistants.ts        问答助手
 |   |   |-- assistantChat.ts     会话与流式聊天
+|   |   |-- agentRuns.ts        Agent 运行 Trace
+|   |   |-- evals.ts            评测数据集、运行、对比与策略
 |   |   |-- models.ts            模型供应商配置
 |   |   |-- stats.ts             仪表盘统计
 |   |   `-- search.ts            搜索
@@ -78,11 +97,14 @@ client/
 |   |-- features/                按业务域划分的功能模块
 |   |   |-- auth/                认证与登录
 |   |   |-- layout/              应用框架与侧边栏
-|   |   |-- home/                首页仪表盘
+|   |   |-- home/                首页仪表盘与质量闭环入口
 |   |   |-- kb/                  知识库
 |   |   |-- modelProviders/      模型供应商
 |   |   |-- assistants/          问答助手
 |   |   |-- assistantChat/       助手聊天
+|   |   |-- agentRuns/           Agent 运行列表与 Trace 入口
+|   |   |-- retrievalDebug/      召回调试工作台
+|   |   |-- evals/               评测数据集、运行、对比与策略
 |   |   `-- onboarding/          新手引导
 |   |-- hooks/                   全局 hooks（如防抖）
 |   |-- lib/                     通用工具（如 cn）
@@ -176,6 +198,8 @@ npm run dev
 | `npm run build` | 类型检查并构建生产资源 |
 | `npm run preview` | 预览生产构建结果 |
 | `npm run lint` | 运行 ESLint |
+| `npm run test` | 以 watch 模式运行 Vitest |
+| `npm run test:ci` | 在 CI 中单次运行 Vitest |
 | `npm run typecheck` | 运行 TypeScript 检查（不输出文件） |
 | `npm run check` | 依次执行 lint + typecheck |
 | `npm run format` | 使用 Prettier 格式化 TS/TSX 文件 |
@@ -189,11 +213,19 @@ npm run dev
 | `/home` | 首页仪表盘 | 是 |
 | `/kb` | 知识库列表 | 是 |
 | `/kb/:id` | 知识库详情与条目列表 | 是 |
+| `/kb/:id/items/:itemId` | 文档详情与 Chunk 证据 | 是 |
 | `/kb/:id/upload` | 上传、抽取与分块预览 | 是 |
 | `/model-providers` | 模型供应商配置 | 是 |
 | `/assistants` | 问答助手列表 | 是 |
 | `/assistants/:id` | 创建或编辑助手（`new` 为新建） | 是 |
 | `/assistants/:id/chat` | 助手聊天 | 是 |
+| `/agent-runs` | Agent 运行记录与 Trace 入口 | 是 |
+| `/retrieval-debug` | 召回调试工作台 | 是 |
+| `/evals` | 评测数据集列表 | 是 |
+| `/evals/:datasetId` | 数据集详情、问题、标注、运行历史和趋势 | 是 |
+| `/evals/runs/:runId` | EvalRun 详情、进度、逐题结果和 Trace 下钻 | 是 |
+| `/evals/:datasetId/compare` | Workflow baseline 与 Agent Policy candidate 对比 | 是 |
+| `/evals/policies` | Agent Policy 中心与激活流程 | 是 |
 
 ## 后端集成
 
@@ -213,7 +245,13 @@ npm run dev
 | 聊天回复 | `assistantChat.ts` → `.../messages/stream` | SSE |
 | 文件上传 | `kb.ts`、聊天附件 | `FormData` |
 
-前端依赖后端提供 `/auth`、`/kb`、`/assistants`、`/model-configs`、`/api/stats` 等接口。
+前端依赖 Python 后端提供 `/auth`、`/kb`、`/assistants`、`/model-configs`、`/api/stats`、`/agent-runs`、`/evals` 等接口。
+
+## Demo 与 Benchmark 边界
+
+前端可以展示 `server-python/scripts/seed_eval_demo.py` 生成的固定种子评测数据。这类数据只用于 UI 演示、截图和冒烟检查，预设指标不能作为真实性能结论。
+
+真实 Benchmark 必须来自真实 Retriever 与线上 Agent Runtime，报告应包含数据版本、Policy 快照、运行环境、逐问题结果和导出产物。详细设计见 `../docs/07-real-evaluation-and-demo-design.md`。
 
 ## 构建优化
 

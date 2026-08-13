@@ -14,6 +14,13 @@ type EvalResultDetailDrawerProps = {
   referenceAnswer?: string | null
   onClose: () => void
   onOpenTrace?: (agentRunId: string) => void
+  onOpenCitation?: (citation: {
+    kbId: string
+    itemId: string
+    chunkIndex?: number
+    chunkId?: string
+    pageStart?: number
+  }) => void
 }
 
 export function EvalResultDetailDrawer({
@@ -23,6 +30,7 @@ export function EvalResultDetailDrawer({
   referenceAnswer,
   onClose,
   onOpenTrace,
+  onOpenCitation,
 }: EvalResultDetailDrawerProps) {
   if (!result) {
     return (
@@ -46,6 +54,7 @@ export function EvalResultDetailDrawer({
     result.metrics.decisionSummary && typeof result.metrics.decisionSummary === "object"
       ? (result.metrics.decisionSummary as Record<string, unknown>)
       : null
+  const citations = result.citations.filter(isOpenableCitation)
 
   return (
     <Dialog
@@ -75,6 +84,47 @@ export function EvalResultDetailDrawer({
           pre
         />
         <Field label="相关标签" value={result.relevantChunkIds.join(", ") || "-"} />
+        {citations.length ? (
+          <div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">引用原文</div>
+            <div className="space-y-2">
+              {citations.map((citation, index) => (
+                <div
+                  key={`${citation.itemId}-${citation.chunkIndex ?? index}-${index}`}
+                  className="rounded-md border bg-muted/20 p-2"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">
+                        {index + 1}. {citation.fileName || citation.itemId}
+                      </div>
+                      <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                        {citation.snippet || "无引用摘要"}
+                      </div>
+                    </div>
+                    {onOpenCitation ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          onOpenCitation({
+                            kbId: citation.kbId,
+                            itemId: citation.itemId,
+                            chunkIndex: citation.chunkIndex,
+                            chunkId: citation.chunkId,
+                            pageStart: citation.pageStart,
+                          })
+                        }
+                      >
+                        打开原文
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <Field label="生成答案" value={result.generatedAnswer || "-"} pre />
         {decisionSummary ? (
           <Field
@@ -122,6 +172,28 @@ export function EvalResultDetailDrawer({
         </Button>
       </div>
     </Dialog>
+  )
+}
+
+type OpenableCitation = {
+  kbId: string
+  itemId: string
+  fileName?: string
+  snippet?: string
+  chunkIndex?: number
+  chunkId?: string
+  pageStart?: number
+}
+
+function isOpenableCitation(value: Record<string, unknown>): value is OpenableCitation {
+  return (
+    typeof value.kbId === "string" &&
+    typeof value.itemId === "string" &&
+    (value.fileName === undefined || typeof value.fileName === "string") &&
+    (value.snippet === undefined || typeof value.snippet === "string") &&
+    (value.chunkIndex === undefined || typeof value.chunkIndex === "number") &&
+    (value.chunkId === undefined || typeof value.chunkId === "string") &&
+    (value.pageStart === undefined || typeof value.pageStart === "number")
   )
 }
 

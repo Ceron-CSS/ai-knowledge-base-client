@@ -35,28 +35,40 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "知识",
     items: [
       { to: "/kb", label: "知识库", Icon: BookOpen, onboardingTarget: "nav-kb" },
+    ],
+  },
+  {
+    id: "application",
+    label: "应用",
+    items: [
       { to: "/assistants", label: "问答助手", Icon: Bot, onboardingTarget: "nav-assistants" },
     ],
   },
   {
-    id: "compute",
-    label: "模型",
+    id: "evaluation",
+    label: "评测与策略",
     items: [
       {
-        to: "/model-providers",
-        label: "模型提供商",
-        Icon: Cpu,
-        onboardingTarget: "nav-model-providers",
+        to: "/evals",
+        label: "评测数据集",
+        Icon: FlaskConical,
+        onboardingTarget: "nav-evals",
+      },
+      {
+        to: "/evals/policies",
+        label: "Agent Policy",
+        Icon: Shield,
+        onboardingTarget: "nav-agent-policies",
       },
     ],
   },
   {
     id: "observability",
-    label: "观测",
+    label: "观测与调试",
     items: [
       {
         to: "/agent-runs",
-        label: "运行记录",
+        label: "Agent Runs",
         Icon: Activity,
         onboardingTarget: "nav-agent-runs",
       },
@@ -66,17 +78,17 @@ export const NAV_GROUPS: NavGroup[] = [
         Icon: Search,
         onboardingTarget: "nav-retrieval-debug",
       },
+    ],
+  },
+  {
+    id: "system",
+    label: "系统",
+    items: [
       {
-        to: "/evals",
-        label: "评测与优化",
-        Icon: FlaskConical,
-        onboardingTarget: "nav-evals",
-      },
-      {
-        to: "/evals/policies",
-        label: "Agent 策略中心",
-        Icon: Shield,
-        onboardingTarget: "nav-agent-policies",
+        to: "/model-providers",
+        label: "模型供应商",
+        Icon: Cpu,
+        onboardingTarget: "nav-model-providers",
       },
     ],
   },

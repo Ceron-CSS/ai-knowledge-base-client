@@ -120,7 +120,7 @@ export function ChunkLabelingPanel({ labeling, onUseQuestionAsQuery }: ChunkLabe
           </div>
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground">尚未选择相关 Chunk（仅评测与优化需要至少一个标签）</div>
+        <div className="text-sm text-muted-foreground">尚未选择相关 Chunk（评测运行至少需要一个标签）</div>
       )}
 
       <div className="space-y-3">

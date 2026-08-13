@@ -17,7 +17,7 @@
   <a href="README.zh-CN.md">中文</a>
 </p>
 
-<p>React + TypeScript + Vite frontend for the Agentic RAG Quality Engineering Platform.</p>
+<p>React + TypeScript + Vite frontend for comparing Workflow baselines, Agent Policy candidates, Trace evidence, and policy releases.</p>
 
 </div>
 
@@ -37,15 +37,32 @@
 | Markdown | react-markdown + remark-gfm |
 | Password strength | @zxcvbn-ts |
 
+## Product Flow
+
+The frontend is organized around the Agentic RAG quality loop:
+
+```text
+Traceable knowledge base
+  -> eval dataset and chunk labels
+  -> Workflow baseline vs Agent Policy candidate
+  -> quality / latency / cost comparison
+  -> improved and regressed sample drilldown
+  -> Agent Trace and original evidence
+  -> validated Active Policy release
+```
+
 ## Features
 
 - **Auth**: JWT login, registration, GitHub OAuth, password change, and password-strength validation.
 - **Layout**: Authenticated app shell with collapsible sidebar and light/dark theme toggle (shortcut `D`).
-- **Dashboard**: Metrics for knowledge bases, documents, assistants, models, request trends, and document distribution.
-- **Knowledge bases**: CRUD, enable/disable, sorting, linked-assistant checks, document upload, and chunk preview.
+- **Home**: Current dashboard plus the target entry point for benchmark comparison and strategy validation.
+- **Knowledge bases**: CRUD, enable/disable, sorting, linked-assistant checks, document upload, extraction preview, chunk preview, and original evidence drilldown.
 - **Model providers**: Configuration for Aliyun Bailian, DeepSeek, and OpenAI-compatible providers.
 - **Assistants**: Create/edit, model config, system prompt, publication state, and linked knowledge bases.
 - **Assistant chat**: Conversation history, rename/delete, SSE streaming, citations, markdown rendering, image and document attachments.
+- **Agent Runs**: Structured run records and Trace drawer for tool calls, retrieval decisions, fallback, latency, and errors.
+- **Retrieval Debug**: Inspect retrieval behavior against selected knowledge bases and query settings.
+- **Evaluation & Strategy**: Eval datasets, chunk labeling, async EvalRun progress, run details, baseline/candidate comparison, and Agent Policy management.
 - **Onboarding**: First-run guided tour (`onboarding` module).
 
 ## Project Structure
@@ -61,6 +78,8 @@ client/
 |   |   |-- kb.ts                Knowledge bases and documents
 |   |   |-- assistants.ts        Q&A assistants
 |   |   |-- assistantChat.ts     Conversations and streaming chat
+|   |   |-- agentRuns.ts        Agent run traces
+|   |   |-- evals.ts            Evaluation datasets, runs, compare, policies
 |   |   |-- models.ts            Model provider configs
 |   |   |-- stats.ts             Dashboard stats
 |   |   `-- search.ts            Search
@@ -78,11 +97,14 @@ client/
 |   |-- features/                Feature modules by domain
 |   |   |-- auth/                Authentication and login
 |   |   |-- layout/              App shell and sidebar
-|   |   |-- home/                Dashboard
+|   |   |-- home/                Home dashboard and quality-loop entry
 |   |   |-- kb/                  Knowledge bases
 |   |   |-- modelProviders/      Model providers
 |   |   |-- assistants/          Q&A assistants
 |   |   |-- assistantChat/       Assistant chat
+|   |   |-- agentRuns/           Agent run list and trace entry
+|   |   |-- retrievalDebug/      Retrieval debugging workbench
+|   |   |-- evals/               Evaluation datasets, runs, compare, policies
 |   |   `-- onboarding/          Onboarding tour
 |   |-- hooks/                   Global hooks (e.g. debounce)
 |   |-- lib/                     Shared utilities (e.g. cn)
@@ -176,9 +198,16 @@ The dev server runs at `http://localhost:5173` by default.
 | `npm run build` | Type-check and build production assets |
 | `npm run preview` | Preview production build |
 | `npm run lint` | Run ESLint |
+| `npm run test` | Run Vitest in watch mode |
+| `npm run test:ci` | Run Vitest once for CI |
 | `npm run typecheck` | Run TypeScript without emitting files |
 | `npm run check` | Run lint + typecheck |
 | `npm run format` | Format TS/TSX files with Prettier |
+
+Current high-value tests cover SSE/NDJSON stream parsing, Workflow baseline vs Agent Policy
+comparison release conclusions, and Chunk evidence navigation. These are the first regression
+guards for the Evaluation & Strategy loop; browser-level Playwright smoke tests can be added later
+without replacing these unit tests.
 
 ## Routes
 
@@ -189,11 +218,19 @@ The dev server runs at `http://localhost:5173` by default.
 | `/home` | Dashboard | Yes |
 | `/kb` | Knowledge base list | Yes |
 | `/kb/:id` | Knowledge base detail and item list | Yes |
+| `/kb/:id/items/:itemId` | Document detail and chunk evidence | Yes |
 | `/kb/:id/upload` | Upload, extract, and chunk preview | Yes |
 | `/model-providers` | Model provider configs | Yes |
 | `/assistants` | Assistant list | Yes |
 | `/assistants/:id` | Create or edit assistant (`new` for create) | Yes |
 | `/assistants/:id/chat` | Assistant chat | Yes |
+| `/agent-runs` | Agent run records and Trace entry | Yes |
+| `/retrieval-debug` | Retrieval debugging workbench | Yes |
+| `/evals` | Evaluation dataset list | Yes |
+| `/evals/:datasetId` | Dataset detail, questions, labels, run history, trends | Yes |
+| `/evals/runs/:runId` | EvalRun detail, progress, per-query results, Trace drilldown | Yes |
+| `/evals/:datasetId/compare` | Workflow baseline vs Agent Policy candidate comparison | Yes |
+| `/evals/policies` | Agent Policy center and activation flow | Yes |
 
 ## Backend Integration
 
@@ -213,7 +250,13 @@ Streaming and multipart requests reuse the same layer; parsers live in `src/api/
 | Chat reply | `assistantChat.ts` → `.../messages/stream` | SSE |
 | File upload | `kb.ts`, chat attachments | `FormData` |
 
-The frontend expects the backend to expose `/auth`, `/kb`, `/assistants`, `/model-configs`, `/api/stats`, and related endpoints.
+The frontend expects the Python backend to expose `/auth`, `/kb`, `/assistants`, `/model-configs`, `/api/stats`, `/agent-runs`, `/evals`, and related endpoints.
+
+## Demo vs Benchmark
+
+The app can display fixed seed evaluation data created by `server-python/scripts/seed_eval_demo.py`. Use it for UI walkthroughs and screenshots only; its preset metrics are not real benchmark conclusions.
+
+Real Benchmark results should come from live Retriever and Agent Runtime runs, with dataset version, policy snapshots, environment, per-query results, and exported reports. See `../docs/07-real-evaluation-and-demo-design.md`.
 
 ## Build Optimization
 

@@ -21,15 +21,8 @@ import {
   evalRetrieverModeLabel,
   formatMetricNumber,
 } from "@/features/evals/lib/labels"
+import { buildReleaseConclusion, classificationLabel } from "@/features/evals/lib/comparePresentation"
 import { cn } from "@/lib/utils"
-
-function classificationLabel(value: string) {
-  if (value === "improved") return "改善"
-  if (value === "regressed") return "回归"
-  if (value === "unchanged") return "不变"
-  if (value === "incomparable") return "不可比"
-  return value
-}
 
 function formatSignedDelta(value: number | null | undefined, digits = 3) {
   if (typeof value !== "number" || !Number.isFinite(value)) return "-"
@@ -163,7 +156,7 @@ export function EvalComparePage() {
                 variant="ghost"
                 size="icon-sm"
                 className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
-                onClick={() => navigate(`/evals/runs/${baselineId}`)}
+                onClick={() => navigate(`/evals/runs/${baselineId}?result=${row.baseline.resultId}`)}
                 title="看基线"
                 aria-label="看基线"
               >
@@ -175,7 +168,7 @@ export function EvalComparePage() {
                 variant="ghost"
                 size="icon-sm"
                 className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
-                onClick={() => navigate(`/evals/runs/${candidateId}`)}
+                onClick={() => navigate(`/evals/runs/${candidateId}?result=${row.candidate.resultId}`)}
                 title="看候选"
                 aria-label="看候选"
               >
@@ -197,7 +190,7 @@ export function EvalComparePage() {
     <Page>
       <PageHeader
         items={[
-          { label: "评测与优化", href: "/evals" },
+          { label: "评测与策略", href: "/evals" },
           { label: dataset.data?.name || "数据集", href: `/evals/${datasetId}` },
           { label: "运行对比" },
         ]}
@@ -240,6 +233,13 @@ export function EvalComparePage() {
           </div>
         ) : compare.data && baseline && candidate && deltas ? (
           <>
+            <ConclusionBanner
+              conclusion={buildReleaseConclusion(counts)}
+              counts={counts}
+              onShowRegressed={() => setFilter("regressed")}
+              onShowImproved={() => setFilter("improved")}
+            />
+
             <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
               <DeltaCard label="Recall@K" value={formatSignedDelta(deltas.recallAtK)} positiveGood />
               <DeltaCard label="Precision@K" value={formatSignedDelta(deltas.precisionAtK)} positiveGood />
@@ -281,9 +281,12 @@ export function EvalComparePage() {
 
             <section className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm font-medium">
+                  问题变化
+                  <span className="ml-2 font-normal text-muted-foreground">
                   改善 {counts.improved} · 回归 {counts.regressed} · 不变 {counts.unchanged} · 不可比{" "}
                   {counts.incomparable}
+                  </span>
                 </div>
                 <div className="w-44">
                   <Select
@@ -310,6 +313,55 @@ export function EvalComparePage() {
         ) : null}
       </PageBody>
     </Page>
+  )
+}
+
+function ConclusionBanner({
+  conclusion,
+  counts,
+  onShowRegressed,
+  onShowImproved,
+}: {
+  conclusion: ReturnType<typeof buildReleaseConclusion>
+  counts: {
+    improved: number
+    regressed: number
+    unchanged: number
+    incomparable: number
+  }
+  onShowRegressed: () => void
+  onShowImproved: () => void
+}) {
+  return (
+    <section
+      className={cn(
+        "rounded-lg border p-4 shadow-sm",
+        conclusion.tone === "risk" && "border-destructive/30 bg-destructive/5",
+        conclusion.tone === "ready" && "border-emerald-300 bg-emerald-50 text-emerald-950",
+        conclusion.tone === "neutral" && "border-border bg-card",
+      )}
+    >
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="text-sm font-semibold">{conclusion.title}</div>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+            {conclusion.description}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {counts.regressed > 0 ? (
+            <Button variant="outline" size="sm" onClick={onShowRegressed}>
+              查看回归问题
+            </Button>
+          ) : null}
+          {counts.improved > 0 ? (
+            <Button variant="outline" size="sm" onClick={onShowImproved}>
+              查看改善问题
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </section>
   )
 }
 

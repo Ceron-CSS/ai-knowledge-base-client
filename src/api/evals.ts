@@ -16,6 +16,8 @@ export type EvalQuery = {
   question: string
   referenceAnswer: string | null
   relevantChunkIds: string[]
+  questionType: string | null
+  shouldAbstain: boolean
   createdAt: string
   updatedAt: string
 }
@@ -225,9 +227,32 @@ export function createEvalQuery(
     question: string
     referenceAnswer?: string | null
     relevantChunkIds?: string[]
+    questionType?: string | null
+    shouldAbstain?: boolean
   },
 ) {
   return requestJson<EvalQuery>(`/evals/datasets/${datasetId}/queries`, {
+    method: "POST",
+    body,
+  })
+}
+
+export type EvalFeedbackType =
+  | "answer_incorrect"
+  | "citation_not_supporting"
+  | "missing_expected_source"
+  | "should_have_abstained"
+
+export function createEvalQueryFromAssistantMessage(
+  datasetId: string,
+  body: {
+    assistantId: string
+    conversationId: string
+    messageId: string
+    feedbackType: EvalFeedbackType
+  },
+) {
+  return requestJson<EvalQuery>(`/evals/datasets/${datasetId}/queries/from-assistant-message`, {
     method: "POST",
     body,
   })
@@ -240,6 +265,8 @@ export function patchEvalQuery(
     question?: string
     referenceAnswer?: string | null
     relevantChunkIds?: string[]
+    questionType?: string | null
+    shouldAbstain?: boolean
   },
 ) {
   return requestJson<EvalQuery>(`/evals/datasets/${datasetId}/queries/${queryId}`, {

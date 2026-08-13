@@ -149,7 +149,7 @@ function EvalRunCreateForm({
       <div className="grid gap-4">
         {unlabeledCount > 0 ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            仍有 {unlabeledCount} 个问题未标注相关 Chunk，请先完成标签再运行评测与优化。
+            仍有 {unlabeledCount} 个问题未标注相关 Chunk，请先完成标签再运行评测。
           </div>
         ) : null}
 
@@ -256,7 +256,7 @@ function EvalRunCreateForm({
             />
             {!includeGeneration ? (
               <p className="mt-1 text-xs text-muted-foreground">
-                选择助手后，本次评测会出现在「运行记录」且来源为「评测与优化」。
+                选择助手后，本次评测会出现在「Agent Runs」且来源为「评测与策略」。
               </p>
             ) : null}
           </div>

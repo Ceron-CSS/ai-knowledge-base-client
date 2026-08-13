@@ -68,8 +68,8 @@ export function AgentPolicyCenterPage() {
     <Page>
       <PageHeader
         items={[
-          { label: "评测与优化", href: "/evals" },
-          { label: "Agent 策略中心" },
+          { label: "评测与策略", href: "/evals" },
+          { label: "Agent Policy" },
         ]}
         description="平台级策略发版：复制 active/seed 为 draft，编辑护栏后评测对比，再发布为唯一线上 active。"
         actions={
@@ -236,11 +236,6 @@ export function AgentPolicyCenterPage() {
       <ConfirmDeleteDialog
         open={Boolean(pendingActivate)}
         title="确认发布 Agent Policy"
-        description={
-          pendingActivate
-            ? `该策略发布后会成为线上 active policy。所有使用 auto/agent 的聊天会读取新策略。历史评测 Run 的策略快照不会被改写。\n\n将发布「${pendingActivate.name} (${pendingActivate.version})」。`
-            : undefined
-        }
         confirmLabel="确认发布"
         confirming={activate.isPending}
         errorText={
@@ -264,7 +259,24 @@ export function AgentPolicyCenterPage() {
           })
           setPendingActivate(null)
         }}
-      />
+      >
+        <div className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            {pendingActivate
+              ? `将发布「${pendingActivate.name} (${pendingActivate.version})」为线上 active policy。历史评测 Run 的策略快照不会被改写。`
+              : "将发布该策略为线上 active policy。历史评测 Run 的策略快照不会被改写。"}
+          </p>
+          <div className="rounded-md border border-amber-300/60 bg-amber-50/70 p-3 text-amber-950">
+            发布前请确认关联 EvalRun 与风险门槛。
+          </div>
+          <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>关联 EvalRun：{pendingActivate?.lastEvalRunId || "未检测到，非 seed 策略会被后端阻止发布"}</li>
+            <li>regressed 样本已复核，且退化原因可解释。</li>
+            <li>关键检索、引用支持、延迟、成本、fallback 和预算耗尽均在可接受范围内。</li>
+            <li>发布后所有 auto/agent 聊天会读取新 active policy。</li>
+          </ul>
+        </div>
+      </ConfirmDeleteDialog>
 
       <ConfirmDeleteDialog
         open={Boolean(pendingArchive)}

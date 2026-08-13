@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Eye } from "lucide-react"
 import type { EvalRunResult } from "@/api/evals"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
@@ -24,6 +24,7 @@ import {
   readDecisionMetrics,
   readDecisionSummary,
 } from "@/features/evals/lib/decisionMetrics"
+import { FixedSeedUiDemoBadge, isFixedSeedUiDemoRun } from "@/features/evals/lib/demoRun"
 import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 import {
   evalExecutionModeLabel,
@@ -33,10 +34,12 @@ import {
   formatMetricNumber,
   isEvalRunActive,
 } from "@/features/evals/lib/labels"
+import { openKbItemChunk } from "@/features/kb/lib/openKbItemChunk"
 
 export function EvalRunDetailPage() {
   const { runId = "" } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const runQuery = useEvalRun(runId)
   const run = runQuery.data
   const dataset = useEvalDataset(run?.datasetId ?? "", Boolean(run?.datasetId))
@@ -44,9 +47,14 @@ export function EvalRunDetailPage() {
   const cancelRun = useCancelEvalRun()
 
   const [filter, setFilter] = useState<"all" | "failed" | "lowHit">("all")
-  const [selectedResult, setSelectedResult] = useState<EvalRunResult | null>(null)
   const [traceRunId, setTraceRunId] = useState<string | null>(null)
   const [confirmCancel, setConfirmCancel] = useState(false)
+
+  const selectedResultId = searchParams.get("result")
+  const selectedResult = useMemo(() => {
+    if (!selectedResultId) return null
+    return run?.results?.find((result) => result.id === selectedResultId) ?? null
+  }, [run?.results, selectedResultId])
 
   const questionById = useMemo(() => {
     const map = new Map<string, { question: string; referenceAnswer: string | null }>()
@@ -141,7 +149,11 @@ export function EvalRunDetailPage() {
             variant="ghost"
             size="icon-sm"
             className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
-            onClick={() => setSelectedResult(row)}
+            onClick={() => {
+              const next = new URLSearchParams(searchParams)
+              next.set("result", row.id)
+              setSearchParams(next, { replace: true })
+            }}
             title="详情"
             aria-label="详情"
           >
@@ -150,17 +162,18 @@ export function EvalRunDetailPage() {
         ),
       },
     ],
-    [questionById],
+    [questionById, searchParams, setSearchParams],
   )
 
   const active = run ? isEvalRunActive(run.status) : false
+  const isSeedDemo = run ? isFixedSeedUiDemoRun(run) : false
   const selectedMeta = selectedResult ? questionById.get(selectedResult.queryId) : undefined
 
   return (
     <Page>
       <PageHeader
         items={[
-          { label: "评测与优化", href: "/evals" },
+          { label: "评测与策略", href: "/evals" },
           {
             label: dataset.data?.name || "数据集",
             href: run ? `/evals/${run.datasetId}` : undefined,
@@ -208,6 +221,15 @@ export function EvalRunDetailPage() {
               <MetricCard label="NDCG@K" value={formatMetricNumber(run.metrics.ndcgAtK)} />
               <MetricCard label="平均延迟" value={formatLatencyMs(run.metrics.latencyMs)} />
             </section>
+
+            {isSeedDemo ? (
+              <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-100">
+                <FixedSeedUiDemoBadge />
+                <span className="ml-2">
+                  This run is fixed seed data for UI walkthroughs; do not use its preset metrics as real benchmark conclusions.
+                </span>
+              </div>
+            ) : null}
 
             <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
               <div className="text-sm font-medium">运行配置（创建时冻结）</div>
@@ -283,8 +305,15 @@ export function EvalRunDetailPage() {
           result={selectedResult}
           question={selectedMeta?.question}
           referenceAnswer={selectedMeta?.referenceAnswer}
-          onClose={() => setSelectedResult(null)}
+          onClose={() => {
+            if (searchParams.has("result")) {
+              const next = new URLSearchParams(searchParams)
+              next.delete("result")
+              setSearchParams(next, { replace: true })
+            }
+          }}
           onOpenTrace={(agentRunId) => setTraceRunId(agentRunId)}
+          onOpenCitation={(citation) => openKbItemChunk(navigate, citation)}
         />
 
         <AgentRunTraceDrawer
