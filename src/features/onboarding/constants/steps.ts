@@ -48,7 +48,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     action: "遇到回答失败时，可以从聊天页创建 EvalQuery 草稿，再回到这里完成标注。",
   },
   {
-    title: "Agent Policy",
+    title: "Agent 策略",
     subtitle: "这里管理候选策略、草稿和线上 active policy。",
     Icon: Shield,
     route: "/evals/policies",
@@ -57,7 +57,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     action: "策略不是自动上线；先用 EvalRun 证据验证，再由管理员确认发布。",
   },
   {
-    title: "Agent Runs",
+    title: "运行日志",
     subtitle: "这里下钻每次 Agent 的结构化执行 Trace。",
     Icon: Activity,
     route: "/agent-runs",

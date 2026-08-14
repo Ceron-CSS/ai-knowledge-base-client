@@ -184,6 +184,8 @@ export type EvalRunCreateBody = {
   executionMode?: EvalExecutionMode
   agentPolicyId?: string
   assistantId?: string
+  modelConfigId?: string
+  baseModel?: string
   kbIds?: string[] | null
   includeFaithfulness?: boolean
   includeAnswerRelevancy?: boolean
@@ -338,9 +340,25 @@ export function duplicateAgentPolicy(policyId: string, body: { name?: string } =
   })
 }
 
+export function duplicateAgentPolicyActivation(activationId: string, body: { name?: string } = {}) {
+  return requestJson<AgentPolicyListItem>(
+    `/evals/agent-policies/activations/${activationId}/duplicate`,
+    {
+      method: "POST",
+      body,
+    },
+  )
+}
+
 export function archiveAgentPolicy(policyId: string) {
   return requestJson<AgentPolicyListItem>(`/evals/agent-policies/${policyId}/archive`, {
     method: "POST",
+  })
+}
+
+export function deleteAgentPolicy(policyId: string) {
+  return requestJson<void>(`/evals/agent-policies/${policyId}`, {
+    method: "DELETE",
   })
 }
 

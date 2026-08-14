@@ -1,12 +1,17 @@
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { listAgentPolicies, type EvalExecutionMode, type EvalRunCreateBody } from "@/api/evals"
-import { listAssistants } from "@/api/assistants"
+import {
+  listAgentPolicies,
+  type EvalExecutionMode,
+  type EvalRunCreateBody,
+} from "@/api/evals"
+import { listModelConfigs } from "@/api/models"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { DEFAULT_BASE_MODEL, getBaseModelOptionsForProvider } from "@/features/assistants/constants/baseModelOptions"
 
 type EvalRunCreateDialogProps = {
   open: boolean
@@ -26,10 +31,8 @@ const RETRIEVER_OPTIONS = [
 ]
 
 const EXECUTION_OPTIONS = [
-  { value: "retrieval", label: "只测检索" },
   { value: "workflow", label: "固定流程基线" },
   { value: "agent", label: "Agent 策略评测" },
-  { value: "auto", label: "线上自动策略评测" },
 ]
 
 export function EvalRunCreateDialog({
@@ -73,19 +76,20 @@ function EvalRunCreateForm({
   onCancel,
   onSubmit,
 }: Omit<EvalRunCreateDialogProps, "open">) {
-  const [name, setName] = useState("")
-  const [executionMode, setExecutionMode] = useState<EvalExecutionMode>("retrieval")
+  const [executionMode, setExecutionMode] =
+    useState<EvalExecutionMode>("workflow")
   const [retrieverMode, setRetrieverMode] = useState("hybrid")
   const [topK, setTopK] = useState("6")
-  const [assistantId, setAssistantId] = useState("")
+  const [modelConfigId, setModelConfigId] = useState("")
+  const [baseModel, setBaseModel] = useState(DEFAULT_BASE_MODEL)
   const [agentPolicyId, setAgentPolicyId] = useState("")
   const [includeFaithfulness, setIncludeFaithfulness] = useState(false)
   const [includeAnswerRelevancy, setIncludeAnswerRelevancy] = useState(false)
   const [includeCitationSupport, setIncludeCitationSupport] = useState(false)
 
-  const assistants = useQuery({
-    queryKey: ["assistants", "eval-run-create"],
-    queryFn: listAssistants,
+  const modelConfigs = useQuery({
+    queryKey: ["model-configs", "eval-run-create"],
+    queryFn: listModelConfigs,
   })
 
   const policies = useQuery({
@@ -93,54 +97,80 @@ function EvalRunCreateForm({
     queryFn: listAgentPolicies,
   })
 
-  const assistantOptions = useMemo(
-    () => [
-      { value: "", label: "选择已发布助手" },
-      ...(assistants.data ?? [])
-        .filter((a) => Boolean(a.publishedAt))
-        .map((a) => ({ value: a.id, label: a.name })),
-    ],
-    [assistants.data],
+  const modelConfigMap = useMemo(
+    () => new Map((modelConfigs.data ?? []).map((item) => [item.id, item])),
+    [modelConfigs.data]
   )
+
+  const modelConfigOptions = useMemo(
+    () =>
+      (modelConfigs.data ?? []).map((item) => ({
+        value: item.id,
+        label:
+          item.provider === "deepseek"
+            ? "DeepSeek"
+            : item.provider === "openai"
+              ? "OpenAI"
+              : "百炼",
+      })),
+    [modelConfigs.data]
+  )
+
+  const resolvedModelConfigId = modelConfigId || modelConfigOptions[0]?.value || ""
+  const selectedProvider = resolvedModelConfigId
+    ? (modelConfigMap.get(resolvedModelConfigId)?.provider ?? "aliyun-bailian")
+    : "aliyun-bailian"
+  const baseModelOptions = getBaseModelOptionsForProvider(selectedProvider)
+  const resolvedBaseModel = baseModelOptions.some((item) => item.value === baseModel)
+    ? baseModel
+    : (baseModelOptions[0]?.value ?? "")
 
   const policyOptions = useMemo(() => {
     const items = policies.data ?? []
+    const selectable = items.filter((p) => !p.isSeed || p.isActive)
     const preferred =
       executionMode === "workflow"
-        ? items.filter((p) => p.id.startsWith("workflow-"))
-        : items.filter((p) => p.id.startsWith("agent-") || p.status === "active")
-    const source = preferred.length > 0 ? preferred : items
+        ? selectable.filter((p) => p.id.startsWith("workflow-"))
+        : selectable.filter(
+            (p) => p.id.startsWith("agent-") || p.status === "active"
+          )
+    const source = preferred.length > 0 ? preferred : selectable
     return [
-      { value: "", label: "默认（平台 active / 对应基线）" },
+      { value: "", label: "当前线上策略" },
       ...source.map((p) => ({
         value: p.id,
-        label: `${p.name} (${p.version}) · ${p.status}`,
+        label: p.name,
       })),
     ]
   }, [policies.data, executionMode])
 
-  const includeGeneration = executionMode !== "retrieval"
-  const needsPolicy = executionMode === "workflow" || executionMode === "agent" || executionMode === "auto"
-  const showFixedRetriever = executionMode === "retrieval" || executionMode === "workflow"
+  const includeGeneration = true
+  const needsPolicy = executionMode === "agent"
+  const showFixedRetriever = executionMode === "workflow"
   const canSubmit =
     unlabeledCount === 0 &&
-    Number(topK) >= 1 &&
-    (!includeGeneration || Boolean(assistantId))
+    (!showFixedRetriever || Number(topK) >= 1) &&
+    Boolean(resolvedModelConfigId) &&
+    Boolean(resolvedBaseModel)
 
   function handleSubmit() {
     if (!canSubmit) return
     const parsedTopK = Math.max(1, Math.min(20, Number(topK) || 6))
     onSubmit({
-      name: name.trim() || undefined,
       executionMode,
       retrieverMode,
-      topK: parsedTopK,
       includeGeneration,
-      assistantId: assistantId || undefined,
+      modelConfigId: resolvedModelConfigId,
+      baseModel: resolvedBaseModel,
       agentPolicyId: needsPolicy && agentPolicyId ? agentPolicyId : undefined,
+      topK: showFixedRetriever ? parsedTopK : undefined,
       includeFaithfulness: includeGeneration ? includeFaithfulness : false,
-      includeAnswerRelevancy: includeGeneration ? includeAnswerRelevancy : false,
-      includeCitationSupport: includeGeneration ? includeCitationSupport : false,
+      includeAnswerRelevancy: includeGeneration
+        ? includeAnswerRelevancy
+        : false,
+      includeCitationSupport: includeGeneration
+        ? includeCitationSupport
+        : false,
     })
   }
 
@@ -149,19 +179,10 @@ function EvalRunCreateForm({
       <div className="grid gap-4">
         {unlabeledCount > 0 ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            仍有 {unlabeledCount} 个问题未标注相关 Chunk，请先完成标签再运行评测。
+            仍有 {unlabeledCount} 个问题未标注相关
+            Chunk，请先完成标签再运行评测。
           </div>
         ) : null}
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">运行名称（可选）</label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="例如：agent-policy-v2-vs-workflow"
-            disabled={isSaving}
-          />
-        </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -176,12 +197,14 @@ function EvalRunCreateForm({
               disabled={isSaving}
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Workflow 为固定基线；Agent / Auto 会真正跑 Agent Runtime 并冻结策略快照。
+              固定流程用于基线对照；Agent 策略评测会运行 Agent Runtime 并冻结策略快照。
             </p>
           </div>
           {showFixedRetriever ? (
             <div>
-              <label className="mb-1.5 block text-sm font-medium">检索模式</label>
+              <label className="mb-1.5 block text-sm font-medium">
+                检索模式
+              </label>
               <Select
                 value={retrieverMode}
                 onValueChange={setRetrieverMode}
@@ -191,94 +214,83 @@ function EvalRunCreateForm({
             </div>
           ) : (
             <div>
-              <label className="mb-1.5 block text-sm font-medium">候选策略</label>
+              <label className="mb-1.5 block text-sm font-medium">
+                候选策略
+              </label>
               <Select
                 value={agentPolicyId}
                 onValueChange={setAgentPolicyId}
                 options={policyOptions}
                 disabled={isSaving || policies.isLoading}
-                placeholder={policies.isLoading ? "加载策略…" : "选择策略版本"}
+                placeholder={policies.isLoading ? "加载策略…" : "选择策略"}
               />
             </div>
           )}
         </div>
 
-        {needsPolicy && showFixedRetriever ? (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">策略快照（可选）</label>
-            <Select
-              value={agentPolicyId}
-              onValueChange={setAgentPolicyId}
-              options={policyOptions}
-              disabled={isSaving || policies.isLoading}
-              placeholder={policies.isLoading ? "加载策略…" : "默认 Workflow baseline"}
-            />
-          </div>
-        ) : null}
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Top K</label>
-            <Input
-              type="number"
-              min={1}
-              max={20}
-              value={topK}
-              onChange={(e) => setTopK(e.target.value)}
-              disabled={isSaving || executionMode === "agent" || executionMode === "auto"}
-            />
-            {executionMode === "agent" || executionMode === "auto" ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Agent / Auto 使用策略内 defaultTopK，运行时仍可动态调整。
-              </p>
-            ) : null}
-          </div>
+        <div className={showFixedRetriever ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
+          {showFixedRetriever ? (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Top K</label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={topK}
+                onChange={(e) => setTopK(e.target.value)}
+                disabled={isSaving}
+              />
+            </div>
+          ) : null}
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              问答助手{includeGeneration ? "" : "（可选）"}
+              模型配置
             </label>
             <Select
-              value={assistantId}
-              onValueChange={setAssistantId}
-              options={
-                includeGeneration
-                  ? assistantOptions
-                  : [{ value: "", label: "不关联助手" }, ...assistantOptions]
-              }
-              disabled={isSaving || assistants.isLoading}
+              value={resolvedModelConfigId}
+              onValueChange={setModelConfigId}
+              options={modelConfigOptions}
+              disabled={isSaving || modelConfigs.isLoading || !modelConfigOptions.length}
               placeholder={
-                assistants.isLoading
-                  ? "加载助手…"
-                  : includeGeneration
-                    ? "选择已发布助手"
-                    : "可选：写入运行记录"
+                modelConfigs.isLoading
+                  ? "加载模型配置…"
+                  : modelConfigOptions.length
+                    ? "请选择模型配置"
+                    : "暂无可用模型配置"
               }
             />
-            {!includeGeneration ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                选择助手后，本次评测会出现在「Agent Runs」且来源为「评测与策略」。
-              </p>
-            ) : null}
           </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">基础模型</label>
+          <Select
+            value={resolvedBaseModel}
+            onValueChange={setBaseModel}
+            options={baseModelOptions}
+            disabled={isSaving || !resolvedModelConfigId}
+          />
         </div>
 
         {includeGeneration ? (
           <div className="space-y-3 rounded-lg border border-border p-3">
-            <div className="text-sm font-medium">模型评审（可选，费用更高）</div>
+            <div className="text-sm font-medium">
+              答案质量评测（可选）
+            </div>
             <JudgeToggle
-              label="Faithfulness"
+              label="事实一致性"
               checked={includeFaithfulness}
               onChange={setIncludeFaithfulness}
               disabled={isSaving}
             />
             <JudgeToggle
-              label="Answer Relevancy"
+              label="回答相关性"
               checked={includeAnswerRelevancy}
               onChange={setIncludeAnswerRelevancy}
               disabled={isSaving}
             />
             <JudgeToggle
-              label="Citation Support"
+              label="引用支撑"
               checked={includeCitationSupport}
               onChange={setIncludeCitationSupport}
               disabled={isSaving}
@@ -288,11 +300,18 @@ function EvalRunCreateForm({
       </div>
 
       {hasError ? (
-        <div className="mt-3 text-sm text-destructive">{errorText || "创建失败，请稍后重试"}</div>
+        <div className="mt-3 text-sm text-destructive">
+          {errorText || "创建失败，请稍后重试"}
+        </div>
       ) : null}
 
       <div className="mt-4 flex justify-end gap-3">
-        <Button variant="dialog-cancel" size="dialog" onClick={onCancel} disabled={isSaving}>
+        <Button
+          variant="dialog-cancel"
+          size="dialog"
+          onClick={onCancel}
+          disabled={isSaving}
+        >
           取消
         </Button>
         <Button
@@ -323,7 +342,11 @@ function JudgeToggle({
   return (
     <label className="flex items-center justify-between gap-3 text-sm">
       <span>{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        disabled={disabled}
+      />
     </label>
   )
 }

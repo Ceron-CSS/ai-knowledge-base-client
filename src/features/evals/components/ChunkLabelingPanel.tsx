@@ -33,7 +33,7 @@ export function ChunkLabelingPanel({ labeling, onUseQuestionAsQuery }: ChunkLabe
           <SearchableSelect
             value={labeling.kbId}
             onValueChange={labeling.setKbId}
-            options={labeling.kbPicker.options}
+            options={labeling.kbOptions}
             placeholder={labeling.kbPicker.isLoading ? "加载中…" : "选择知识库"}
             searchPlaceholder="搜索知识库..."
             emptyText="无匹配的知识库"
@@ -95,16 +95,20 @@ export function ChunkLabelingPanel({ labeling, onUseQuestionAsQuery }: ChunkLabe
       {labeling.selectedIds.length > 0 ? (
         <div className="space-y-2">
           <div className="text-sm font-medium">已选相关 Chunk（{labeling.selectedIds.length}）</div>
+          {labeling.loadingSelected ? (
+            <LoadingText className="justify-start text-xs">正在加载已选 Chunk</LoadingText>
+          ) : null}
           <div className="flex flex-wrap gap-2">
-            {labeling.selectedIds.map((id) => {
+            {labeling.selectedIds.map((id, index) => {
               const hit = labeling.hitByChunkId[id]
+              const label = hit ? `${hit.fileName} #${hit.chunkIndex + 1}` : `已选 Chunk ${index + 1}`
               return (
                 <span
                   key={id}
                   className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs"
                 >
-                  <span className="truncate" title={hit?.fileName ?? id}>
-                    {hit ? `${hit.fileName} #${hit.chunkIndex + 1}` : id.slice(0, 8)}
+                  <span className="truncate" title={hit ? label : id}>
+                    {label}
                   </span>
                   <button
                     type="button"

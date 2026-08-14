@@ -8,14 +8,17 @@ import {
   createEvalDataset,
   createEvalQuery,
   createEvalRun,
+  deleteAgentPolicy,
   deleteEvalDataset,
   deleteEvalQuery,
+  duplicateAgentPolicyActivation,
   duplicateAgentPolicy,
   getAgentPolicy,
   getEvalDataset,
   getEvalMetricTrends,
   getEvalRun,
   getEvalRunProgress,
+  getEvalRunResult,
   listAgentPolicies,
   listAgentPolicyActivations,
   listEvalDatasets,
@@ -38,6 +41,8 @@ export const evalKeys = {
   runs: (datasetId: string, params?: ListQuery) =>
     [...evalKeys.all, "runs", datasetId, params ?? {}] as const,
   run: (runId: string) => [...evalKeys.all, "run", runId] as const,
+  runResult: (runId: string, resultId: string) =>
+    [...evalKeys.all, "run", runId, "result", resultId] as const,
   trends: (datasetId: string, params?: Record<string, unknown>) =>
     [...evalKeys.all, "trends", datasetId, params ?? {}] as const,
   compare: (baselineRunId: string, candidateRunId: string) =>
@@ -123,6 +128,17 @@ export function useDuplicateAgentPolicy() {
   })
 }
 
+export function useDuplicateAgentPolicyActivation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ activationId, name }: { activationId: string; name?: string }) =>
+      duplicateAgentPolicyActivation(activationId, { name }),
+    onSuccess: async (data) => {
+      await invalidatePolicyQueries(qc, data.id)
+    },
+  })
+}
+
 export function usePatchAgentPolicy() {
   const qc = useQueryClient()
   return useMutation({
@@ -149,6 +165,16 @@ export function useArchiveAgentPolicy() {
     mutationFn: ({ policyId }: { policyId: string }) => archiveAgentPolicy(policyId),
     onSuccess: async (data) => {
       await invalidatePolicyQueries(qc, data.id)
+    },
+  })
+}
+
+export function useDeleteAgentPolicy() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ policyId }: { policyId: string }) => deleteAgentPolicy(policyId),
+    onSuccess: async (_data, variables) => {
+      await invalidatePolicyQueries(qc, variables.policyId)
     },
   })
 }
@@ -201,6 +227,14 @@ export function useEvalRun(runId: string, enabled = true) {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return 8000
       return 2000
     },
+  })
+}
+
+export function useEvalRunResult(runId: string, resultId: string, enabled = true) {
+  return useQuery({
+    queryKey: evalKeys.runResult(runId, resultId),
+    queryFn: () => getEvalRunResult(runId, resultId),
+    enabled: enabled && Boolean(runId) && Boolean(resultId),
   })
 }
 

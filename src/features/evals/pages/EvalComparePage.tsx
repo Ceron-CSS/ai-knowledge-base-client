@@ -1,17 +1,18 @@
 import { useMemo, useState } from "react"
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { History, Sparkles } from "lucide-react"
+import { Link, useParams, useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { Dialog } from "@/components/ui/dialog"
 import { LoadingText } from "@/components/ui/loading-text"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { Select } from "@/components/ui/select"
-import type { EvalRunCompareQueryChange } from "@/api/evals"
+import type { EvalRunCompareQueryChange, EvalRunResultDetail } from "@/api/evals"
 import { EvalAgentPolicyPanel } from "@/features/evals/components/EvalAgentPolicyPanel"
 import { EvalBehaviorComparePanel } from "@/features/evals/components/EvalBehaviorComparePanel"
 import {
   useEvalDataset,
   useEvalRunCompare,
+  useEvalRunResult,
   useEvalRuns,
 } from "@/features/evals/hooks/queries"
 import { formatModes, readDecisionSummary } from "@/features/evals/lib/decisionMetrics"
@@ -19,6 +20,7 @@ import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 import {
   evalExecutionModeLabel,
   evalRetrieverModeLabel,
+  formatLatencyMs,
   formatMetricNumber,
 } from "@/features/evals/lib/labels"
 import { buildReleaseConclusion, classificationLabel } from "@/features/evals/lib/comparePresentation"
@@ -40,7 +42,6 @@ function formatSignedLatency(value: number | null | undefined) {
 export function EvalComparePage() {
   const { datasetId = "" } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const navigate = useNavigate()
   const dataset = useEvalDataset(datasetId)
   const runs = useEvalRuns(datasetId, { page: 1, pageSize: 100 })
 
@@ -49,8 +50,19 @@ export function EvalComparePage() {
   const [filter, setFilter] = useState<"all" | "improved" | "regressed" | "unchanged" | "incomparable">(
     "all",
   )
+  const [detailChange, setDetailChange] = useState<EvalRunCompareQueryChange | null>(null)
 
   const compare = useEvalRunCompare(baselineId, candidateId, Boolean(baselineId && candidateId))
+  const baselineResult = useEvalRunResult(
+    baselineId,
+    detailChange?.baseline.resultId ?? "",
+    Boolean(detailChange?.baseline.resultId),
+  )
+  const candidateResult = useEvalRunResult(
+    candidateId,
+    detailChange?.candidate.resultId ?? "",
+    Boolean(detailChange?.candidate.resultId),
+  )
 
   const runOptions = useMemo(
     () =>
@@ -146,40 +158,25 @@ export function EvalComparePage() {
       },
       {
         key: "actions",
-        header: "操作",
+        header: "结果详情",
         className: "w-[10%] text-center",
         cellClassName: "text-center",
         render: (row) => (
-          <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
-            {row.baseline.resultId ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
-                onClick={() => navigate(`/evals/runs/${baselineId}?result=${row.baseline.resultId}`)}
-                title="看基线"
-                aria-label="看基线"
-              >
-                <History />
-              </Button>
-            ) : null}
-            {row.candidate.resultId ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
-                onClick={() => navigate(`/evals/runs/${candidateId}?result=${row.candidate.resultId}`)}
-                title="看候选"
-                aria-label="看候选"
-              >
-                <Sparkles />
-              </Button>
-            ) : null}
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
+            disabled={!row.baseline.resultId && !row.candidate.resultId}
+            onClick={() => setDetailChange(row)}
+            title="在当前对比页查看这一题的基线与候选完整结果"
+            aria-label="查看问题对比详情"
+          >
+            查看详情
+          </Button>
         ),
       },
     ],
-    [baselineId, candidateId, navigate],
+    [],
   )
 
   const deltas = compare.data?.metricDeltas
@@ -308,11 +305,159 @@ export function EvalComparePage() {
                 getRowKey={(row) => row.queryId}
                 emptyText="没有匹配的问题变化"
               />
+              <CompareQuestionDetailDialog
+                change={detailChange}
+                baselineName={baseline.name || baseline.id.slice(0, 8)}
+                candidateName={candidate.name || candidate.id.slice(0, 8)}
+                baselineResult={baselineResult.data ?? null}
+                candidateResult={candidateResult.data ?? null}
+                baselineLoading={baselineResult.isLoading}
+                candidateLoading={candidateResult.isLoading}
+                baselineError={baselineResult.isError}
+                candidateError={candidateResult.isError}
+                onClose={() => setDetailChange(null)}
+              />
             </section>
           </>
         ) : null}
       </PageBody>
     </Page>
+  )
+}
+
+function CompareQuestionDetailDialog({
+  change,
+  baselineName,
+  candidateName,
+  baselineResult,
+  candidateResult,
+  baselineLoading,
+  candidateLoading,
+  baselineError,
+  candidateError,
+  onClose,
+}: {
+  change: EvalRunCompareQueryChange | null
+  baselineName: string
+  candidateName: string
+  baselineResult: EvalRunResultDetail | null
+  candidateResult: EvalRunResultDetail | null
+  baselineLoading: boolean
+  candidateLoading: boolean
+  baselineError: boolean
+  candidateError: boolean
+  onClose: () => void
+}) {
+  return (
+    <Dialog
+      open={Boolean(change)}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      title="问题对比详情"
+      description={change?.question}
+      contentClassName="max-w-5xl"
+      bodyClassName="max-h-[min(76vh,760px)] overflow-y-auto pr-1"
+      footer={
+        <Button variant="primary" size="dialog" onClick={onClose}>
+          关闭
+        </Button>
+      }
+    >
+      <div className="grid gap-3 lg:grid-cols-2">
+        <CompareResultCard
+          title="基线结果"
+          runName={baselineName}
+          result={baselineResult}
+          loading={baselineLoading}
+          error={baselineError}
+        />
+        <CompareResultCard
+          title="候选结果"
+          runName={candidateName}
+          result={candidateResult}
+          loading={candidateLoading}
+          error={candidateError}
+        />
+      </div>
+    </Dialog>
+  )
+}
+
+function CompareResultCard({
+  title,
+  runName,
+  result,
+  loading,
+  error,
+}: {
+  title: string
+  runName: string
+  result: EvalRunResultDetail | null
+  loading: boolean
+  error: boolean
+}) {
+  return (
+    <div className="rounded-md border border-border bg-muted/15 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold">{title}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">{runName}</div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {result ? formatMetricNumber(result.metrics.recallAtK) : "-"}
+        </div>
+      </div>
+      {loading ? (
+        <LoadingText className="py-8">加载结果详情</LoadingText>
+      ) : error ? (
+        <div className="py-8 text-sm text-destructive">结果详情加载失败</div>
+      ) : result ? (
+        <div className="mt-3 space-y-3 text-sm">
+          <CompareField
+            label="检索指标"
+            value={`Recall ${formatMetricNumber(result.metrics.recallAtK)} · Precision ${formatMetricNumber(result.metrics.precisionAtK)} · Hit ${formatMetricNumber(result.metrics.hitAtK, 0)} · MRR ${formatMetricNumber(result.metrics.mrrAtK)} · ${formatLatencyMs(result.durationMs ?? result.metrics.latencyMs)}`}
+          />
+          <CompareField label="完整答案" value={result.generatedAnswer || "-"} pre />
+          <CompareField
+            label="召回 Chunk"
+            value={
+              result.retrievedChunkIds.length
+                ? result.retrievedChunkIds.map((id, index) => `${index + 1}. ${id}`).join("\n")
+                : "-"
+            }
+            pre
+          />
+          <CompareField label="相关 Chunk" value={result.relevantChunkIds.join(", ") || "-"} />
+          {result.error ? <CompareField label="错误" value={result.error} /> : null}
+        </div>
+      ) : (
+        <div className="py-8 text-sm text-muted-foreground">这一侧没有结果记录</div>
+      )}
+    </div>
+  )
+}
+
+function CompareField({
+  label,
+  value,
+  pre,
+}: {
+  label: string
+  value: string
+  pre?: boolean
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
+      {pre ? (
+        <pre className="whitespace-pre-wrap break-words rounded-md bg-background/70 p-2 text-sm">
+          {value}
+        </pre>
+      ) : (
+        <div className="whitespace-pre-wrap break-words">{value}</div>
+      )}
+    </div>
   )
 }
 
@@ -431,7 +576,7 @@ function ConfigSummary({
           Top K={run.topK}
         </div>
         <div>{run.includeGeneration ? "含生成" : "仅检索"}</div>
-        <div>Policy：{policyId || "-"}</div>
+        <div>Agent 策略：{policyId || "-"}</div>
       </div>
     </div>
   )

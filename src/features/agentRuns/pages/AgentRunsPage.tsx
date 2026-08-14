@@ -177,7 +177,7 @@ export function AgentRunsPage() {
   return (
     <Page>
       <PageHeader
-        items={[{ label: "Agent Runs" }]}
+        items={[{ label: "运行日志" }]}
         description="查看每次回答的耗时、工具调用与详细过程；首字等待是用户真正干等的时间"
       />
 

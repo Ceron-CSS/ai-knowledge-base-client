@@ -1,4 +1,4 @@
-import type { ComponentProps, Key, ReactNode } from "react"
+import { Fragment, type ComponentProps, type Key, type ReactNode } from "react"
 import { LoaderCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,8 @@ type DataTableProps<T> = {
   tableClassName?: string
   containerClassName?: string
   pagination?: DataTablePagination
+  isRowExpanded?: (item: T) => boolean
+  renderExpanded?: (item: T) => ReactNode
 }
 
 function shouldShowPagination(pagination: DataTablePagination | undefined) {
@@ -76,6 +78,8 @@ function DataTable<T>({
   tableClassName,
   containerClassName,
   pagination,
+  isRowExpanded,
+  renderExpanded,
 }: DataTableProps<T>) {
   if (loading) return <DataTableEmpty loading>加载中</DataTableEmpty>
   if (error) return <DataTableEmpty className="text-destructive">{errorText}</DataTableEmpty>
@@ -109,21 +113,31 @@ function DataTable<T>({
             </tr>
           </thead>
           <tbody className="font-normal">
-            {data.map((item) => (
-              <tr
-                key={getRowKey(item)}
-                className="border-b font-normal transition-colors last:border-b-0 hover:bg-muted/40"
-              >
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={cn("px-4 py-2.5 align-middle", column.cellClassName, "font-normal")}
-                  >
-                    {column.render(item)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {data.map((item) => {
+              const rowKey = getRowKey(item)
+              const expanded = Boolean(isRowExpanded?.(item))
+              return (
+                <Fragment key={rowKey}>
+                  <tr className="border-b font-normal transition-colors last:border-b-0 hover:bg-muted/40">
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className={cn("px-4 py-2.5 align-middle", column.cellClassName, "font-normal")}
+                      >
+                        {column.render(item)}
+                      </td>
+                    ))}
+                  </tr>
+                  {expanded && renderExpanded ? (
+                    <tr className="border-b bg-muted/10">
+                      <td colSpan={columns.length} className="px-4 py-3">
+                        {renderExpanded(item)}
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
       </DataTableContainer>

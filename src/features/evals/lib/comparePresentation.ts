@@ -26,7 +26,7 @@ export function buildReleaseConclusion({
     return {
       tone: "ready" as const,
       title: "候选策略值得进入发布检查",
-      description: `候选运行改善 ${improved} 个问题，未发现回归。继续核对延迟、成本和 Policy 门槛。`,
+      description: `候选运行改善 ${improved} 个问题，未发现回归。继续核对延迟、成本和策略门槛。`,
     }
   }
   return {

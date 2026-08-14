@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: "/evals/policies",
-        label: "Agent Policy",
+        label: "Agent 策略",
         Icon: Shield,
         onboardingTarget: "nav-agent-policies",
       },
@@ -68,7 +68,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         to: "/agent-runs",
-        label: "Agent Runs",
+        label: "运行日志",
         Icon: Activity,
         onboardingTarget: "nav-agent-runs",
       },

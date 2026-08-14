@@ -54,10 +54,10 @@ export function EvalQueryEditorDialog({
       onOpenChange={(next) => {
         if (!next) onCancel()
       }}
-      title={mode === "create" ? "新建实验问题" : "编辑实验问题"}
+      title={mode === "create" ? "新建评测问题" : "编辑评测问题"}
       description="填写问题，并从召回候选中标注相关 Chunk"
       contentClassName="max-w-4xl"
-      bodyClassName="max-h-[min(70vh,720px)] overflow-y-auto pr-1"
+      bodyClassName="max-h-[min(70vh,720px)] overflow-y-auto pr-1 pb-0"
     >
       {open ? (
         <EvalQueryEditorForm
@@ -85,10 +85,17 @@ function EvalQueryEditorForm({
   onSubmit,
 }: Omit<EvalQueryEditorDialogProps, "open">) {
   const [question, setQuestion] = useState(initial?.question ?? "")
-  const [referenceAnswer, setReferenceAnswer] = useState(initial?.referenceAnswer ?? "")
+  const [referenceAnswer, setReferenceAnswer] = useState(
+    initial?.referenceAnswer ?? ""
+  )
   const [questionType, setQuestionType] = useState(initial?.questionType ?? "")
-  const [shouldAbstain, setShouldAbstain] = useState(initial?.shouldAbstain ?? false)
-  const labeling = useChunkLabeling(initial?.relevantChunkIds ?? [], initial?.question ?? "")
+  const [shouldAbstain, setShouldAbstain] = useState(
+    initial?.shouldAbstain ?? false
+  )
+  const labeling = useChunkLabeling(
+    initial?.relevantChunkIds ?? [],
+    initial?.question ?? ""
+  )
 
   function handleSubmit() {
     const q = question.trim()
@@ -119,7 +126,9 @@ function EvalQueryEditorForm({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium">参考答案（可选）</label>
+          <label className="mb-1.5 block text-sm font-medium">
+            参考答案（可选）
+          </label>
           <Textarea
             rows={3}
             value={referenceAnswer}
@@ -156,12 +165,18 @@ function EvalQueryEditorForm({
         />
       </div>
 
-      {hasError ? (
-        <div className="mt-3 text-sm text-destructive">{errorText || "保存失败，请稍后重试"}</div>
-      ) : null}
-
-      <div className="mt-4 flex justify-end gap-3">
-        <Button variant="dialog-cancel" size="dialog" onClick={onCancel} disabled={isSaving}>
+      <div className="sticky bottom-0 -mx-1 mt-4 flex items-center justify-end gap-3 border-t border-border bg-card px-1 py-3">
+        {hasError ? (
+          <div className="mr-auto text-sm text-destructive">
+            {errorText || "保存失败，请稍后重试"}
+          </div>
+        ) : null}
+        <Button
+          variant="dialog-cancel"
+          size="dialog"
+          onClick={onCancel}
+          disabled={isSaving}
+        >
           取消
         </Button>
         <Button

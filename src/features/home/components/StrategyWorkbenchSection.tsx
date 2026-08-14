@@ -13,7 +13,7 @@ const loopSteps = [
   "运行 baseline",
   "验证 candidate",
   "下钻 Trace",
-  "发布 Policy",
+  "发布策略",
 ] as const
 
 export function StrategyWorkbenchSection({ data }: StrategyWorkbenchSectionProps) {
@@ -29,7 +29,7 @@ export function StrategyWorkbenchSection({ data }: StrategyWorkbenchSectionProps
               Agentic RAG 质量工程平台
             </div>
             <h1 className="mt-5 max-w-3xl text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              比较 Workflow 与 Agent Policy，再决定是否发布。
+              比较 Workflow 与 Agent 策略，再决定是否发布。
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
               首页现在从策略验证开始：先看同一数据集上的质量、延迟和成本变化，再下钻
@@ -45,13 +45,13 @@ export function StrategyWorkbenchSection({ data }: StrategyWorkbenchSectionProps
                 to="/evals/policies"
                 className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
               >
-                查看 Agent Policy
+                查看 Agent 策略
               </Link>
               <Link
                 to="/agent-runs"
                 className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
               >
-                打开 Agent Runs
+                打开运行日志
               </Link>
             </div>
 

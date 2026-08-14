@@ -14,7 +14,7 @@ import {
 } from "@/features/evals/hooks/queries"
 import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 
-export type EvalDetailTab = "queries" | "runs" | "trends"
+export type EvalDetailTab = "queries" | "runs"
 
 export function useEvalDatasetDetailPage() {
   const { datasetId = "" } = useParams()

@@ -18,7 +18,7 @@ export type AgentRunSummary = {
 
 export type AgentRunListItem = {
   id: string
-  assistantId: string
+  assistantId: string | null
   conversationId: string | null
   messageId: string | null
   source: string

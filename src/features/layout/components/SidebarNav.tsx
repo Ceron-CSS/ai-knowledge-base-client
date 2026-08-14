@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom"
+import { NavLink, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { NAV_GROUPS } from "../constants/navItems"
 
@@ -7,48 +7,51 @@ type SidebarNavProps = {
 }
 
 export function SidebarNav({ collapsed }: SidebarNavProps) {
+  const location = useLocation()
+
   return (
-    <nav className="mt-1 flex flex-1 flex-col gap-4 overflow-y-auto">
+    <nav className={cn("mt-1 flex flex-1 flex-col overflow-y-auto", collapsed ? "gap-1" : "gap-4")}>
       {NAV_GROUPS.map((group) => (
-        <div key={group.id} className="flex flex-col gap-0.5">
+        <div key={group.id} className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}>
           {!collapsed && group.label ? (
             <div className="px-2 pb-1 text-[11px] font-medium tracking-wider text-[#8590A6] uppercase">
               {group.label}
             </div>
           ) : null}
-          {group.items.map(({ to, label, Icon, onboardingTarget }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/evals"}
-              data-onboarding-target={onboardingTarget}
-              title={collapsed ? label : undefined}
-              className={({ isActive }) =>
-                cn(
+          {group.items.map(({ to, label, Icon, onboardingTarget }) => {
+            const active = to === "/evals"
+              ? location.pathname.startsWith("/evals") && !location.pathname.startsWith("/evals/policies")
+              : location.pathname.startsWith(to)
+
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                data-onboarding-target={onboardingTarget}
+                title={collapsed ? label : undefined}
+                className={cn(
                   "relative flex min-w-0 items-center rounded-md px-2 py-2 text-sm transition-colors",
                   collapsed ? "justify-center" : "gap-2",
-                  isActive
+                  active
                     ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                     : "text-sidebar-foreground hover:bg-accent/70 hover:text-sidebar-foreground",
-                )
-              }
-            >
-              {({ isActive }) => (
+                )}
+              >
                 <>
-                  {isActive ? (
+                  {active ? (
                     <span
                       aria-hidden
                       className="absolute top-1/2 left-0 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary"
                     />
                   ) : null}
-                  <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
+                  <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
                   {collapsed ? null : (
                     <span className="min-w-0 flex-1 truncate whitespace-nowrap">{label}</span>
                   )}
                 </>
-              )}
-            </NavLink>
-          ))}
+              </NavLink>
+            )
+          })}
         </div>
       ))}
     </nav>

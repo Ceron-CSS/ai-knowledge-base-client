@@ -11,8 +11,8 @@ export function evalRunStatusLabel(status: string) {
 export function evalExecutionModeLabel(mode: string) {
   if (mode === "retrieval") return "仅检索"
   if (mode === "workflow") return "Workflow baseline"
-  if (mode === "agent") return "Agent Policy"
-  if (mode === "auto") return "Auto Policy"
+  if (mode === "agent") return "Agent 策略"
+  if (mode === "auto") return "当前线上策略"
   return mode
 }
 

@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { DataTable } from "@/components/ui/data-table"
@@ -8,14 +7,13 @@ import { EvalDatasetFormDialog } from "@/features/evals/components/EvalDatasetFo
 import { useEvalDatasetListPage } from "@/features/evals/hooks/useEvalDatasetListPage"
 
 export function EvalDatasetListPage() {
-  const navigate = useNavigate()
   const page = useEvalDatasetListPage()
 
   return (
     <Page>
       <PageHeader
         items={[{ label: "评测与策略" }]}
-        description="维护评测数据集与问题标签；策略发版请使用 Agent Policy"
+        description="维护评测数据集与问题标签；策略发版请使用 Agent 策略"
       />
 
       <PageBody className="space-y-2">
@@ -53,9 +51,6 @@ export function EvalDatasetListPage() {
               onChange={(e) => page.setQuery(e.target.value)}
               placeholder="搜索数据集名称/说明"
             />
-            <Button variant="outline" size="lg" onClick={() => navigate("/evals/policies")}>
-              Agent Policy
-            </Button>
             <Button variant="primary" size="lg" onClick={page.startCreate}>
               新建数据集
             </Button>

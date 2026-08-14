@@ -34,6 +34,7 @@ import {
   formatMetricNumber,
   isEvalRunActive,
 } from "@/features/evals/lib/labels"
+import { evalRunConfigSummary, evalRunShortId, evalRunTitle } from "@/features/evals/lib/runDisplay"
 import { openKbItemChunk } from "@/features/kb/lib/openKbItemChunk"
 
 export function EvalRunDetailPage() {
@@ -93,6 +94,15 @@ export function EvalRunDetailPage() {
         key: "status",
         header: "状态",
         render: (row) => evalRunStatusLabel(row.status),
+      },
+      {
+        key: "answer",
+        header: "答案",
+        render: (row) => (
+          <span className="line-clamp-2 max-w-[260px]">
+            {row.generatedAnswer || "-"}
+          </span>
+        ),
       },
       {
         key: "modes",
@@ -178,9 +188,13 @@ export function EvalRunDetailPage() {
             label: dataset.data?.name || "数据集",
             href: run ? `/evals/${run.datasetId}` : undefined,
           },
-          { label: run?.name || (runQuery.isLoading ? "加载中…" : "运行详情") },
+          { label: run ? evalRunTitle(run) : runQuery.isLoading ? "加载中…" : "运行详情" },
         ]}
-        description="查看配置快照、进度与逐问题指标；排队/运行中会自动刷新"
+        description={
+          run
+            ? `${evalRunConfigSummary(run)} · Run ${evalRunShortId(run)}`
+            : "查看配置快照、进度与逐问题指标；排队/运行中会自动刷新"
+        }
         actions={
           run && active ? (
             <Button
@@ -216,9 +230,9 @@ export function EvalRunDetailPage() {
                     : String(run.resultCount)
                 }
               />
-              <MetricCard label="Recall@K" value={formatMetricNumber(run.metrics.recallAtK)} />
-              <MetricCard label="MRR@K" value={formatMetricNumber(run.metrics.mrrAtK)} />
-              <MetricCard label="NDCG@K" value={formatMetricNumber(run.metrics.ndcgAtK)} />
+              <MetricCard label="检索 Recall@K" value={formatMetricNumber(run.metrics.recallAtK)} />
+              <MetricCard label="检索 MRR@K" value={formatMetricNumber(run.metrics.mrrAtK)} />
+              <MetricCard label="答案生成率" value={formatPercent(run.metrics.answerGeneratedRate)} />
               <MetricCard label="平均延迟" value={formatLatencyMs(run.metrics.latencyMs)} />
             </section>
 
@@ -238,12 +252,7 @@ export function EvalRunDetailPage() {
                 <div>
                   检索：{evalRetrieverModeLabel(run.retrieverMode)} · Top K = {run.topK}
                 </div>
-                <div>
-                  Agent Policy：
-                  {typeof run.configSnapshot?.agentPolicyId === "string"
-                    ? run.configSnapshot.agentPolicyId
-                    : "-"}
-                </div>
+                <div>策略/配置：{evalRunConfigSummary(run)}</div>
                 <div>失败题数：{run.errorCount}</div>
                 <div>创建：{formatEvalDateTime(run.createdAt)}</div>
                 <div>开始：{run.startedAt ? formatEvalDateTime(run.startedAt) : "-"}</div>
@@ -351,6 +360,11 @@ export function EvalRunDetailPage() {
       </PageBody>
     </Page>
   )
+}
+
+function formatPercent(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "-"
+  return `${(value * 100).toFixed(1)}%`
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {

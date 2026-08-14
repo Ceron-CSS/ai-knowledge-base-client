@@ -4,17 +4,25 @@ import { Eye } from "lucide-react"
 import type { EvalRun } from "@/api/evals"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
+import { EvalRunInlineDetailPanel } from "@/features/evals/components/EvalRunInlineDetailPanel"
 import { useEvalRuns } from "@/features/evals/hooks/queries"
-import { FixedSeedUiDemoBadge, isFixedSeedUiDemoRun } from "@/features/evals/lib/demoRun"
+import {
+  FixedSeedUiDemoBadge,
+  isFixedSeedUiDemoRun,
+} from "@/features/evals/lib/demoRun"
 import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 import {
-  evalExecutionModeLabel,
-  evalRetrieverModeLabel,
   evalRunStatusLabel,
   formatLatencyMs,
   formatMetricNumber,
   isEvalRunActive,
 } from "@/features/evals/lib/labels"
+import {
+  evalRunAssistantSummary,
+  evalRunConfigSummary,
+  evalRunSampleSummary,
+  evalRunTitle,
+} from "@/features/evals/lib/runDisplay"
 
 type EvalRunHistoryPanelProps = {
   datasetId: string
@@ -32,6 +40,7 @@ export function EvalRunHistoryPanel({
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<string[]>([])
+  const [detailRunId, setDetailRunId] = useState<string | null>(null)
   const runs = useEvalRuns(datasetId, { page, pageSize: 20 })
   const items = runs.data?.items ?? []
   const hasActive = items.some((r) => isEvalRunActive(r.status))
@@ -49,7 +58,7 @@ export function EvalRunHistoryPanel({
       {
         key: "select",
         header: "对比",
-        className: "w-[6%] text-center",
+        className: "w-[5%] text-center",
         cellClassName: "text-center",
         render: (row) => (
           <input
@@ -63,23 +72,50 @@ export function EvalRunHistoryPanel({
       {
         key: "createdAt",
         header: "创建时间",
+        cellClassName: "w-[15%]",
         render: (row) => (
-          <span className="whitespace-nowrap text-xs">{formatEvalDateTime(row.createdAt)}</span>
+          <span className="text-xs whitespace-nowrap">
+            {formatEvalDateTime(row.createdAt)}
+          </span>
         ),
       },
       {
-        key: "name",
-        header: "名称",
+        key: "target",
+        header: "评测对象",
+        cellClassName: "w-[18%]",
         render: (row) => (
-          <div className="flex max-w-[220px] flex-col gap-1">
-            <span className="truncate">{row.name || "-"}</span>
+          <div className="flex min-w-[150px] flex-col gap-1">
+            <span className="truncate font-medium">{evalRunTitle(row)}</span>
             {isFixedSeedUiDemoRun(row) ? <FixedSeedUiDemoBadge /> : null}
           </div>
         ),
       },
       {
+        key: "config",
+        header: "策略",
+        cellClassName: "w-[20%]",
+        render: (row) => (
+          <span className="block min-w-[180px] truncate text-sm">
+            {evalRunConfigSummary(row)}
+          </span>
+        ),
+      },
+      {
+        key: "model",
+        header: "模型",
+        cellClassName: "w-[12%] text-xs text-muted-foreground",
+        render: (row) => evalRunAssistantSummary(row) ?? "-",
+      },
+      {
+        key: "samples",
+        header: "数据量",
+        cellClassName: "w-[9%] text-xs tabular-nums text-muted-foreground",
+        render: (row) => evalRunSampleSummary(row),
+      },
+      {
         key: "status",
         header: "状态",
+        cellClassName: "w-[10%]",
         render: (row) => {
           const progress =
             isEvalRunActive(row.status) && row.progressTotal > 0
@@ -89,31 +125,21 @@ export function EvalRunHistoryPanel({
         },
       },
       {
-        key: "mode",
-        header: "模式",
-        render: (row) => evalExecutionModeLabel(row.executionMode),
-      },
-      {
-        key: "retriever",
-        header: "检索",
-        render: (row) => `${evalRetrieverModeLabel(row.retrieverMode)} · K=${row.topK}`,
-      },
-      {
         key: "recall",
-        header: "Recall@K",
-        cellClassName: "tabular-nums",
+        header: "Recall",
+        cellClassName: "w-[8%] tabular-nums",
         render: (row) => formatMetricNumber(row.metrics.recallAtK),
       },
       {
         key: "mrr",
-        header: "MRR@K",
-        cellClassName: "tabular-nums",
+        header: "MRR",
+        cellClassName: "w-[8%] tabular-nums",
         render: (row) => formatMetricNumber(row.metrics.mrrAtK),
       },
       {
         key: "latency",
-        header: "延迟",
-        cellClassName: "tabular-nums",
+        header: "平均耗时",
+        cellClassName: "w-[9%] tabular-nums",
         render: (row) => formatLatencyMs(row.metrics.latencyMs),
       },
       {
@@ -126,7 +152,9 @@ export function EvalRunHistoryPanel({
             variant="ghost"
             size="icon-sm"
             className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
-            onClick={() => navigate(`/evals/runs/${row.id}`)}
+            onClick={() =>
+              setDetailRunId((current) => (current === row.id ? null : row.id))
+            }
             title="详情"
             aria-label="详情"
           >
@@ -135,7 +163,7 @@ export function EvalRunHistoryPanel({
         ),
       },
     ],
-    [navigate, selected],
+    [selected]
   )
 
   const emptyHint =
@@ -152,13 +180,13 @@ export function EvalRunHistoryPanel({
           {selected.length > 0 ? ` · 已选 ${selected.length}/2` : ""}
         </div>
         <Button
-          variant="outline"
+          variant="primary"
           size="lg"
           disabled={selected.length !== 2}
           onClick={() => {
             if (selected.length !== 2) return
             navigate(
-              `/evals/${datasetId}/compare?baseline=${encodeURIComponent(selected[0])}&candidate=${encodeURIComponent(selected[1])}`,
+              `/evals/${datasetId}/compare?baseline=${encodeURIComponent(selected[0])}&candidate=${encodeURIComponent(selected[1])}`
             )
           }}
         >
@@ -202,6 +230,13 @@ export function EvalRunHistoryPanel({
               }
             : undefined
         }
+        isRowExpanded={(item) => item.id === detailRunId}
+        renderExpanded={(item) => (
+          <EvalRunInlineDetailPanel
+            runId={item.id}
+            onClose={() => setDetailRunId(null)}
+          />
+        )}
       />
     </section>
   )

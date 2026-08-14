@@ -2,6 +2,7 @@ import { requestJson } from "@/api/http"
 
 export type SearchHit = {
   kbId: string
+  kbName?: string | null
   itemId: string
   chunkId: string
   chunkIndex: number
@@ -27,5 +28,12 @@ export function searchEntries(params: SearchParams) {
       q: params.q,
       topK: params.topK,
     },
+  })
+}
+
+export function getSearchChunks(chunkIds: string[]) {
+  return requestJson<SearchHit[]>("/search/chunks", {
+    method: "POST",
+    body: { chunkIds },
   })
 }

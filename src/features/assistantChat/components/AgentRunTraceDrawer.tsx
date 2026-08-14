@@ -20,6 +20,8 @@ type TimelineStep = {
   durationMs: number
 }
 
+type RetrievalPass = Record<string, unknown>
+
 type DurationSegment = {
   key: string
   label: string
@@ -86,6 +88,7 @@ function stepLabel(name: string) {
 }
 
 function segmentBucket(step: TimelineStep): string {
+  if (step.name === "eval_run") return "评测执行"
   if (step.kind === "tool" || step.name.includes("tool") || step.name === "execute_tool") return "工具调用"
   if (step.name.includes("retrieve") || step.kind === "retrieval") return "知识检索"
   // prepare_* 含 "generation"，必须先于模型生成判断，否则会被误归到生成
@@ -128,6 +131,56 @@ function parseSteps(rawSteps: Array<Record<string, unknown>>): TimelineStep[] {
       decision: step.decision != null ? String(step.decision) : undefined,
       durationMs: Math.max(0, Number(step.durationMs ?? 0)),
     }))
+}
+
+export function buildEvalFallbackSteps(detail: AgentRunDetail | null, passes: RetrievalPass[]): TimelineStep[] {
+  if (!detail || detail.source !== "eval") return []
+  const totalLatencyMs = detail.summary.latencyMs
+  if (totalLatencyMs == null || totalLatencyMs <= 0) return []
+
+  const steps: TimelineStep[] = []
+  let sequence = 1
+  let accounted = 0
+  if (detail.executionMode === "agent" && passes.length === 0) {
+    const orchestrationMs = Math.max(1, Math.min(250, Math.round(totalLatencyMs * 0.08)))
+    steps.push({
+      sequence,
+      name: "agent_planner",
+      kind: "node",
+      durationMs: orchestrationMs,
+    })
+    sequence += 1
+    accounted += orchestrationMs
+  }
+  for (const pass of passes) {
+    const durationMs = Math.max(0, Number(pass.durationMs ?? 0))
+    if (durationMs <= 0) continue
+    steps.push({
+      sequence,
+      name: "retrieve",
+      kind: "retrieval",
+      durationMs,
+    })
+    sequence += 1
+    accounted += durationMs
+  }
+
+  const remaining = Math.max(0, totalLatencyMs - accounted)
+  if (remaining > 0) {
+    steps.push({
+      sequence,
+      name:
+        detail.executionMode === "agent" ||
+        detail.status === "succeeded" ||
+        detail.summary.estimatedOutputTokens
+          ? "generate_answer"
+          : "eval_run",
+      kind: "node",
+      durationMs: remaining,
+    })
+  }
+
+  return steps
 }
 
 function buildSegments(steps: TimelineStep[], totalLatencyMs: number | null): DurationSegment[] {
@@ -208,7 +261,11 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
     }
   }, [open, runId])
 
-  const steps = useMemo(() => parseSteps(detail?.trace?.steps ?? []), [detail])
+  const passes = detail?.trace?.retrievalPasses ?? []
+  const steps = useMemo(() => {
+    const parsed = parseSteps(detail?.trace?.steps ?? [])
+    return parsed.length ? parsed : buildEvalFallbackSteps(detail, passes)
+  }, [detail, passes])
   const totalLatencyMs = detail?.summary.latencyMs ?? null
   const segments = useMemo(() => buildSegments(steps, totalLatencyMs), [steps, totalLatencyMs])
   const segmentTotal = Math.max(
@@ -220,7 +277,6 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
 
   if (!open) return null
 
-  const passes = detail?.trace?.retrievalPasses ?? []
   const retrieved = detail?.citations?.retrieved ?? []
   const used = detail?.citations?.used ?? []
 

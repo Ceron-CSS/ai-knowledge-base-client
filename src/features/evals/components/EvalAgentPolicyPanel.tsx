@@ -33,6 +33,7 @@ export function EvalAgentPolicyPanel({
 
   const pending = (policies.data ?? []).find((item) => item.id === pendingPolicyId)
   const highlighted = (policies.data ?? []).find((item) => item.id === highlightPolicyId)
+  const visiblePolicies = (policies.data ?? []).filter((item) => !item.isSeed || item.isActive)
   const errorText =
     createPolicy.error instanceof HttpError
       ? createPolicy.error.message
@@ -51,9 +52,9 @@ export function EvalAgentPolicyPanel({
       <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <div className="text-sm font-medium">去 Agent Policy 发布</div>
+            <div className="text-sm font-medium">去 Agent 策略发布</div>
             <p className="text-xs text-muted-foreground">
-              策略发布是平台级能力。候选策略评测通过后，请在 Agent Policy 确认发布为线上
+              策略发布是平台级能力。候选策略评测通过后，请在 Agent 策略确认发布为线上
               active；历史 Run 快照不会被改写。
             </p>
             {highlighted ? (
@@ -96,14 +97,14 @@ export function EvalAgentPolicyPanel({
               </Button>
             ) : null}
             <Button variant="outline" size="sm" onClick={() => navigate(centerHref)}>
-              打开 Agent Policy
+              打开 Agent 策略
             </Button>
           </div>
         </div>
 
         <ConfirmDeleteDialog
           open={Boolean(pendingPolicyId)}
-          title="确认发布 Agent Policy"
+          title="确认发布 Agent 策略"
           confirmLabel="确认发布"
           confirming={activate.isPending}
           errorText={errorText}
@@ -130,17 +131,17 @@ export function EvalAgentPolicyPanel({
     <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-medium">Agent Policy 发布</div>
+          <div className="text-sm font-medium">Agent 策略发布</div>
           <p className="mt-1 text-xs text-muted-foreground">
             内置 v1/v2 仅为 seed。请复制为 draft、评测对比后，在{" "}
             <Link className="text-foreground underline-offset-2 hover:underline" to="/evals/policies">
-              Agent Policy
+              Agent 策略
             </Link>{" "}
             发布；历史评测快照不会被改写。
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate(centerHref)}>
-          打开 Agent Policy
+          打开 Agent 策略
         </Button>
       </div>
 
@@ -152,7 +153,7 @@ export function EvalAgentPolicyPanel({
         <div className="mt-4 text-sm text-destructive">策略列表加载失败</div>
       ) : (
         <div className="mt-4 space-y-2">
-          {(policies.data ?? []).map((policy) => {
+          {visiblePolicies.map((policy) => {
             const isHighlighted = highlightPolicyId === policy.id
             const canActivate =
               policy.id !== "workflow-baseline-v1" &&
@@ -173,7 +174,7 @@ export function EvalAgentPolicyPanel({
                   <div className="text-sm font-medium">
                     {policy.name}{" "}
                     <span className="text-xs font-normal text-muted-foreground">
-                      {policy.id} · {policy.version}
+                      {policy.id}
                       {policy.isSeed ? " · seed" : ""} · {policy.status}
                       {policy.isActive ? " · 线上 active" : ""}
                     </span>
@@ -208,8 +209,7 @@ export function EvalAgentPolicyPanel({
           <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
             {history.data.slice(0, 5).map((item) => (
               <li key={item.id}>
-                {item.policyName} ({item.version || "-"}) ·{" "}
-                {item.activatedAt ? formatEvalDateTime(item.activatedAt) : "-"}
+                {item.policyName} · {item.activatedAt ? formatEvalDateTime(item.activatedAt) : "-"}
                 {item.isActive ? " · active" : ""}
                 {item.note ? ` · ${item.note}` : ""}
               </li>
@@ -220,7 +220,7 @@ export function EvalAgentPolicyPanel({
 
       <ConfirmDeleteDialog
         open={Boolean(pendingPolicyId)}
-        title="确认发布 Agent Policy"
+        title="确认发布 Agent 策略"
         confirmLabel="确认发布"
         confirming={activate.isPending}
         errorText={errorText}
@@ -247,14 +247,14 @@ function ReleaseGateChecklist({
   policy,
   evidenceEvalRunId,
 }: {
-  policy?: { name: string; version: string } | null
+  policy?: { name: string } | null
   evidenceEvalRunId?: string | null
 }) {
   return (
     <div className="space-y-3 text-sm">
       <p className="text-muted-foreground">
         {policy
-          ? `将发布「${policy.name} (${policy.version})」为线上 active policy。历史 EvalRun 的策略快照不会被改写。`
+          ? `将发布「${policy.name}」为线上 active policy。历史 EvalRun 的策略快照不会被改写。`
           : "将发布该策略为线上 active policy。历史 EvalRun 的策略快照不会被改写。"}
       </p>
       <div className="rounded-md border border-amber-300/60 bg-amber-50/70 p-3 text-amber-950">
@@ -265,7 +265,7 @@ function ReleaseGateChecklist({
         <li>regressed 样本已复核，并记录退化原因。</li>
         <li>关键检索和引用指标未低于 Workflow baseline。</li>
         <li>P95 延迟、成本代理、fallback 和预算耗尽比例在可接受范围内。</li>
-        <li>没有未解释的系统错误；必要时先创建新的 Draft Policy 再复跑。</li>
+        <li>没有未解释的系统错误；必要时先创建新的策略草稿再复跑。</li>
       </ul>
     </div>
   )

@@ -75,6 +75,10 @@ export function EvalResultDetailDrawer({
           value={`Recall ${formatMetricNumber(result.metrics.recallAtK)} · Precision ${formatMetricNumber(result.metrics.precisionAtK)} · Hit ${formatMetricNumber(result.metrics.hitAtK, 0)} · MRR ${formatMetricNumber(result.metrics.mrrAtK)} · NDCG ${formatMetricNumber(result.metrics.ndcgAtK)} · ${formatLatencyMs(result.durationMs ?? result.metrics.latencyMs)}`}
         />
         <Field
+          label="答案状态"
+          value={result.generatedAnswer ? "已生成答案；检索指标只衡量是否命中人工标注 Chunk。" : "未生成答案"}
+        />
+        <Field
           label="召回 Chunk"
           value={
             result.retrievedChunkIds.length
