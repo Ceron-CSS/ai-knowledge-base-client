@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Pencil, RotateCcw, Trash2 } from "lucide-react"
 import type { KbItem } from "@/api/kb"
@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button"
 import type { DataTableColumn } from "@/components/ui/data-table"
 import { message } from "@/components/ui/message"
 import { Switch } from "@/components/ui/switch"
+import {
+  clearReopenImportDialog,
+  peekReopenImportDialog,
+} from "@/features/feishu/lib/reopenImportDialog"
 import {
   useDeleteKbItem,
   useKbItems,
@@ -51,7 +55,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
       sortBy: "createdAt" as const,
       sortDir: "desc" as const,
     }),
-    [page, debouncedQuery],
+    [page, debouncedQuery]
   )
   const items = useKbItems(kbId, itemParams)
   const setEnabled = useSetKbItemEnabled()
@@ -60,6 +64,22 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   const retryIndexing = useRetryKbItemIndexing()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
+  // 飞书扫码授权成功跳回本页时自动打开导入对话框。
+  // 双保险：URL 参数（页面先挂载时读到）+ 模块标记（懒加载完成后读到）。
+  const [feishuOpen, setFeishuOpen] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get("feishu") === "connected" || peekReopenImportDialog()
+  })
+
+  useEffect(() => {
+    clearReopenImportDialog()
+    if (window.location.search.includes("feishu")) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete("feishu")
+      url.searchParams.delete("reason")
+      window.history.replaceState(null, "", url.toString())
+    }
+  }, [])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -84,7 +104,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
     async (itemId: string, enabled: boolean) => {
       await setEnabled.mutateAsync({ kbId, itemId, enabled: !enabled })
     },
-    [kbId, setEnabled],
+    [kbId, setEnabled]
   )
 
   function confirmDelete() {
@@ -103,7 +123,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         },
       })
     },
-    [kbId, navigate],
+    [kbId, navigate]
   )
 
   const onEdit = useCallback(
@@ -135,7 +155,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         setEditingItemId(null)
       }
     },
-    [kbId, navigate],
+    [kbId, navigate]
   )
 
   const onRetry = useCallback(
@@ -160,7 +180,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         setRetryingItemId(null)
       }
     },
-    [kbId, openImportWizard, retryExtraction, retryIndexing],
+    [kbId, openImportWizard, retryExtraction, retryIndexing]
   )
 
   async function handlePickFile(file: File | null) {
@@ -289,7 +309,8 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         cellClassName: "text-center",
         render: (item) => {
           const canRetry =
-            item.status === "extraction_failed" || item.status === "indexing_failed"
+            item.status === "extraction_failed" ||
+            item.status === "indexing_failed"
           return (
             <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
               {canRetry ? (
@@ -300,8 +321,16 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
                   onClick={() => void onRetry(item)}
                   disabled={busy}
                   loading={retryingItemId === item.id}
-                  title={item.status === "extraction_failed" ? "重试抽取" : "重试索引"}
-                  aria-label={item.status === "extraction_failed" ? "重试抽取" : "重试索引"}
+                  title={
+                    item.status === "extraction_failed"
+                      ? "重试抽取"
+                      : "重试索引"
+                  }
+                  aria-label={
+                    item.status === "extraction_failed"
+                      ? "重试抽取"
+                      : "重试索引"
+                  }
                 >
                   <RotateCcw />
                 </Button>
@@ -334,7 +363,16 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         },
       },
     ],
-    [busy, editingItemId, kbId, navigate, onEdit, onRetry, onToggle, retryingItemId],
+    [
+      busy,
+      editingItemId,
+      kbId,
+      navigate,
+      onEdit,
+      onRetry,
+      onToggle,
+      retryingItemId,
+    ]
   )
 
   return {
@@ -350,6 +388,8 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
     columns,
     uploadOpen,
     setUploadOpen,
+    feishuOpen,
+    setFeishuOpen,
     uploading,
     uploadError,
     dragOver,

@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom"
 import { useAuth } from "@/features/auth"
+import { FeishuOAuthBridge } from "@/features/feishu"
 import { OnboardingGuide, useOnboarding } from "@/features/onboarding"
 import { AppSidebar } from "./components/AppSidebar"
 import { useSidebarCollapsed } from "./hooks/useSidebarCollapsed"
@@ -26,6 +27,7 @@ export function AppLayout() {
         onOpenChange={onboarding.setOpen}
         onComplete={onboarding.complete}
       />
+      <FeishuOAuthBridge />
     </div>
   )
 }

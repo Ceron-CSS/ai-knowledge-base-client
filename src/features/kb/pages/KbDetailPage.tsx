@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { Input } from "@/components/ui/input"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
+import { FeishuImportDialog } from "@/features/feishu"
 import { KbFileUploadDialog } from "@/features/kb/components/KbFileUploadDialog"
 import { KbItemStatusDialog } from "@/features/kb/components/KbItemStatusDialog"
 import { useKbDetailPage } from "@/features/kb/hooks/useKbDetailPage"
@@ -15,10 +16,7 @@ export function KbDetailPage() {
   return (
     <Page>
       <PageHeader
-        items={[
-          { label: "知识库", href: "/kb" },
-          { label: "文档列表" },
-        ]}
+        items={[{ label: "知识库", href: "/kb" }, { label: "文档列表" }]}
         description="查看文档列表，支持删除与启用/禁用"
       />
 
@@ -32,8 +30,19 @@ export function KbDetailPage() {
               onChange={(e) => kb.setQuery(e.target.value)}
               placeholder="搜索文件名称"
             />
-            <Button variant="primary" size="lg" onClick={() => kb.setUploadOpen(true)}>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => kb.setUploadOpen(true)}
+            >
               上传文件
+            </Button>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => kb.setFeishuOpen(true)}
+            >
+              从飞书导入
             </Button>
           </div>
         </div>
@@ -64,6 +73,12 @@ export function KbDetailPage() {
           onDragLeave={() => kb.setDragOver(false)}
         />
 
+        <FeishuImportDialog
+          kbId={id}
+          open={kb.feishuOpen}
+          onOpenChange={kb.setFeishuOpen}
+        />
+
         <KbItemStatusDialog
           open={!!kb.statusItem}
           kbId={id}
@@ -72,12 +87,18 @@ export function KbDetailPage() {
             if (!open) kb.setStatusItem(null)
           }}
           onRetryExtraction={
-            kb.statusItem?.status === "extraction_failed" ? kb.onRetryStatusItem : undefined
+            kb.statusItem?.status === "extraction_failed"
+              ? kb.onRetryStatusItem
+              : undefined
           }
           onRetryIndexing={
-            kb.statusItem?.status === "indexing_failed" ? kb.onRetryStatusItem : undefined
+            kb.statusItem?.status === "indexing_failed"
+              ? kb.onRetryStatusItem
+              : undefined
           }
-          onContinueDraft={kb.statusItem?.status === "draft" ? kb.onContinueDraft : undefined}
+          onContinueDraft={
+            kb.statusItem?.status === "draft" ? kb.onContinueDraft : undefined
+          }
           retrying={kb.retrying}
         />
 
@@ -85,7 +106,11 @@ export function KbDetailPage() {
           open={!!kb.deleting}
           onCancel={() => kb.setDeleting(null)}
           onConfirm={kb.confirmDelete}
-          description={kb.deleting ? `将删除文档「${kb.deleting.fileName}」，该操作不可恢复` : undefined}
+          description={
+            kb.deleting
+              ? `将删除文档「${kb.deleting.fileName}」，该操作不可恢复`
+              : undefined
+          }
           errorText={kb.deleteItem.isError ? "删除失败，请重试" : null}
           confirming={kb.deleteItem.isPending}
         />
