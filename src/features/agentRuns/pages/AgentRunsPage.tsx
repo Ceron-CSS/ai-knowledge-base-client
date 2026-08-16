@@ -81,7 +81,7 @@ export function AgentRunsPage() {
     queryFn: () =>
       listAgentRuns({
         page,
-        pageSize: 20,
+        pageSize: 10,
         assistantId: assistantId || undefined,
         status: status || undefined,
         source: source || undefined,
@@ -296,7 +296,7 @@ export function AgentRunsPage() {
         emptyText="暂无运行记录"
         pagination={{
           page,
-          pageSize: 20,
+          pageSize: 10,
           total: runsQuery.data?.total ?? 0,
           onPageChange: setPage,
         }}

@@ -17,6 +17,10 @@ const hookMocks = vi.hoisted(() => ({
 
 vi.mock("@/features/evals/hooks/queries", () => hookMocks)
 
+vi.mock("@/features/evals/hooks/useChunkHits", () => ({
+  useChunkHits: () => ({ data: [], isFetching: false, hitByChunkId: {} }),
+}))
+
 vi.mock("@/features/evals/components/EvalAgentPolicyPanel", () => ({
   EvalAgentPolicyPanel: () => null,
 }))

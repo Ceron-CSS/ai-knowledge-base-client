@@ -7,6 +7,7 @@ import { LoadingText } from "@/components/ui/loading-text"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { Select } from "@/components/ui/select"
 import type { EvalRunCompareQueryChange, EvalRunResultDetail } from "@/api/evals"
+import { ChunkRefList } from "@/features/evals/components/ChunkRefList"
 import { EvalAgentPolicyPanel } from "@/features/evals/components/EvalAgentPolicyPanel"
 import { EvalBehaviorComparePanel } from "@/features/evals/components/EvalBehaviorComparePanel"
 import {
@@ -15,6 +16,7 @@ import {
   useEvalRunResult,
   useEvalRuns,
 } from "@/features/evals/hooks/queries"
+import { useChunkHits } from "@/features/evals/hooks/useChunkHits"
 import { formatModes, readDecisionSummary } from "@/features/evals/lib/decisionMetrics"
 import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 import {
@@ -397,6 +399,11 @@ function CompareResultCard({
   loading: boolean
   error: boolean
 }) {
+  const chunkHits = useChunkHits(
+    result ? [...result.retrievedChunkIds, ...result.relevantChunkIds] : [],
+  )
+  const hitByChunkId = chunkHits.hitByChunkId
+
   return (
     <div className="rounded-md border border-border bg-muted/15 p-3">
       <div className="flex items-start justify-between gap-3">
@@ -419,16 +426,22 @@ function CompareResultCard({
             value={`Recall ${formatMetricNumber(result.metrics.recallAtK)} · Precision ${formatMetricNumber(result.metrics.precisionAtK)} · Hit ${formatMetricNumber(result.metrics.hitAtK, 0)} · MRR ${formatMetricNumber(result.metrics.mrrAtK)} · ${formatLatencyMs(result.durationMs ?? result.metrics.latencyMs)}`}
           />
           <CompareField label="完整答案" value={result.generatedAnswer || "-"} pre />
-          <CompareField
-            label="召回 Chunk"
-            value={
-              result.retrievedChunkIds.length
-                ? result.retrievedChunkIds.map((id, index) => `${index + 1}. ${id}`).join("\n")
-                : "-"
-            }
-            pre
-          />
-          <CompareField label="相关 Chunk" value={result.relevantChunkIds.join(", ") || "-"} />
+          <div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">召回 Chunk</div>
+            <ChunkRefList
+              chunkIds={result.retrievedChunkIds}
+              hitByChunkId={hitByChunkId}
+              loading={chunkHits.isFetching}
+            />
+          </div>
+          <div>
+            <div className="mb-1 text-xs font-medium text-muted-foreground">相关 Chunk</div>
+            <ChunkRefList
+              chunkIds={result.relevantChunkIds}
+              hitByChunkId={hitByChunkId}
+              loading={chunkHits.isFetching}
+            />
+          </div>
           {result.error ? <CompareField label="错误" value={result.error} /> : null}
         </div>
       ) : (

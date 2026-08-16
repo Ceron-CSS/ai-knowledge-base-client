@@ -38,6 +38,8 @@ export type AgentRunListItem = {
 
 export type AgentRunDetail = AgentRunListItem & {
   requestId: string | null
+  /** 生成的回答正文（未生成时可能为 null） */
+  answer?: string | null
   configSnapshot: Record<string, unknown>
   trace: {
     schemaVersion?: number

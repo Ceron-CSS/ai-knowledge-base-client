@@ -67,15 +67,17 @@ function formatDuration(ms: number | null | undefined) {
   return `${(ms / 1000).toFixed(1)} 秒`
 }
 
-function stepLabel(name: string) {
+export function stepLabel(name: string) {
   const map: Record<string, string> = {
     pre_route: "预路由",
     route_query: "问题路由",
     plan_queries: "规划查询",
     retrieve: "知识检索",
     judge_context: "上下文判定",
+    context_grader: "上下文判定",
     prepare_generation: "准备生成",
     prepare_direct_generation: "准备直答",
+    prepare_grounded_generation: "准备有据生成",
     generate_answer: "模型生成",
     verify_citations: "引用校验",
     agent_planner: "策略规划",
@@ -83,6 +85,15 @@ function stepLabel(name: string) {
     generation_guard: "生成守卫",
     build_insufficient_answer: "不足回答",
     workflow_fallback_exit: "回退标准流程",
+    analyze_query: "分析问题",
+    search_chunks: "统一检索",
+    search_keyword: "关键词检索",
+    search_vector: "向量检索",
+    search_hybrid: "混合检索",
+    rerank_results: "重排结果",
+    expand_context: "扩展上下文",
+    verify_evidence: "证据校验",
+    get_document_info: "获取文档信息",
   }
   return map[name] || name
 }
@@ -96,6 +107,7 @@ function segmentBucket(step: TimelineStep): string {
     step.name.includes("route") ||
     step.name.includes("plan") ||
     step.name.includes("judge") ||
+    step.name.includes("grader") ||
     step.name.includes("verify") ||
     step.name.includes("prepare") ||
     step.name.includes("guard") ||
@@ -341,6 +353,22 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
                 {detail.traceUnavailable ? (
                   <div className="text-sm text-muted-foreground">当前过程详情不可用，仅展示摘要。</div>
                 ) : null}
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-medium">回答结果</h3>
+                <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
+                  <div className="text-xs font-medium text-muted-foreground">问题</div>
+                  <div className="mt-1 whitespace-pre-wrap break-words">{detail.question || "-"}</div>
+                </div>
+                <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
+                  <div className="text-xs font-medium text-muted-foreground">回答</div>
+                  {detail.answer ? (
+                    <div className="mt-1 whitespace-pre-wrap break-words">{detail.answer}</div>
+                  ) : (
+                    <div className="mt-1 text-muted-foreground">暂无回答记录</div>
+                  )}
+                </div>
               </section>
 
               <section className="space-y-3">

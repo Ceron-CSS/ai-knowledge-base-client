@@ -113,7 +113,7 @@ export function AgentPolicyEditDialog({
       onOpenChange={(next) => {
         if (!next) onCancel()
       }}
-      title={policy ? `编辑策略 · ${policy.id}` : "编辑策略"}
+      title="编辑策略"
       description="仅 draft 可编辑。种子策略请先复制。高级区只读预览合并后的护栏 JSON。"
       contentClassName="max-w-5xl w-full"
     >

@@ -1,6 +1,8 @@
 import type { EvalRunResult } from "@/api/evals"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
+import { ChunkRefList } from "@/features/evals/components/ChunkRefList"
+import { useChunkHits } from "@/features/evals/hooks/useChunkHits"
 import {
   evalRunStatusLabel,
   formatLatencyMs,
@@ -32,6 +34,11 @@ export function EvalResultDetailDrawer({
   onOpenTrace,
   onOpenCitation,
 }: EvalResultDetailDrawerProps) {
+  const chunkHits = useChunkHits(
+    result ? [...result.retrievedChunkIds, ...result.relevantChunkIds] : [],
+  )
+  const hitByChunkId = chunkHits.hitByChunkId
+
   if (!result) {
     return (
       <Dialog open={open} onOpenChange={(next) => !next && onClose()} title="问题结果">
@@ -65,6 +72,18 @@ export function EvalResultDetailDrawer({
       title="问题结果详情"
       contentClassName="max-w-3xl"
       bodyClassName="max-h-[min(70vh,720px)] overflow-y-auto pr-1"
+      footer={
+        <>
+          {result.agentRunId && onOpenTrace ? (
+            <Button variant="outline" size="dialog" onClick={() => onOpenTrace(result.agentRunId!)}>
+              打开 Agent Trace
+            </Button>
+          ) : null}
+          <Button variant="primary" size="dialog" onClick={onClose}>
+            关闭
+          </Button>
+        </>
+      }
     >
       <div className="space-y-4 text-sm">
         <Field label="状态" value={evalRunStatusLabel(result.status)} />
@@ -78,16 +97,22 @@ export function EvalResultDetailDrawer({
           label="答案状态"
           value={result.generatedAnswer ? "已生成答案；检索指标只衡量是否命中人工标注 Chunk。" : "未生成答案"}
         />
-        <Field
-          label="召回 Chunk"
-          value={
-            result.retrievedChunkIds.length
-              ? result.retrievedChunkIds.map((id, i) => `${i + 1}. ${id}`).join("\n")
-              : "-"
-          }
-          pre
-        />
-        <Field label="相关标签" value={result.relevantChunkIds.join(", ") || "-"} />
+        <div>
+          <div className="mb-1 text-xs font-medium text-muted-foreground">召回 Chunk</div>
+          <ChunkRefList
+            chunkIds={result.retrievedChunkIds}
+            hitByChunkId={hitByChunkId}
+            loading={chunkHits.isFetching}
+          />
+        </div>
+        <div>
+          <div className="mb-1 text-xs font-medium text-muted-foreground">相关标签</div>
+          <ChunkRefList
+            chunkIds={result.relevantChunkIds}
+            hitByChunkId={hitByChunkId}
+            loading={chunkHits.isFetching}
+          />
+        </div>
         {citations.length ? (
           <div>
             <div className="mb-1 text-xs font-medium text-muted-foreground">引用原文</div>
@@ -163,17 +188,6 @@ export function EvalResultDetailDrawer({
           />
         ) : null}
         {result.error ? <Field label="错误" value={result.error} /> : null}
-      </div>
-
-      <div className="mt-4 flex justify-end gap-3">
-        {result.agentRunId && onOpenTrace ? (
-          <Button variant="outline" size="dialog" onClick={() => onOpenTrace(result.agentRunId!)}>
-            打开 Agent Trace
-          </Button>
-        ) : null}
-        <Button variant="primary" size="dialog" onClick={onClose}>
-          关闭
-        </Button>
       </div>
     </Dialog>
   )

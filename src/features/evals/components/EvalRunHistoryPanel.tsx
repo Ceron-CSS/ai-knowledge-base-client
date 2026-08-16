@@ -41,7 +41,7 @@ export function EvalRunHistoryPanel({
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<string[]>([])
   const [detailRunId, setDetailRunId] = useState<string | null>(null)
-  const runs = useEvalRuns(datasetId, { page, pageSize: 20 })
+  const runs = useEvalRuns(datasetId, { page, pageSize: 10 })
   const items = runs.data?.items ?? []
   const hasActive = items.some((r) => isEvalRunActive(r.status))
 
@@ -224,7 +224,7 @@ export function EvalRunHistoryPanel({
           runs.data
             ? {
                 page,
-                pageSize: 20,
+                pageSize: 10,
                 total: runs.data.total,
                 onPageChange: setPage,
               }

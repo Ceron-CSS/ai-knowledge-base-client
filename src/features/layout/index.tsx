@@ -17,7 +17,7 @@ export function AppLayout() {
         onOpenOnboarding={onboarding.openGuide}
       />
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto [scrollbar-gutter:stable]">
         <Outlet />
       </main>
 
