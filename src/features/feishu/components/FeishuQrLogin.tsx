@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { LoaderCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { createFeishuAuthorize } from "@/api/feishu"
 import { loadFeishuQrSdk } from "@/features/feishu/lib/feishuQrSdk"
 
@@ -12,6 +13,7 @@ type FeishuQrLoginProps = {
 
 export function FeishuQrLogin({ onError, returnTo }: FeishuQrLoginProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [authorizeUrl, setAuthorizeUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [localError, setLocalError] = useState<string | null>(null)
   const onErrorRef = useRef(onError)
@@ -32,10 +34,12 @@ export function FeishuQrLogin({ onError, returnTo }: FeishuQrLoginProps) {
         const { authorizeUrl } = await createFeishuAuthorize(
           returnToRef.current
         )
+        setAuthorizeUrl(authorizeUrl)
         if (disposed) return
         const factory = await loadFeishuQrSdk()
         if (disposed || !containerRef.current) return
 
+        containerRef.current.innerHTML = ""
         const handle = factory({
           id: QR_CONTAINER_ID,
           goto: authorizeUrl,
@@ -86,7 +90,20 @@ export function FeishuQrLogin({ onError, returnTo }: FeishuQrLoginProps) {
         className={loading ? "hidden" : "block"}
       />
       {localError ? (
-        <div className="text-sm text-destructive">{localError}</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="text-center text-sm text-destructive">{localError}</div>
+          {authorizeUrl ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                window.location.href = authorizeUrl
+              }}
+            >
+              Open Feishu authorization page
+            </Button>
+          ) : null}
+        </div>
       ) : null}
       <div className="text-sm text-muted-foreground">
         使用飞书 App 扫码，并在手机上确认授权

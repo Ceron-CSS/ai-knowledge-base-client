@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { Textarea } from "@/components/ui/textarea"
 import type { useChunkLabeling } from "@/features/evals/hooks/useChunkLabeling"
 
 function sourceLabel(source: string) {
@@ -16,11 +15,14 @@ function sourceLabel(source: string) {
 
 type ChunkLabelingPanelProps = {
   labeling: ReturnType<typeof useChunkLabeling>
-  /** 用当前问题作为召回查询的快捷填充 */
-  onUseQuestionAsQuery?: () => void
+  queryText?: string
 }
 
-export function ChunkLabelingPanel({ labeling, onUseQuestionAsQuery }: ChunkLabelingPanelProps) {
+export function ChunkLabelingPanel({ labeling, queryText }: ChunkLabelingPanelProps) {
+  const searchQuery = queryText ?? labeling.query
+  const canSearch =
+    labeling.kbId.trim().length > 0 && searchQuery.trim().length > 0 && !labeling.searching
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
@@ -58,38 +60,17 @@ export function ChunkLabelingPanel({ labeling, onUseQuestionAsQuery }: ChunkLabe
           />
         </div>
         <div className="flex items-end gap-2">
-          {onUseQuestionAsQuery ? (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={onUseQuestionAsQuery}
-              disabled={labeling.searching}
-            >
-              填入问题
-            </Button>
-          ) : null}
           <Button
             variant="primary"
             size="lg"
-            onClick={() => void labeling.onSearch()}
-            disabled={!labeling.canSearch}
+            onClick={() => void labeling.onSearch(searchQuery)}
+            disabled={!canSearch}
             loading={labeling.searching}
           >
             <Search className="h-4 w-4" />
             召回候选
           </Button>
         </div>
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-sm font-medium">召回查询</label>
-        <Textarea
-          rows={2}
-          value={labeling.query}
-          onChange={(e) => labeling.setQuery(e.target.value)}
-          placeholder="可用问题原文，也可改成更利于召回的检索词"
-          disabled={labeling.searching}
-        />
       </div>
 
       {labeling.selectedIds.length > 0 ? (

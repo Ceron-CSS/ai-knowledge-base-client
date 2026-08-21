@@ -60,7 +60,7 @@ export function AssistantChatPage() {
       <PageHeader
         items={[
           { label: "问答助手", href: "/assistants" },
-          { label: chat.assistant.data?.name ? `对话 · ${chat.assistant.data.name}` : "对话" },
+          { label: chat.assistant.data?.name ?? "对话" },
         ]}
       />
 

@@ -14,6 +14,7 @@ import {
 } from "@/features/feishu/lib/reopenImportDialog"
 import {
   useDeleteKbItem,
+  useKb,
   useKbItems,
   useRetryKbItemExtraction,
   useRetryKbItemIndexing,
@@ -21,6 +22,7 @@ import {
 } from "@/features/kb/hooks/queries"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
+import { formatShanghaiDateTime } from "@/lib/dateTime"
 
 const STATUS_LABELS: Record<string, string> = {
   extracting: "抽取中",
@@ -36,16 +38,70 @@ type UseKbDetailPageOptions = {
   kbId: string
 }
 
+type KbItemListState = {
+  page: number
+  query: string
+}
+
+function getKbItemListStateKey(kbId: string) {
+  return `kb-item-list-state:${kbId}`
+}
+
+function normalizePage(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 1
+}
+
+function readKbItemListState(kbId: string): KbItemListState {
+  if (!kbId || typeof window === "undefined") return { page: 1, query: "" }
+  try {
+    const raw = window.sessionStorage.getItem(getKbItemListStateKey(kbId))
+    if (!raw) return { page: 1, query: "" }
+    const parsed = JSON.parse(raw) as Partial<KbItemListState>
+    return {
+      page: normalizePage(parsed.page),
+      query: typeof parsed.query === "string" ? parsed.query : "",
+    }
+  } catch {
+    return { page: 1, query: "" }
+  }
+}
+
+function writeKbItemListState(kbId: string, state: KbItemListState) {
+  if (!kbId || typeof window === "undefined") return
+  try {
+    window.sessionStorage.setItem(
+      getKbItemListStateKey(kbId),
+      JSON.stringify({
+        page: normalizePage(state.page),
+        query: state.query,
+      }),
+    )
+  } catch {
+    // Ignore storage failures; pagination still works for the current mount.
+  }
+}
+
 export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   const navigate = useNavigate()
-  const [query, setQuery] = useState("")
+  const [query, setQueryState] = useState(() => readKbItemListState(kbId).query)
   const debouncedQuery = useDebouncedValue(query, 250)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(() => readKbItemListState(kbId).page)
   const [pageQuery, setPageQuery] = useState(debouncedQuery)
   if (pageQuery !== debouncedQuery) {
     setPageQuery(debouncedQuery)
     setPage(1)
   }
+
+  useEffect(() => {
+    writeKbItemListState(kbId, { page, query })
+  }, [kbId, page, query])
+
+  const setQuery = useCallback((nextQuery: string) => {
+    setQueryState(nextQuery)
+    setPage(1)
+  }, [])
 
   const itemParams = useMemo(
     () => ({
@@ -57,6 +113,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
     }),
     [page, debouncedQuery]
   )
+  const kbDetail = useKb(kbId)
   const items = useKbItems(kbId, itemParams)
   const setEnabled = useSetKbItemEnabled()
   const deleteItem = useDeleteKbItem()
@@ -222,7 +279,10 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
           <Button
             variant="ghost"
             className="h-auto max-w-full truncate px-0 font-normal text-foreground hover:bg-transparent hover:text-primary"
-            onClick={() => navigate(`/kb/${kbId}/items/${item.id}`)}
+            onClick={() => {
+              writeKbItemListState(kbId, { page, query })
+              navigate(`/kb/${kbId}/items/${item.id}`)
+            }}
             title={item.fileName}
           >
             {item.fileName}
@@ -268,7 +328,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
       },
       {
         key: "chunkCount",
-        header: "分段数",
+        header: "分片数",
         className: "w-[9%]",
         cellClassName: "tabular-nums",
         render: (item) => item.chunkCount,
@@ -293,14 +353,14 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         header: "创建时间",
         className: "w-[15%]",
         cellClassName: "tabular-nums",
-        render: (item) => new Date(item.createdAt).toLocaleString(),
+        render: (item) => formatShanghaiDateTime(item.createdAt),
       },
       {
         key: "updatedAt",
         header: "更新时间",
         className: "w-[15%]",
         cellClassName: "tabular-nums",
-        render: (item) => new Date(item.updatedAt).toLocaleString(),
+        render: (item) => formatShanghaiDateTime(item.updatedAt),
       },
       {
         key: "actions",
@@ -371,6 +431,8 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
       onEdit,
       onRetry,
       onToggle,
+      page,
+      query,
       retryingItemId,
     ]
   )
@@ -378,6 +440,8 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
   return {
     query,
     setQuery,
+    kbDetail,
+    kbName: kbDetail.data?.name ?? "加载中…",
     items,
     list,
     total,

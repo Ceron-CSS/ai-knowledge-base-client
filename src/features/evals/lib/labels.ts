@@ -17,10 +17,12 @@ export function evalExecutionModeLabel(mode: string) {
 }
 
 export function evalRetrieverModeLabel(mode: string) {
-  if (mode === "hybrid") return "混合"
-  if (mode === "hybrid-rerank") return "混合+重排"
-  if (mode === "keyword") return "关键词"
-  if (mode === "vector") return "向量"
+  if (mode === "hybrid") return "混合召回"
+  if (mode === "hybrid-rerank") return "混合召回+重排"
+  if (mode === "keyword") return "关键词召回"
+  if (mode === "keyword-rerank") return "关键词召回+重排"
+  if (mode === "vector") return "向量召回"
+  if (mode === "vector-rerank") return "向量召回+重排"
   return mode
 }
 

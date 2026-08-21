@@ -16,39 +16,49 @@ function policy(id: string, config: AgentPolicyListItem["config"]): AgentPolicyL
 describe("buildPolicyDiffSummary", () => {
   it("returns unchanged text when a candidate matches its source", () => {
     const source = policy("source", {
-      defaultTopK: 6,
-      rerank: { enabled: true, maxCandidates: 30 },
+      answerContextTopK: 6,
+      maxToolCalls: 3,
+      maxPlannerCalls: 4,
+      minEvidenceScore: 0.15,
+      plannerPromptHash: "abc",
     })
     const candidate = policy("candidate", {
-      defaultTopK: 6,
-      rerank: { enabled: true, maxCandidates: 30 },
+      answerContextTopK: 6,
+      maxToolCalls: 3,
+      maxPlannerCalls: 4,
+      minEvidenceScore: 0.15,
+      plannerPromptHash: "abc",
     })
 
     expect(buildPolicyDiffSummary(candidate, source)).toEqual(["与源策略一致"])
   })
 
-  it("summarizes changed strategy parameters", () => {
+  it("summarizes only effective policy fields", () => {
     const source = policy("source", {
+      answerContextTopK: 6,
+      maxToolCalls: 3,
+      maxPlannerCalls: 4,
+      minEvidenceScore: 0.15,
+      plannerPromptHash: "abc",
       defaultExecutionMode: "agent",
-      defaultTopK: 6,
-      maxToolCalls: 6,
       rerank: { enabled: true, maxCandidates: 30 },
-      evidenceVerification: { enabled: true, minConfidence: 0.35 },
     })
     const candidate = policy("candidate", {
+      answerContextTopK: 8,
+      maxToolCalls: 2,
+      maxPlannerCalls: 5,
+      minEvidenceScore: 0.35,
+      plannerPromptHash: "def",
       defaultExecutionMode: "auto",
-      defaultTopK: 8,
-      maxToolCalls: 4,
-      rerank: { enabled: true, maxCandidates: 50 },
-      evidenceVerification: { enabled: true, minConfidence: 0.45 },
+      rerank: { enabled: false, maxCandidates: 50 },
     })
 
     expect(buildPolicyDiffSummary(candidate, source)).toEqual([
-      "执行路径: agent -> auto",
-      "默认 TopK: 6 -> 8",
-      "最大工具调用次数: 6 -> 4",
-      "Rerank 候选数: 30 -> 50",
-      "Evidence 最小置信度: 0.35 -> 0.45",
+      "回答上下文数量: 6 -> 8",
+      "最大工具调用次数: 3 -> 2",
+      "最大 Planner 调用次数: 4 -> 5",
+      "最低证据分数: 0.15 -> 0.35",
+      "Planner Prompt: abc -> def",
     ])
   })
 })

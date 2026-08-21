@@ -157,6 +157,7 @@ export function EvalDatasetDetailPage() {
             {page.tab === "runs" ? (
               <EvalRunHistoryPanel
                 datasetId={page.datasetId}
+                onStartEval={() => setCreateOpen(true)}
                 canStartEval={canStartEval}
                 unlabeledCount={unlabeledCount}
               />

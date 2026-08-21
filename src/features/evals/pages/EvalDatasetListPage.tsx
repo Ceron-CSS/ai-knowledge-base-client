@@ -12,7 +12,7 @@ export function EvalDatasetListPage() {
   return (
     <Page>
       <PageHeader
-        items={[{ label: "评测与策略" }]}
+        items={[{ label: "评测数据集" }]}
         description="维护评测数据集与问题标签；策略发版请使用 Agent 策略"
       />
 

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import type { DataTableColumn } from "@/components/ui/data-table"
 import { Switch } from "@/components/ui/switch"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
+import { formatShanghaiDateTime } from "@/lib/dateTime"
 
 type UseKbTableColumnsOptions = {
   onEdit: (kb: Kb) => void
@@ -74,14 +75,14 @@ export function useKbTableColumns({
         header: "创建时间",
         className: "w-[14%]",
         cellClassName: "tabular-nums",
-        render: (kb) => new Date(kb.createdAt).toLocaleString(),
+        render: (kb) => formatShanghaiDateTime(kb.createdAt),
       },
       {
         key: "updatedAt",
         header: "修改时间",
         className: "w-[14%]",
         cellClassName: "tabular-nums",
-        render: (kb) => new Date(kb.updatedAt).toLocaleString(),
+        render: (kb) => formatShanghaiDateTime(kb.updatedAt),
       },
       {
         key: "enabled",

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { ChunkRefList } from "@/features/evals/components/ChunkRefList"
 import { useChunkHits } from "@/features/evals/hooks/useChunkHits"
+import { formatDecisionMode, formatStopReason } from "@/features/evals/lib/decisionMetrics"
 import {
   evalRunStatusLabel,
   formatLatencyMs,
@@ -76,10 +77,10 @@ export function EvalResultDetailDrawer({
         <>
           {result.agentRunId && onOpenTrace ? (
             <Button variant="outline" size="dialog" onClick={() => onOpenTrace(result.agentRunId!)}>
-              打开 Agent Trace
+              {traceButtonLabel(decisionSummary)}
             </Button>
           ) : null}
-          <Button variant="primary" size="dialog" onClick={onClose}>
+          <Button variant="dialog-cancel" size="dialog" onClick={onClose}>
             关闭
           </Button>
         </>
@@ -160,30 +161,34 @@ export function EvalResultDetailDrawer({
             label="Agent 决策摘要"
             value={[
               `模式 ${String(decisionSummary.effectiveExecutionMode ?? "-")}`,
-              `检索 ${Array.isArray(decisionSummary.selectedModes) ? decisionSummary.selectedModes.join(" → ") || "-" : "-"}`,
+              `检索 ${
+                Array.isArray(decisionSummary.selectedModes)
+                  ? decisionSummary.selectedModes.map((mode) => formatDecisionMode(String(mode))).join(" → ") || "-"
+                  : "-"
+              }`,
               `topK ${String(decisionSummary.initialTopK ?? "-")} → ${String(decisionSummary.finalTopK ?? "-")}`,
               `轮次 ${String(decisionSummary.retrievalPasses ?? "-")}`,
               `rerank ${decisionSummary.rerankUsed ? "是" : "否"}`,
               `扩上下文 ${decisionSummary.contextExpanded ? "是" : "否"}`,
-              `停止 ${String(decisionSummary.stopReason ?? "-")}`,
+              `停止 ${formatStopReason(String(decisionSummary.stopReason ?? "-"))}`,
             ].join(" · ")}
           />
         ) : null}
         {faithfulness ? (
           <Field
-            label="Faithfulness（模型评审）"
+            label="事实一致性（模型评审）"
             value={`分数 ${formatMetricNumber(faithfulness.score)} · ${faithfulness.explanation || ""}`}
           />
         ) : null}
         {relevancy ? (
           <Field
-            label="Answer Relevancy（模型评审）"
+            label="回答相关性（模型评审）"
             value={`分数 ${formatMetricNumber(relevancy.score)} · ${relevancy.explanation || ""}`}
           />
         ) : null}
         {citation ? (
           <Field
-            label="Citation Support"
+            label="引用支撑"
             value={`分数 ${formatMetricNumber(citation.score)} · ${citation.explanation || ""}`}
           />
         ) : null}
@@ -191,6 +196,15 @@ export function EvalResultDetailDrawer({
       </div>
     </Dialog>
   )
+}
+
+function traceButtonLabel(decisionSummary: Record<string, unknown> | null) {
+  const engine = String(
+    decisionSummary?.effectiveExecutionMode ?? decisionSummary?.requestedExecutionMode ?? "",
+  )
+  if (engine === "workflow") return "打开 Workflow Trace"
+  if (engine === "agent") return "打开 Agent Trace"
+  return "打开 Trace"
 }
 
 type OpenableCitation = {

@@ -94,6 +94,50 @@ function HighlightedPlainText({ content, highlightText }: { content: string; hig
   )
 }
 
+function MarkdownSourcePreview({
+  content,
+  highlightText,
+}: {
+  content: string
+  highlightText?: string | null
+}) {
+  const hitRef = useRef<HTMLDivElement | null>(null)
+  const range = useMemo(
+    () => (highlightText?.trim() ? findHighlightRange(content, highlightText) : null),
+    [content, highlightText],
+  )
+
+  useEffect(() => {
+    if (!range) return
+    hitRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })
+  }, [content, range])
+
+  if (!range) {
+    return (
+      <div className="h-full overflow-y-auto p-4">
+        <MarkdownMessage content={content} />
+      </div>
+    )
+  }
+
+  const before = content.slice(0, range.start)
+  const matched = content.slice(range.start, range.end)
+  const after = content.slice(range.end)
+
+  return (
+    <div className="h-full overflow-y-auto p-4">
+      {before.trim() ? <MarkdownMessage content={before} /> : null}
+      <div
+        ref={hitRef}
+        className="my-3 rounded-md border border-amber-300 bg-amber-50/80 p-3 text-foreground ring-1 ring-amber-400/40 dark:border-amber-500/40 dark:bg-amber-500/10"
+      >
+        <MarkdownMessage content={matched} />
+      </div>
+      {after.trim() ? <MarkdownMessage content={after} /> : null}
+    </div>
+  )
+}
+
 function OriginalTextFilePreview({
   kbId,
   itemId,
@@ -144,6 +188,10 @@ function OriginalTextFilePreview({
     return <div className="h-full p-3 text-sm text-muted-foreground">原文件为空</div>
   }
 
+  if (kind === "markdown") {
+    return <MarkdownSourcePreview content={content} highlightText={highlightText} />
+  }
+
   if (highlightText?.trim()) {
     return (
       <div className="flex h-full min-h-0 flex-col">
@@ -157,13 +205,6 @@ function OriginalTextFilePreview({
     )
   }
 
-  if (kind === "markdown") {
-    return (
-      <div className="h-full overflow-y-auto p-4">
-        <MarkdownMessage content={content} />
-      </div>
-    )
-  }
   return (
     <pre className="h-full overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm leading-6">
       {content}
@@ -233,7 +274,12 @@ export function KbSourcePreview({
       ) : null}
 
       {!hasOriginalFile && !textEditable ? (
-        highlightText?.trim() ? (
+        kind === "markdown" ? (
+          <MarkdownSourcePreview
+            content={text.trim() ? text : "暂无预览内容"}
+            highlightText={highlightText}
+          />
+        ) : highlightText?.trim() ? (
           <HighlightedPlainText content={text} highlightText={highlightText} />
         ) : (
           <pre className="h-full overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm leading-6">

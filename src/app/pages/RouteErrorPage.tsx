@@ -31,13 +31,13 @@ export function RouteErrorPage({ layout = "embedded" }: RouteErrorPageProps) {
       description={message}
       actions={
         <>
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button variant="dialog-cancel" onClick={() => navigate(-1)}>
             返回上一页
           </Button>
           <Button variant="primary" onClick={handleRetry} loading={retrying}>
             重试
           </Button>
-          <Button variant="outline" onClick={() => navigate("/home", { replace: true })}>
+          <Button variant="dialog-cancel" onClick={() => navigate("/home", { replace: true })}>
             回到首页
           </Button>
         </>

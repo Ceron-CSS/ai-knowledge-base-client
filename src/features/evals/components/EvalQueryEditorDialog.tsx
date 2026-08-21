@@ -161,7 +161,7 @@ function EvalQueryEditorForm({
 
         <ChunkLabelingPanel
           labeling={labeling}
-          onUseQuestionAsQuery={() => labeling.setQuery(question.trim())}
+          queryText={question}
         />
       </div>
 

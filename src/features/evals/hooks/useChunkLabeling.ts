@@ -68,15 +68,17 @@ export function useChunkLabeling(initialSelected: string[] = [], initialQuery = 
     }
   }, [hitByChunkId, selectedIds])
 
-  const onSearch = useCallback(async () => {
-    if (!canSearch) return
+  const onSearch = useCallback(async (queryOverride?: string) => {
+    const searchQuery = (queryOverride ?? query).trim()
+    if (kbId.trim().length === 0 || searchQuery.length === 0 || searching) return
     setSearching(true)
     setError(null)
+    setQuery(searchQuery)
     try {
       const parsedTopK = Number(topK)
       const result = await searchEntries({
         kbId,
-        q: query.trim(),
+        q: searchQuery,
         topK: Number.isFinite(parsedTopK) ? parsedTopK : DEFAULT_TOP_K,
       })
       setHits(result)
@@ -93,7 +95,7 @@ export function useChunkLabeling(initialSelected: string[] = [], initialQuery = 
     } finally {
       setSearching(false)
     }
-  }, [canSearch, kbId, query, topK])
+  }, [kbId, query, searching, topK])
 
   const toggleChunk = useCallback((chunkId: string) => {
     setSelectedIds((prev) =>

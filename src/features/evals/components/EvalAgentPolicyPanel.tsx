@@ -52,7 +52,7 @@ export function EvalAgentPolicyPanel({
       <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <div className="text-sm font-medium">去 Agent 策略发布</div>
+            <div className="text-sm font-medium">Agent 策略发布</div>
             <p className="text-xs text-muted-foreground">
               策略发布是平台级能力。候选策略评测通过后，请在 Agent 策略确认发布为线上
               active；历史 Run 快照不会被改写。
@@ -68,7 +68,7 @@ export function EvalAgentPolicyPanel({
             {highlighted && highlighted.id !== "workflow-baseline-v1" ? (
               <Button
                 variant="outline"
-                size="sm"
+                size="lg"
                 loading={createPolicy.isPending}
                 onClick={() =>
                   void createPolicy.mutateAsync({
@@ -89,14 +89,14 @@ export function EvalAgentPolicyPanel({
             highlighted.status !== "archived" ? (
               <Button
                 variant="primary"
-                size="sm"
+                size="lg"
                 onClick={() => setPendingPolicyId(highlighted.id)}
                 disabled={activate.isPending}
               >
                 发布该策略
               </Button>
             ) : null}
-            <Button variant="outline" size="sm" onClick={() => navigate(centerHref)}>
+            <Button variant="outline" size="lg" onClick={() => navigate(centerHref)}>
               打开 Agent 策略
             </Button>
           </div>
@@ -140,7 +140,7 @@ export function EvalAgentPolicyPanel({
             发布；历史评测快照不会被改写。
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => navigate(centerHref)}>
+        <Button variant="outline" size="lg" onClick={() => navigate(centerHref)}>
           打开 Agent 策略
         </Button>
       </div>
@@ -190,7 +190,7 @@ export function EvalAgentPolicyPanel({
                 {canActivate ? (
                   <Button
                     variant={isHighlighted ? "primary" : "outline"}
-                    size="sm"
+                    size="default"
                     onClick={() => setPendingPolicyId(policy.id)}
                     disabled={activate.isPending}
                   >

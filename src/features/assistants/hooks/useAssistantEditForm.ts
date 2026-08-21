@@ -122,6 +122,11 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
       return
     }
 
+    if (isPublished && disabledKbNames.length) {
+      setError(`无法重新发布：以下关联知识库已停用：${disabledKbNames.join("、")}`)
+      return
+    }
+
     setError(null)
     try {
       if (!resolvedAssistantId) {
@@ -134,6 +139,9 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
         id: resolvedAssistantId,
         body: buildUpdatePayload(),
       })
+      if (isPublished) {
+        await publishAssistant.mutateAsync({ id: resolvedAssistantId })
+      }
       navigate("/assistants", { replace: true })
     } catch {
       setError("保存失败，请重试")
@@ -202,7 +210,8 @@ export function useAssistantEditForm({ existing }: UseAssistantEditFormOptions) 
     modelConfigs,
     isPublished,
     submitting,
-    savePending: createAssistant.isPending || updateAssistant.isPending,
+    savePending:
+      createAssistant.isPending || updateAssistant.isPending || publishAssistant.isPending,
     unpublishPending: unpublishAssistant.isPending,
     save,
     handlePublish,

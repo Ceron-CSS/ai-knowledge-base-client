@@ -24,10 +24,12 @@ type EvalRunCreateDialogProps = {
 }
 
 const RETRIEVER_OPTIONS = [
-  { value: "hybrid", label: "混合检索" },
-  { value: "hybrid-rerank", label: "混合 + 重排" },
-  { value: "vector", label: "向量" },
-  { value: "keyword", label: "关键词" },
+  { value: "hybrid", label: "混合召回（向量 + 关键词）" },
+  { value: "hybrid-rerank", label: "混合召回 + 重排" },
+  { value: "vector", label: "向量召回" },
+  { value: "vector-rerank", label: "向量召回 + 重排" },
+  { value: "keyword", label: "关键词召回" },
+  { value: "keyword-rerank", label: "关键词召回 + 重排" },
 ]
 
 const EXECUTION_OPTIONS = [
@@ -128,15 +130,21 @@ function EvalRunCreateForm({
   const policyOptions = useMemo(() => {
     const items = policies.data ?? []
     const selectable = items.filter((p) => !p.isSeed || p.isActive)
+    const activePolicy = items.find((p) => p.isActive)
     const preferred =
       executionMode === "workflow"
         ? selectable.filter((p) => p.id.startsWith("workflow-"))
         : selectable.filter(
             (p) => p.id.startsWith("agent-") || p.status === "active"
           )
-    const source = preferred.length > 0 ? preferred : selectable
+    const source = (preferred.length > 0 ? preferred : selectable).filter(
+      (p) => !p.isActive
+    )
+    const currentPolicyLabel = activePolicy
+      ? `当前线上策略（${activePolicy.name}）`
+      : "当前线上策略"
     return [
-      { value: "", label: "当前线上策略" },
+      { value: "", label: currentPolicyLabel },
       ...source.map((p) => ({
         value: p.id,
         label: p.name,
@@ -203,7 +211,7 @@ function EvalRunCreateForm({
           {showFixedRetriever ? (
             <div>
               <label className="mb-1.5 block text-sm font-medium">
-                检索模式
+                召回与排序
               </label>
               <Select
                 value={retrieverMode}
@@ -211,6 +219,9 @@ function EvalRunCreateForm({
                 options={RETRIEVER_OPTIONS}
                 disabled={isSaving}
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                重排是候选召回后的排序步骤，可与混合、向量或关键词召回组合。
+              </p>
             </div>
           ) : (
             <div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { useNavigate } from "react-router-dom"
 import { ExternalLink, X } from "lucide-react"
 import { getAgentRun, type AgentRunDetail } from "@/api/agentRuns"
@@ -12,12 +13,14 @@ type AgentRunTraceDrawerProps = {
   onClose: () => void
 }
 
-type TimelineStep = {
+export type TimelineStep = {
   sequence: number
   name: string
   kind: string
   decision?: string
   durationMs: number
+  inputSummary?: Record<string, unknown>
+  outputSummary?: Record<string, unknown>
 }
 
 type RetrievalPass = Record<string, unknown>
@@ -29,16 +32,17 @@ type DurationSegment = {
   color: string
 }
 
-const SEGMENT_COLORS = [
-  "bg-sky-500",
-  "bg-amber-500",
-  "bg-emerald-500",
-  "bg-violet-500",
-  "bg-rose-500",
-  "bg-cyan-600",
-  "bg-orange-500",
-  "bg-indigo-500",
-]
+const STEP_DURATION_COLORS: Record<string, string> = {
+  编排开销: "bg-sky-500",
+  工具调用: "bg-amber-500",
+  知识检索: "bg-emerald-500",
+  模型生成: "bg-violet-500",
+  其他开销: "bg-slate-300",
+}
+
+function stepDurationColor(bucket: string) {
+  return STEP_DURATION_COLORS[bucket] ?? STEP_DURATION_COLORS["其他开销"]
+}
 
 function statusLabel(status: string) {
   if (status === "succeeded") return "成功"
@@ -98,8 +102,82 @@ export function stepLabel(name: string) {
   return map[name] || name
 }
 
+export function decisionLabel(decision: string) {
+  const map: Record<string, string> = {
+    agent: "进入智能代理",
+    continue: "继续执行",
+    direct: "直接回答",
+    direct_answer_allowed: "允许直接回答",
+    failed: "执行失败",
+    fallback: "回退标准流程",
+    finish_turn: "完成规划",
+    forbidden: "权限拒绝",
+    general_fallback: "通用回答回退",
+    generated: "已生成",
+    grounded: "基于证据回答",
+    grounded_after_invalid: "无效规划后基于证据回答",
+    insufficient: "证据不足",
+    insufficient_after_invalid: "无效规划后证据不足",
+    missing_pending: "缺少待执行工具",
+    needs_more: "需要更多证据",
+    planned: "已规划查询",
+    rag: "知识库回答",
+    rejected: "已拒绝",
+    retrieved: "已检索",
+    retry: "重试检索",
+    retry_planned: "已规划重试查询",
+    skipped_duplicate_queries: "跳过重复查询",
+    succeeded: "执行成功",
+    sufficient: "证据充足",
+    terminal_insufficient: "证据不足并结束",
+    timeout: "执行超时",
+    tool_call: "计划调用工具",
+    unknown_tool: "未知工具",
+    verified: "已校验",
+  }
+  return map[decision] || decision
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
+export function stepToolName(step: TimelineStep) {
+  if (step.kind === "tool") return step.name
+  const output = step.outputSummary ?? {}
+  const input = step.inputSummary ?? {}
+  return (
+    readString(output.tool) ||
+    readString(output.toolName) ||
+    readString(input.tool) ||
+    readString(input.toolName)
+  )
+}
+
+export function stepToolBadge(step: TimelineStep) {
+  const toolName = stepToolName(step)
+  if (!toolName) return null
+  if (step.kind === "tool") return "工具调用"
+  if (step.name === "agent_planner" && step.decision === "tool_call") {
+    return `计划调用：${stepLabel(toolName)}`
+  }
+  return `工具：${stepLabel(toolName)}`
+}
+
+function stepTitle(step: TimelineStep) {
+  if (step.kind === "tool") {
+    return stepLabel(step.name)
+  }
+  return stepLabel(step.name)
+}
+
+export function visibleTimelineSteps(steps: TimelineStep[]) {
+  const primarySteps = steps.filter((step) => step.kind !== "tool")
+  return primarySteps.length ? primarySteps : steps
+}
+
 function segmentBucket(step: TimelineStep): string {
-  if (step.name === "eval_run") return "评测执行"
+  if (step.name === "eval_run") return "其他开销"
   if (step.kind === "tool" || step.name.includes("tool") || step.name === "execute_tool") return "工具调用"
   if (step.name.includes("retrieve") || step.kind === "retrieval") return "知识检索"
   // prepare_* 含 "generation"，必须先于模型生成判断，否则会被误归到生成
@@ -117,7 +195,7 @@ function segmentBucket(step: TimelineStep): string {
     return "编排开销"
   }
   if (step.name === "generate_answer" || step.name.startsWith("generate_")) return "模型生成"
-  return "其他"
+  return "其他开销"
 }
 
 function dedupeCitationRows(rows: Array<Record<string, unknown>>) {
@@ -142,7 +220,13 @@ function parseSteps(rawSteps: Array<Record<string, unknown>>): TimelineStep[] {
       kind: String(step.kind ?? "node"),
       decision: step.decision != null ? String(step.decision) : undefined,
       durationMs: Math.max(0, Number(step.durationMs ?? 0)),
+      inputSummary: isPlainObject(step.inputSummary) ? step.inputSummary : undefined,
+      outputSummary: isPlainObject(step.outputSummary) ? step.outputSummary : undefined,
     }))
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
 export function buildEvalFallbackSteps(detail: AgentRunDetail | null, passes: RetrievalPass[]): TimelineStep[] {
@@ -210,7 +294,6 @@ function buildSegments(steps: TimelineStep[], totalLatencyMs: number | null): Du
     .sort((a, b) => (firstSeen.get(a) ?? 0) - (firstSeen.get(b) ?? 0))
 
   const segments: DurationSegment[] = []
-  let colorIndex = 0
   for (const key of orderedKeys) {
     const durationMs = buckets.get(key) || 0
     if (durationMs <= 0) continue
@@ -218,9 +301,8 @@ function buildSegments(steps: TimelineStep[], totalLatencyMs: number | null): Du
       key,
       label: key,
       durationMs,
-      color: SEGMENT_COLORS[colorIndex % SEGMENT_COLORS.length],
+      color: stepDurationColor(key),
     })
-    colorIndex += 1
   }
 
   const accounted = segments.reduce((sum, row) => sum + row.durationMs, 0)
@@ -229,7 +311,7 @@ function buildSegments(steps: TimelineStep[], totalLatencyMs: number | null): Du
       key: "unaccounted",
       label: "其他开销",
       durationMs: totalLatencyMs - accounted,
-      color: "bg-muted-foreground/40",
+      color: stepDurationColor("其他开销"),
     })
   }
   return segments
@@ -278,22 +360,24 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
     const parsed = parseSteps(detail?.trace?.steps ?? [])
     return parsed.length ? parsed : buildEvalFallbackSteps(detail, passes)
   }, [detail, passes])
+  const timelineSteps = useMemo(() => visibleTimelineSteps(steps), [steps])
   const totalLatencyMs = detail?.summary.latencyMs ?? null
-  const segments = useMemo(() => buildSegments(steps, totalLatencyMs), [steps, totalLatencyMs])
+  const segments = useMemo(() => buildSegments(timelineSteps, totalLatencyMs), [timelineSteps, totalLatencyMs])
   const segmentTotal = Math.max(
     totalLatencyMs ?? 0,
     segments.reduce((sum, row) => sum + row.durationMs, 0),
     1,
   )
-  const timelineScale = Math.max(totalLatencyMs ?? 0, ...steps.map((step) => step.durationMs), 1)
+  const timelineScale = Math.max(totalLatencyMs ?? 0, ...timelineSteps.map((step) => step.durationMs), 1)
 
   if (!open) return null
+  if (typeof document === "undefined") return null
 
   const retrieved = detail?.citations?.retrieved ?? []
   const used = detail?.citations?.used ?? []
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[80] flex justify-end bg-black/30" onClick={onClose}>
       <aside
         className="flex h-full w-full max-w-xl flex-col border-l border-border bg-card shadow-xl"
         onClick={(event) => event.stopPropagation()}
@@ -355,22 +439,6 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
                 ) : null}
               </section>
 
-              <section className="space-y-2">
-                <h3 className="text-sm font-medium">回答结果</h3>
-                <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
-                  <div className="text-xs font-medium text-muted-foreground">问题</div>
-                  <div className="mt-1 whitespace-pre-wrap break-words">{detail.question || "-"}</div>
-                </div>
-                <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
-                  <div className="text-xs font-medium text-muted-foreground">回答</div>
-                  {detail.answer ? (
-                    <div className="mt-1 whitespace-pre-wrap break-words">{detail.answer}</div>
-                  ) : (
-                    <div className="mt-1 text-muted-foreground">暂无回答记录</div>
-                  )}
-                </div>
-              </section>
-
               <section className="space-y-3">
                 <div className="flex items-end justify-between gap-3">
                   <h3 className="text-sm font-medium">步骤耗时（技术）</h3>
@@ -413,25 +481,32 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
 
               <section className="space-y-2">
                 <h3 className="text-sm font-medium">执行时间线</h3>
-                {steps.length === 0 ? (
+                {timelineSteps.length === 0 ? (
                   <div className="text-sm text-muted-foreground">暂无步骤</div>
                 ) : (
                   <ol className="space-y-2">
-                    {steps.map((step) => {
+                    {timelineSteps.map((step) => {
                       const widthPct = Math.max(step.durationMs > 0 ? 2 : 0.5, (step.durationMs / timelineScale) * 100)
                       const pctOfTotal =
                         totalLatencyMs && totalLatencyMs > 0 ? (step.durationMs / totalLatencyMs) * 100 : null
+                      const color = stepDurationColor(segmentBucket(step))
                       return (
                         <li key={`${step.name}-${step.sequence}`} className="rounded-md border px-3 py-2 text-sm">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs text-muted-foreground">#{step.sequence}</span>
-                                <span className="font-medium">{stepLabel(step.name)}</span>
-                                <span className="text-xs text-muted-foreground">{step.name}</span>
+                                <span className="font-medium">{stepTitle(step)}</span>
+                                {stepToolBadge(step) ? (
+                                  <span className="rounded-sm bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                    {stepToolBadge(step)}
+                                  </span>
+                                ) : null}
                               </div>
                               {step.decision ? (
-                                <div className="mt-1 text-xs text-muted-foreground">decision: {step.decision}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  决策：{decisionLabel(step.decision)}
+                                </div>
                               ) : null}
                             </div>
                             <div className="shrink-0 text-right">
@@ -443,13 +518,7 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
                           </div>
                           <div className="mt-2 h-2 rounded-full bg-muted">
                             <div
-                              className={`h-2 rounded-full ${
-                                step.durationMs >= Math.max(timelineScale * 0.4, 500)
-                                  ? "bg-emerald-500"
-                                  : step.durationMs > 0
-                                    ? "bg-sky-500"
-                                    : "bg-muted-foreground/30"
-                              }`}
+                              className={`h-2 rounded-full ${color}`}
                               style={{ width: `${widthPct}%` }}
                             />
                           </div>
@@ -502,11 +571,28 @@ export function AgentRunTraceDrawer({ runId, open, onClose }: AgentRunTraceDrawe
                   />
                 </div>
               </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-medium">回答结果</h3>
+                <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
+                  <div className="text-xs font-medium text-muted-foreground">问题</div>
+                  <div className="mt-1 whitespace-pre-wrap break-words">{detail.question || "-"}</div>
+                </div>
+                <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
+                  <div className="text-xs font-medium text-muted-foreground">回答</div>
+                  {detail.answer ? (
+                    <div className="mt-1 whitespace-pre-wrap break-words">{detail.answer}</div>
+                  ) : (
+                    <div className="mt-1 text-muted-foreground">暂无回答记录</div>
+                  )}
+                </div>
+              </section>
             </>
           ) : null}
         </div>
       </aside>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

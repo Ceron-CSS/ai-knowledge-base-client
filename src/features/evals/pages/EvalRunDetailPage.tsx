@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { Eye } from "lucide-react"
+import { Eye, Info } from "lucide-react"
 import type { EvalRunResult } from "@/api/evals"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Button } from "@/components/ui/button"
@@ -8,8 +8,8 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { LoadingText } from "@/components/ui/loading-text"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { Select } from "@/components/ui/select"
+import { Tooltip } from "@/components/ui/tooltip"
 import { AgentRunTraceDrawer } from "@/features/assistantChat/components/AgentRunTraceDrawer"
-import { EvalAgentPolicyPanel } from "@/features/evals/components/EvalAgentPolicyPanel"
 import { EvalDecisionBehaviorPanel } from "@/features/evals/components/EvalDecisionBehaviorPanel"
 import { EvalResultDetailDrawer } from "@/features/evals/components/EvalResultDetailDrawer"
 import {
@@ -21,6 +21,7 @@ import {
 import {
   aggregateDecisionMetricsFromResults,
   formatModes,
+  readJudgeAverage,
   readDecisionMetrics,
   readDecisionSummary,
 } from "@/features/evals/lib/decisionMetrics"
@@ -77,6 +78,20 @@ export function EvalRunDetailPage() {
     return (
       readDecisionMetrics(run.metrics) ?? aggregateDecisionMetricsFromResults(run.results ?? [])
     )
+  }, [run])
+  const answerQualityMetrics = useMemo(() => {
+    if (!run) {
+      return {
+        faithfulness: null,
+        answerRelevancy: null,
+        citationSupport: null,
+      }
+    }
+    return {
+      faithfulness: readJudgeAverage(run.metrics, run.results, "faithfulness"),
+      answerRelevancy: readJudgeAverage(run.metrics, run.results, "answerRelevancy"),
+      citationSupport: readJudgeAverage(run.metrics, run.results, "citationSupport"),
+    }
   }, [run])
 
   const columns = useMemo<Array<DataTableColumn<EvalRunResult>>>(
@@ -178,6 +193,14 @@ export function EvalRunDetailPage() {
   const active = run ? isEvalRunActive(run.status) : false
   const isSeedDemo = run ? isFixedSeedUiDemoRun(run) : false
   const selectedMeta = selectedResult ? questionById.get(selectedResult.queryId) : undefined
+  const decisionPanelTitle =
+    run?.executionMode === "agent" || run?.executionMode === "auto"
+      ? "Agent 决策行为"
+      : "检索决策摘要"
+  const decisionPanelDescription =
+    run?.executionMode === "agent" || run?.executionMode === "auto"
+      ? "用于检查 Agent 每道题选择了哪些检索工具、是否二次检索、是否重排，以及最终为什么停止。"
+      : "用于检查固定评测每道题实际使用的召回/排序策略、Top K 和停止原因。"
 
   return (
     <Page>
@@ -186,7 +209,7 @@ export function EvalRunDetailPage() {
           { label: "评测与策略", href: "/evals" },
           {
             label: dataset.data?.name || "数据集",
-            href: run ? `/evals/${run.datasetId}` : undefined,
+            href: run ? `/evals/${run.datasetId}?tab=runs` : undefined,
           },
           { label: run ? evalRunTitle(run) : runQuery.isLoading ? "加载中…" : "运行详情" },
         ]}
@@ -198,7 +221,7 @@ export function EvalRunDetailPage() {
         actions={
           run && active ? (
             <Button
-              variant="outline"
+              variant="dialog-cancel"
               size="lg"
               onClick={() => setConfirmCancel(true)}
               disabled={run.cancelRequested || cancelRun.isPending}
@@ -220,7 +243,7 @@ export function EvalRunDetailPage() {
           </div>
         ) : (
           <>
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <section className="grid grid-flow-col auto-cols-[minmax(9.5rem,1fr)] gap-3 overflow-x-auto pb-1">
               <MetricCard label="状态" value={evalRunStatusLabel(run.status)} />
               <MetricCard
                 label="进度"
@@ -230,10 +253,41 @@ export function EvalRunDetailPage() {
                     : String(run.resultCount)
                 }
               />
-              <MetricCard label="检索 Recall@K" value={formatMetricNumber(run.metrics.recallAtK)} />
-              <MetricCard label="检索 MRR@K" value={formatMetricNumber(run.metrics.mrrAtK)} />
-              <MetricCard label="答案生成率" value={formatPercent(run.metrics.answerGeneratedRate)} />
-              <MetricCard label="平均延迟" value={formatLatencyMs(run.metrics.latencyMs)} />
+              <MetricCard
+                label="检索 Recall@K"
+                value={formatMetricNumber(run.metrics.recallAtK)}
+                help="人工标注的相关 Chunk 中，有多少被本次 Top K 结果找回。越高表示召回越完整。"
+              />
+              <MetricCard
+                label="检索 MRR@K"
+                value={formatMetricNumber(run.metrics.mrrAtK)}
+                help="第一个正确 Chunk 的排名质量。越接近 1，说明正确证据越靠前。"
+              />
+              <MetricCard
+                label="答案生成率"
+                value={formatPercent(run.metrics.answerGeneratedRate)}
+                help="成功生成答案的题目占比。失败、取消或生成异常会拉低该比例。"
+              />
+              <MetricCard
+                label="事实一致性"
+                value={formatJudgeScore(answerQualityMetrics.faithfulness)}
+                help="模型评审：答案中的事实是否能被召回上下文支持。未勾选该评审时显示未评测。"
+              />
+              <MetricCard
+                label="回答相关性"
+                value={formatJudgeScore(answerQualityMetrics.answerRelevancy)}
+                help="模型评审：答案是否直接回应问题，是否跑题。未勾选该评审时显示未评测。"
+              />
+              <MetricCard
+                label="引用支撑"
+                value={formatJudgeScore(answerQualityMetrics.citationSupport)}
+                help="检查答案里的引用编号是否能被对应引用原文支撑。未勾选该评审时显示未评测。"
+              />
+              <MetricCard
+                label="平均延迟"
+                value={formatLatencyMs(run.metrics.latencyMs)}
+                help="每道题从检索到生成、评审完成的平均耗时。"
+              />
             </section>
 
             {isSeedDemo ? (
@@ -265,21 +319,11 @@ export function EvalRunDetailPage() {
               ) : null}
             </section>
 
-            <EvalDecisionBehaviorPanel metrics={decisionMetrics} />
-
-            {run.executionMode === "agent" || run.executionMode === "auto" ? (
-              <EvalAgentPolicyPanel
-                compact
-                highlightPolicyId={
-                  typeof run.configSnapshot?.agentPolicyId === "string"
-                    ? run.configSnapshot.agentPolicyId
-                    : null
-                }
-                evidenceEvalRunId={
-                  run.status === "succeeded" || run.status === "partial" ? run.id : null
-                }
-              />
-            ) : null}
+            <EvalDecisionBehaviorPanel
+              metrics={decisionMetrics}
+              title={decisionPanelTitle}
+              description={decisionPanelDescription}
+            />
 
             <section className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -351,7 +395,7 @@ export function EvalRunDetailPage() {
             <button
               type="button"
               className="hover:underline"
-              onClick={() => navigate(`/evals/${run.datasetId}`)}
+              onClick={() => navigate(`/evals/${run.datasetId}?tab=runs`)}
             >
               返回数据集
             </button>
@@ -367,10 +411,36 @@ function formatPercent(value: unknown) {
   return `${(value * 100).toFixed(1)}%`
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function formatJudgeScore(value: number | null) {
+  if (value === null) return "未评测"
+  return formatMetricNumber(value)
+}
+
+function MetricCard({
+  label,
+  value,
+  help,
+}: {
+  label: string
+  value: string
+  help?: string
+}) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-      <div className="text-xs text-muted-foreground">{label}</div>
+    <div className="relative min-h-[5.75rem] rounded-lg border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 truncate text-xs text-muted-foreground">{label}</div>
+        {help ? (
+          <Tooltip content={help} className="max-w-64 whitespace-normal text-left leading-relaxed">
+            <button
+              type="button"
+              className="rounded-full text-muted-foreground/70 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+              aria-label={help}
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </Tooltip>
+        ) : null}
+      </div>
       <div className="mt-2 text-xl font-semibold tabular-nums">{value}</div>
     </div>
   )

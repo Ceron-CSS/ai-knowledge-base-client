@@ -3,6 +3,7 @@ import { getKbItemIngestion, type IngestionWarning, type KbItem } from "@/api/kb
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { LoadingText } from "@/components/ui/loading-text"
+import { formatShanghaiDateTime } from "@/lib/dateTime"
 
 type KbItemStatusDialogProps = {
   open: boolean
@@ -96,7 +97,7 @@ export function KbItemStatusDialog({
               重试索引
             </Button>
           ) : null}
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={retrying}>
+          <Button variant="dialog-cancel" onClick={() => onOpenChange(false)} disabled={retrying}>
             关闭
           </Button>
         </div>
@@ -136,7 +137,7 @@ export function KbItemStatusDialog({
           {expiresAt ? (
             <div>
               <div className="text-muted-foreground">草稿到期</div>
-              <div className="mt-1 tabular-nums">{new Date(expiresAt).toLocaleString()}</div>
+              <div className="mt-1 tabular-nums">{formatShanghaiDateTime(expiresAt)}</div>
             </div>
           ) : null}
           {!errorCode && warnings.length === 0 && !canContinueDraft ? (

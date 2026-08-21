@@ -22,6 +22,7 @@ export { MultiSelect, type MultiSelectOption } from "./multi-select"
 export { SearchableSelect, type SearchableSelectOption } from "./searchable-select"
 export { Select, type SelectOption } from "./select"
 export { Switch } from "./switch"
+export { Tooltip } from "./tooltip"
 export {
   ChartContainer,
   ChartLegend,

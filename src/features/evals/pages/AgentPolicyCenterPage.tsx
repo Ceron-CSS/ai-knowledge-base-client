@@ -107,7 +107,7 @@ export function AgentPolicyCenterPage() {
               actions={
                 <Button
                   variant="primary"
-                  size="sm"
+                  size="lg"
                   loading={createPolicy.isPending}
                   onClick={() =>
                     editAfterCreate(
@@ -255,7 +255,7 @@ function CurrentReleaseCard({
         <div className="text-sm font-medium">当前线上发布</div>
         <Button
           variant="outline"
-          size="icon-sm"
+          size="icon"
           aria-label="历史发布"
           title="历史发布"
           aria-expanded={showHistory}
@@ -278,7 +278,7 @@ function CurrentReleaseCard({
           </div>
           <Button
             variant="outline"
-            size="sm"
+            size="lg"
             loading={duplicating}
             onClick={() => onDuplicate(active)}
           >
@@ -318,7 +318,7 @@ function CurrentReleaseCard({
                     ) : null}
                     <Button
                       variant="primary"
-                      size="sm"
+                      size="default"
                       disabled={copyingHistory}
                       onClick={() => onCopyHistory(item)}
                     >
@@ -380,7 +380,7 @@ function StrategySetTable({
         <div className="flex justify-center gap-2">
           <Button
             variant="outline"
-            size="sm"
+            size="default"
             disabled={duplicating}
             onClick={() => onDuplicate(policy)}
           >
@@ -388,7 +388,7 @@ function StrategySetTable({
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            size="default"
             disabled={!policy.editable}
             onClick={() => onEdit(policy)}
           >
@@ -396,13 +396,13 @@ function StrategySetTable({
           </Button>
           <Button
             variant="primary"
-            size="sm"
+            size="default"
             disabled={policy.status === "archived"}
             onClick={() => onActivate(policy)}
           >
             发布
           </Button>
-          <Button variant="dialog-danger" size="sm" onClick={() => onDelete(policy)}>
+          <Button variant="dialog-danger" size="default" onClick={() => onDelete(policy)}>
             删除
           </Button>
         </div>

@@ -34,6 +34,23 @@ function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError"
 }
 
+function appendMessageIfMissing(messages: AssistantMessage[], message: AssistantMessage) {
+  const index = messages.findIndex((item) => item.id === message.id)
+  if (index !== -1) {
+    const next = [...messages]
+    next[index] = message
+    return next
+  }
+
+  const alreadyRendered = messages.some(
+    (item) =>
+      item.conversationId === message.conversationId &&
+      item.role === message.role &&
+      item.content === message.content,
+  )
+  return alreadyRendered ? messages : [...messages, message]
+}
+
 export function useStreamingReply({
   assistantId,
   assistantBaseModel,
@@ -93,6 +110,26 @@ export function useStreamingReply({
     ])
   }
 
+  function refreshConversationQueries(conversationId: string) {
+    void invalidateConversationQueries(conversationId).catch(() => undefined)
+  }
+
+  function commitStreamedMessages(
+    conversationId: string,
+    userMessage: AssistantMessage | null,
+    assistantMessage: AssistantMessage,
+  ) {
+    qc.setQueryData<AssistantMessage[]>(
+      ["assistantChat", assistantId, "conversations", conversationId, "messages"],
+      (current) => {
+        let next = current ?? baseMessages
+        if (userMessage) next = appendMessageIfMissing(next, userMessage)
+        return appendMessageIfMissing(next, assistantMessage)
+      },
+    )
+    refreshConversationQueries(conversationId)
+  }
+
   function clearPendingMessages() {
     setPendingUser(null)
     setPendingAssistant(null)
@@ -149,6 +186,7 @@ export function useStreamingReply({
 
     let conversationId = selectedConversationId
     let messageCommitted = false
+    let optimisticUserMessage: AssistantMessage | null = null
 
     try {
       if (!conversationId) {
@@ -161,13 +199,14 @@ export function useStreamingReply({
       const attachmentSummary = savedFiles.length
         ? `\n\n[已上传附件 ${savedFiles.length} 个：${savedFiles.map((file) => file.name).join("、")}]`
         : ""
-      setPendingUser({
+      optimisticUserMessage = {
         id: `temp-user-${Date.now()}`,
         conversationId,
         role: "user",
         content: `${userText}${attachmentSummary}`,
         createdAt: new Date().toISOString(),
-      })
+      }
+      setPendingUser(optimisticUserMessage)
       setPendingAssistant({
         id: `temp-assistant-${Date.now()}`,
         conversationId,
@@ -204,9 +243,9 @@ export function useStreamingReply({
           typewriter.flush()
           typewriter.stop()
           if (ev.saved) {
+            commitStreamedMessages(conversationId, optimisticUserMessage, ev.saved)
             clearPendingMessages()
             setStreamError(null)
-            await invalidateConversationQueries(conversationId)
           } else {
             restoreComposer(savedInput, savedFiles)
             clearPendingMessages()
@@ -215,8 +254,8 @@ export function useStreamingReply({
         } else if (ev.type === "done") {
           typewriter.flush()
           typewriter.stop()
+          commitStreamedMessages(conversationId, optimisticUserMessage, ev.message)
           clearPendingMessages()
-          await invalidateConversationQueries(conversationId)
         }
       }
     } catch (error) {

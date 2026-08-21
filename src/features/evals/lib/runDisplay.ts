@@ -4,8 +4,8 @@ import { evalExecutionModeLabel, evalRetrieverModeLabel } from "@/features/evals
 type AgentPolicySnapshot = {
   name?: unknown
   config?: {
+    answerContextTopK?: unknown
     defaultTopK?: unknown
-    defaultRetrieverMode?: unknown
   }
 }
 
@@ -20,9 +20,9 @@ function readPolicySnapshot(run: EvalRun): AgentPolicySnapshot | null {
 }
 
 export function evalRunTitle(run: EvalRun) {
-  if (run.executionMode === "agent") return "Agent 策略评测"
-  if (run.executionMode === "auto") return "当前线上策略评测"
-  if (run.executionMode === "workflow") return "Workflow 基线评测"
+  if (run.executionMode === "agent") return "Agent Policy 评测"
+  if (run.executionMode === "auto") return "当前线上 Policy 评测"
+  if (run.executionMode === "workflow") return "workflow基线"
   if (run.executionMode === "retrieval") {
     return `仅检索评测：${evalRetrieverModeLabel(run.retrieverMode)}`
   }
@@ -34,17 +34,14 @@ export function evalRunConfigSummary(run: EvalRun) {
   const policyName = typeof policy?.name === "string" ? policy.name : null
   const policyConfig = policy?.config
   const policyTopK =
-    typeof policyConfig?.defaultTopK === "number" ? policyConfig.defaultTopK : run.topK
-  const policyRetriever =
-    typeof policyConfig?.defaultRetrieverMode === "string"
-      ? policyConfig.defaultRetrieverMode
-      : run.retrieverMode
+    typeof policyConfig?.answerContextTopK === "number"
+      ? policyConfig.answerContextTopK
+      : typeof policyConfig?.defaultTopK === "number"
+        ? policyConfig.defaultTopK
+        : run.topK
 
   if (run.executionMode === "agent" || run.executionMode === "auto") {
-    return [
-      policyName ?? "未记录策略名称",
-      `${evalRetrieverModeLabel(policyRetriever)} · K=${policyTopK}`,
-    ].join(" · ")
+    return [policyName ?? "未记录 Policy 名称", `回答上下文 K=${policyTopK}`].join(" · ")
   }
 
   return `${evalRetrieverModeLabel(run.retrieverMode)} · K=${run.topK}`
@@ -52,11 +49,11 @@ export function evalRunConfigSummary(run: EvalRun) {
 
 export function evalRunAssistantSummary(run: EvalRun) {
   const snapshotModel = run.configSnapshot?.model
-  if (typeof snapshotModel === "string" && snapshotModel) return `模型 ${snapshotModel}`
+  if (typeof snapshotModel === "string" && snapshotModel) return snapshotModel
   const assistant = run.configSnapshot?.assistant
   if (!assistant || typeof assistant !== "object") return null
   const model = (assistant as AssistantSnapshot).model
-  return typeof model === "string" && model ? `模型 ${model}` : null
+  return typeof model === "string" && model ? model : null
 }
 
 export function evalRunSampleSummary(run: EvalRun) {

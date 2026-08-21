@@ -4,7 +4,6 @@ import { Eye } from "lucide-react"
 import type { EvalRun } from "@/api/evals"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
-import { EvalRunInlineDetailPanel } from "@/features/evals/components/EvalRunInlineDetailPanel"
 import { useEvalRuns } from "@/features/evals/hooks/queries"
 import {
   FixedSeedUiDemoBadge,
@@ -40,7 +39,6 @@ export function EvalRunHistoryPanel({
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<string[]>([])
-  const [detailRunId, setDetailRunId] = useState<string | null>(null)
   const runs = useEvalRuns(datasetId, { page, pageSize: 10 })
   const items = runs.data?.items ?? []
   const hasActive = items.some((r) => isEvalRunActive(r.status))
@@ -96,7 +94,7 @@ export function EvalRunHistoryPanel({
         cellClassName: "w-[20%]",
         render: (row) => (
           <span className="block min-w-[180px] truncate text-sm">
-            {evalRunConfigSummary(row)}
+            {historyStrategySummary(row)}
           </span>
         ),
       },
@@ -145,25 +143,23 @@ export function EvalRunHistoryPanel({
       {
         key: "actions",
         header: "操作",
-        className: "w-[8%] text-center",
+        className: "w-[10%] text-center",
         cellClassName: "text-center",
         render: (row) => (
           <Button
             variant="ghost"
             size="icon-sm"
             className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
-            onClick={() =>
-              setDetailRunId((current) => (current === row.id ? null : row.id))
-            }
-            title="详情"
-            aria-label="详情"
+            onClick={() => navigate(`/evals/runs/${row.id}`)}
+            title="查看详情"
+            aria-label="查看详情"
           >
             <Eye />
           </Button>
         ),
       },
     ],
-    [selected]
+    [navigate, selected]
   )
 
   const emptyHint =
@@ -230,14 +226,18 @@ export function EvalRunHistoryPanel({
               }
             : undefined
         }
-        isRowExpanded={(item) => item.id === detailRunId}
-        renderExpanded={(item) => (
-          <EvalRunInlineDetailPanel
-            runId={item.id}
-            onClose={() => setDetailRunId(null)}
-          />
-        )}
       />
     </section>
   )
+}
+
+function historyStrategySummary(run: EvalRun) {
+  if (run.executionMode === "agent" || run.executionMode === "auto") {
+    const policy = run.configSnapshot?.agentPolicySnapshot
+    if (policy && typeof policy === "object") {
+      const name = (policy as { name?: unknown }).name
+      if (typeof name === "string" && name.trim()) return name
+    }
+  }
+  return evalRunConfigSummary(run)
 }

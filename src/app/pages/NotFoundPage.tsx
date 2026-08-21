@@ -18,7 +18,7 @@ export function NotFoundPage({ layout = "embedded" }: NotFoundPageProps) {
       description="你访问的链接可能已失效，或地址输入有误。"
       actions={
         <>
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button variant="dialog-cancel" onClick={() => navigate(-1)}>
             返回上一页
           </Button>
           <Button variant="primary" onClick={() => navigate("/home", { replace: true })}>

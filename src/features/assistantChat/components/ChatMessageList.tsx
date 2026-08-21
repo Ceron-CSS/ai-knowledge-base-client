@@ -36,11 +36,7 @@ export function ChatMessageList({
 }: ChatMessageListProps) {
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
-      {messagesLoading && selectedConversationId ? (
-        <LoadingText className="flex w-full">加载中</LoadingText>
-      ) : messagesError ? (
-        <div className="text-center text-sm text-destructive">加载失败，请检查后端服务</div>
-      ) : messages.length ? (
+      {messages.length ? (
         messages.map((m, index) => {
           const parsed = parseMessageContent(m.content)
           const isLastMessage = index === messages.length - 1
@@ -119,6 +115,10 @@ export function ChatMessageList({
             </div>
           )
         })
+      ) : messagesLoading && selectedConversationId ? (
+        <LoadingText className="flex w-full">加载中</LoadingText>
+      ) : messagesError ? (
+        <div className="text-center text-sm text-destructive">加载失败，请检查后端服务</div>
       ) : (
         <div className="text-center text-sm text-muted-foreground">开始提问吧</div>
       )}

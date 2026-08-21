@@ -361,7 +361,7 @@ function CompareQuestionDetailDialog({
       contentClassName="max-w-5xl"
       bodyClassName="max-h-[min(76vh,760px)] overflow-y-auto pr-1"
       footer={
-        <Button variant="primary" size="dialog" onClick={onClose}>
+        <Button variant="dialog-cancel" size="dialog" onClick={onClose}>
           关闭
         </Button>
       }

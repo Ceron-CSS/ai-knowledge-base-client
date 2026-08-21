@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { KbSourcePreview } from "@/features/kb/components/KbSourcePreview"
+import { useKb } from "@/features/kb/hooks/queries"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
 
 type DetailTab = "source" | "chunks"
@@ -21,6 +22,7 @@ export function KbItemDetailPage() {
   const [chunkSearch, setChunkSearch] = useState("")
   const [chunkPageIndex, setChunkPageIndex] = useState(0)
   const highlightRef = useRef<HTMLButtonElement | null>(null)
+  const kb = useKb(kbId)
 
   const tab = (searchParams.get("tab") === "chunks" ? "chunks" : "source") as DetailTab
   const page = Number(searchParams.get("page") || "1")
@@ -162,7 +164,7 @@ export function KbItemDetailPage() {
     <Page fill>
       <PageHeader
         items={[
-          { label: "知识库", href: "/kb" },
+          { label: kb.data?.name ?? "加载中…", href: "/kb" },
           { label: "文档列表", href: `/kb/${kbId}` },
           { label: detail?.fileName ?? "文档详情" },
         ]}
@@ -171,13 +173,31 @@ export function KbItemDetailPage() {
             ? "查看原文与分片"
             : "历史文档未保留原文件，仅可查看文本与分片"
         }
-        actions={
-          <>
-            <Button variant="outline" onClick={() => navigate(`/kb/${kbId}`)}>
+      >
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant={tab === "source" ? "primary" : "tint"}
+              size="lg"
+              onClick={() => setTab("source")}
+            >
+              原文预览
+            </Button>
+            <Button
+              variant={tab === "chunks" ? "primary" : "tint"}
+              size="lg"
+              onClick={() => setTab("chunks")}
+            >
+              分片视图
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="dialog-cancel" size="lg" onClick={() => navigate(`/kb/${kbId}`)}>
               返回列表
             </Button>
             <Button
               variant="primary"
+              size="lg"
               onClick={() =>
                 navigate(`/kb/${kbId}/upload`, {
                   state: detail?.hasOriginalFile
@@ -200,187 +220,170 @@ export function KbItemDetailPage() {
             >
               编辑分片
             </Button>
-          </>
-        }
-      >
-        <div className="mt-3 flex gap-2">
-          <Button
-            variant={tab === "source" ? "primary" : "outline"}
-            size="sm"
-            onClick={() => setTab("source")}
-          >
-            原文预览
-          </Button>
-          <Button
-            variant={tab === "chunks" ? "primary" : "outline"}
-            size="sm"
-            onClick={() => setTab("chunks")}
-          >
-            分片视图
-          </Button>
+          </div>
         </div>
       </PageHeader>
 
       <PageBody className="flex min-h-0 flex-col overflow-hidden pt-4">
-      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card p-4 shadow-sm">
-        {loading ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            <LoadingText>正在加载文档</LoadingText>
-          </div>
-        ) : null}
-        {error ? <div className="p-4 text-sm text-destructive">{error}</div> : null}
+        <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card p-4 shadow-sm">
+          {loading ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              <LoadingText>正在加载文档</LoadingText>
+            </div>
+          ) : null}
+          {error ? <div className="p-4 text-sm text-destructive">{error}</div> : null}
 
-        {!loading && !error && detail && tab === "source" ? (
-          <KbSourcePreview
-            kbId={kbId}
-            itemId={detail.hasOriginalFile ? itemId : null}
-            fileName={detail.fileName}
-            text={detail.content}
-            textEditable={false}
-            initialPage={sourceInitialPage}
-            highlightText={activeChunk?.text ?? null}
-          />
-        ) : null}
+          {!loading && !error && detail && tab === "source" ? (
+            <KbSourcePreview
+              kbId={kbId}
+              itemId={detail.hasOriginalFile ? itemId : null}
+              fileName={detail.fileName}
+              text={detail.content}
+              textEditable={false}
+              initialPage={sourceInitialPage}
+              highlightText={activeChunk?.text ?? null}
+            />
+          ) : null}
 
-        {!loading && !error && detail && tab === "chunks" ? (
-          <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="flex min-h-0 flex-col rounded-lg border border-border bg-background/40 p-3">
-              <div className="shrink-0 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <span className="font-medium">Chunk 列表</span>
-                  <span className="text-xs text-muted-foreground">
-                    {visibleChunks.length}/{chunkRecords.length} · 上下键切换
-                  </span>
-                </div>
-                <Input
-                  value={chunkSearch}
-                  onChange={(event) => {
-                    setChunkSearch(event.target.value)
-                    setChunkPageIndex(0)
-                  }}
-                  placeholder="搜索 Chunk 文本"
-                />
-                {visibleChunks.length > CHUNK_PAGE_SIZE ? (
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={normalizedChunkPageIndex <= 0}
-                      onClick={() => setChunkPageIndex((value) => Math.max(0, value - 1))}
-                    >
-                      上一页
-                    </Button>
-                    <span>
-                      {normalizedChunkPageIndex + 1}/{chunkPageCount} · 每页 {CHUNK_PAGE_SIZE} 条
+          {!loading && !error && detail && tab === "chunks" ? (
+            <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="flex min-h-0 flex-col rounded-lg border border-border bg-background/40 p-3">
+                <div className="shrink-0 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="font-medium">Chunk 列表</span>
+                    <span className="text-xs text-muted-foreground">
+                      {visibleChunks.length}/{chunkRecords.length} · 上下键切换
                     </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={normalizedChunkPageIndex >= chunkPageCount - 1}
-                      onClick={() =>
-                        setChunkPageIndex((value) => Math.min(chunkPageCount - 1, value + 1))
-                      }
-                    >
-                      下一页
-                    </Button>
                   </div>
-                ) : null}
-              </div>
-              <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-                {visibleChunks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">没有匹配的分片</p>
-                ) : (
-                  pagedChunks.map((chunk) => {
-                    const highlighted = activeChunkIndex === chunk.index
-                    return (
-                      <button
-                        key={chunk.chunkId}
-                        ref={highlighted ? highlightRef : undefined}
-                        type="button"
-                        className={[
-                          "w-full rounded-md border p-3 text-left transition hover:bg-muted/40",
-                          highlighted ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "",
-                        ].join(" ")}
-                        onClick={() => selectChunk(chunk.index)}
+                  <Input
+                    value={chunkSearch}
+                    onChange={(event) => {
+                      setChunkSearch(event.target.value)
+                      setChunkPageIndex(0)
+                    }}
+                    placeholder="搜索 Chunk 文本"
+                  />
+                  {visibleChunks.length > CHUNK_PAGE_SIZE ? (
+                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <Button
+                        variant="tint"
+                        size="sm"
+                        disabled={normalizedChunkPageIndex <= 0}
+                        onClick={() => setChunkPageIndex((value) => Math.max(0, value - 1))}
                       >
-                        <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                          <span>
-                            #{chunk.index + 1}
-                            {chunk.pageStart != null
-                              ? ` · 页 ${chunk.pageStart}${
-                                  chunk.pageEnd != null && chunk.pageEnd !== chunk.pageStart
-                                    ? `-${chunk.pageEnd}`
+                        上一页
+                      </Button>
+                      <span>
+                        {normalizedChunkPageIndex + 1}/{chunkPageCount} · 每页 {CHUNK_PAGE_SIZE} 条
+                      </span>
+                      <Button
+                        variant="tint"
+                        size="sm"
+                        disabled={normalizedChunkPageIndex >= chunkPageCount - 1}
+                        onClick={() =>
+                          setChunkPageIndex((value) => Math.min(chunkPageCount - 1, value + 1))
+                        }
+                      >
+                        下一页
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                  {visibleChunks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">没有匹配的分片</p>
+                  ) : (
+                    pagedChunks.map((chunk) => {
+                      const highlighted = activeChunkIndex === chunk.index
+                      return (
+                        <button
+                          key={chunk.chunkId}
+                          ref={highlighted ? highlightRef : undefined}
+                          type="button"
+                          className={[
+                            "w-full rounded-md border p-3 text-left transition hover:bg-muted/40",
+                            highlighted ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "",
+                          ].join(" ")}
+                          onClick={() => selectChunk(chunk.index)}
+                        >
+                          <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                            <span>
+                              #{chunk.index + 1}
+                              {chunk.pageStart != null
+                                ? ` · 页${chunk.pageStart}${
+                                    chunk.pageEnd != null && chunk.pageEnd !== chunk.pageStart
+                                      ? `-${chunk.pageEnd}`
+                                      : ""
+                                  }`
+                                : ""}
+                              {chunk.sourceKind ? ` · ${chunk.sourceKind}` : ""}
+                              {highlighted ? <span className="ml-2 text-primary">当前位置</span> : null}
+                            </span>
+                            <span>{formatCharCountK(chunk.text.length)}</span>
+                          </div>
+                          <div className="line-clamp-3 text-sm">{chunk.text}</div>
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="flex min-h-0 flex-col rounded-lg border border-border bg-background/40 p-3">
+                {activeChunk ? (
+                  <>
+                    <div className="shrink-0 border-b border-border pb-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium">当前 Chunk #{activeChunk.index + 1}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {activeChunk.pageStart != null
+                              ? `页${activeChunk.pageStart}${
+                                  activeChunk.pageEnd != null && activeChunk.pageEnd !== activeChunk.pageStart
+                                    ? `-${activeChunk.pageEnd}`
                                     : ""
-                                }`
+                                } · `
                               : ""}
-                            {chunk.sourceKind ? ` · ${chunk.sourceKind}` : ""}
-                            {highlighted ? <span className="ml-2 text-primary">当前定位</span> : null}
-                          </span>
-                          <span>{formatCharCountK(chunk.text.length)}</span>
+                            {formatCharCountK(activeChunk.text.length)}
+                            {activeChunk.sourceKind ? ` · ${activeChunk.sourceKind}` : ""}
+                          </div>
                         </div>
-                        <div className="line-clamp-3 text-sm">{chunk.text}</div>
-                      </button>
-                    )
-                  })
+                        <div className="flex gap-2">
+                          <Button
+                            variant="tint"
+                            size="sm"
+                            disabled={activeChunk.index <= 0}
+                            onClick={() => selectChunk(activeChunk.index - 1)}
+                          >
+                            上一条
+                          </Button>
+                          <Button
+                            variant="tint"
+                            size="sm"
+                            disabled={activeChunk.index >= chunkRecords.length - 1}
+                            onClick={() => selectChunk(activeChunk.index + 1)}
+                          >
+                            下一条
+                          </Button>
+                          <Button variant="tint" size="sm" onClick={() => setTab("source")}>
+                            打开原文
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <pre className="mt-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted/40 p-3 text-sm">
+                      {activeChunk.text}
+                    </pre>
+                  </>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    请选择左侧 Chunk 查看完整文本和来源信息
+                  </div>
                 )}
               </div>
             </div>
-
-            <div className="flex min-h-0 flex-col rounded-lg border border-border bg-background/40 p-3">
-              {activeChunk ? (
-                <>
-                  <div className="shrink-0 border-b border-border pb-3">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium">当前 Chunk #{activeChunk.index + 1}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {activeChunk.pageStart != null
-                            ? `页 ${activeChunk.pageStart}${
-                                activeChunk.pageEnd != null && activeChunk.pageEnd !== activeChunk.pageStart
-                                  ? `-${activeChunk.pageEnd}`
-                                  : ""
-                              } · `
-                            : ""}
-                          {formatCharCountK(activeChunk.text.length)}
-                          {activeChunk.sourceKind ? ` · ${activeChunk.sourceKind}` : ""}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={activeChunk.index <= 0}
-                          onClick={() => selectChunk(activeChunk.index - 1)}
-                        >
-                          上一条
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={activeChunk.index >= chunkRecords.length - 1}
-                          onClick={() => selectChunk(activeChunk.index + 1)}
-                        >
-                          下一条
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setTab("source")}>
-                          打开原文
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <pre className="mt-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted/40 p-3 text-sm">
-                    {activeChunk.text}
-                  </pre>
-                </>
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                  请选择左侧 Chunk 查看完整文本和来源信息
-                </div>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
       </PageBody>
     </Page>
   )

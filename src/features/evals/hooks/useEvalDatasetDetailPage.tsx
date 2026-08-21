@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useSearchParams } from "react-router-dom"
 import { Pencil, Trash2 } from "lucide-react"
 import type { EvalQuery } from "@/api/evals"
 import { HttpError } from "@/api/http"
@@ -18,13 +18,14 @@ export type EvalDetailTab = "queries" | "runs"
 
 export function useEvalDatasetDetailPage() {
   const { datasetId = "" } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const dataset = useEvalDataset(datasetId)
   const queries = useEvalQueries(datasetId)
   const createQuery = useCreateEvalQuery(datasetId)
   const patchQuery = usePatchEvalQuery(datasetId)
   const deleteQuery = useDeleteEvalQuery(datasetId)
 
-  const [tab, setTab] = useState<EvalDetailTab>("queries")
+  const tab: EvalDetailTab = searchParams.get("tab") === "runs" ? "runs" : "queries"
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingQuery, setEditingQuery] = useState<EvalQuery | null>(null)
   const [deleting, setDeleting] = useState<EvalQuery | null>(null)
@@ -162,6 +163,19 @@ export function useEvalDatasetDetailPage() {
       },
     ],
     [startEdit],
+  )
+
+  const setTab = useCallback(
+    (nextTab: EvalDetailTab) => {
+      const next = new URLSearchParams(searchParams)
+      if (nextTab === "runs") {
+        next.set("tab", "runs")
+      } else {
+        next.delete("tab")
+      }
+      setSearchParams(next, { replace: true })
+    },
+    [searchParams, setSearchParams],
   )
 
   return {

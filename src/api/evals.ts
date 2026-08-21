@@ -27,15 +27,19 @@ export type EvalRunMetrics = Record<string, unknown>
 export type EvalExecutionMode = "retrieval" | "workflow" | "agent" | "auto"
 
 export type AgentPolicyConfig = {
-  defaultExecutionMode?: string
-  allowedRetrievalModes?: string[]
-  defaultTopK?: number
-  maxTopK?: number
-  maxRetrievalPasses?: number
+  answerContextTopK?: number
   maxToolCalls?: number
   maxPlannerCalls?: number
-  defaultRetrieverMode?: string
+  minEvidenceScore?: number
+  plannerPrompt?: string
+  plannerPromptHash?: string
   runtimeVersion?: string
+  defaultTopK?: number
+  defaultExecutionMode?: string
+  allowedRetrievalModes?: string[]
+  maxTopK?: number
+  maxRetrievalPasses?: number
+  defaultRetrieverMode?: string
   promptVersions?: {
     planner?: string
     answer?: string

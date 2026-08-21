@@ -6,7 +6,11 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { LoadingText } from "@/components/ui/loading-text"
 import { EvalResultDetailDrawer } from "@/features/evals/components/EvalResultDetailDrawer"
 import { useEvalQueries, useEvalRun } from "@/features/evals/hooks/queries"
-import { aggregateDecisionMetricsFromResults, readDecisionMetrics } from "@/features/evals/lib/decisionMetrics"
+import {
+  aggregateDecisionMetricsFromResults,
+  readDecisionMetrics,
+  readJudgeAverage,
+} from "@/features/evals/lib/decisionMetrics"
 import { FixedSeedUiDemoBadge, isFixedSeedUiDemoRun } from "@/features/evals/lib/demoRun"
 import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 import {
@@ -35,6 +39,13 @@ export function EvalRunInlineDetailPanel({ runId, onClose }: EvalRunInlineDetail
   const selectedResult =
     run.data?.results.find((result) => result.id === selectedResultId) ?? null
   const selectedMeta = selectedResult ? questionById.get(selectedResult.queryId) : undefined
+  const answerQualityMetrics = run.data
+    ? {
+        faithfulness: readJudgeAverage(run.data.metrics, run.data.results, "faithfulness"),
+        answerRelevancy: readJudgeAverage(run.data.metrics, run.data.results, "answerRelevancy"),
+        citationSupport: readJudgeAverage(run.data.metrics, run.data.results, "citationSupport"),
+      }
+    : null
 
   const resultColumns: Array<DataTableColumn<EvalRunResult>> = [
     {
@@ -137,6 +148,18 @@ export function EvalRunInlineDetailPanel({ runId, onClose }: EvalRunInlineDetail
             <Metric label="检索 Recall" value={formatMetricNumber(run.data.metrics.recallAtK)} />
             <Metric label="检索 MRR" value={formatMetricNumber(run.data.metrics.mrrAtK)} />
             <Metric label="答案生成率" value={formatPercent(run.data.metrics.answerGeneratedRate)} />
+            <Metric
+              label="事实一致性"
+              value={formatJudgeScore(answerQualityMetrics?.faithfulness ?? null)}
+            />
+            <Metric
+              label="回答相关性"
+              value={formatJudgeScore(answerQualityMetrics?.answerRelevancy ?? null)}
+            />
+            <Metric
+              label="引用支撑"
+              value={formatJudgeScore(answerQualityMetrics?.citationSupport ?? null)}
+            />
             <Metric label="平均耗时" value={formatLatencyMs(run.data.metrics.latencyMs)} />
           </div>
 
@@ -167,6 +190,11 @@ export function EvalRunInlineDetailPanel({ runId, onClose }: EvalRunInlineDetail
 function formatPercent(value: unknown) {
   if (typeof value !== "number" || !Number.isFinite(value)) return "-"
   return `${(value * 100).toFixed(1)}%`
+}
+
+function formatJudgeScore(value: number | null) {
+  if (value === null) return "未评测"
+  return formatMetricNumber(value)
 }
 
 function RunSummary({ run }: { run: import("@/api/evals").EvalRunDetail }) {
