@@ -21,6 +21,10 @@ const AssistantEditPage = lazyPage(() => import("@/features/assistants/pages/Ass
 const AssistantChatPage = lazyPage(() => import("@/features/assistantChat/pages/AssistantChatPage"), "AssistantChatPage")
 const RetrievalDebugPage = lazyPage(() => import("@/features/retrievalDebug/pages/RetrievalDebugPage"), "RetrievalDebugPage")
 const AgentRunsPage = lazyPage(() => import("@/features/agentRuns/pages/AgentRunsPage"), "AgentRunsPage")
+const AgentRunDetailPage = lazyPage(
+  () => import("@/features/agentRuns/pages/AgentRunDetailPage"),
+  "AgentRunDetailPage",
+)
 const EvalDatasetListPage = lazyPage(() => import("@/features/evals/pages/EvalDatasetListPage"), "EvalDatasetListPage")
 const EvalDatasetDetailPage = lazyPage(() => import("@/features/evals/pages/EvalDatasetDetailPage"), "EvalDatasetDetailPage")
 const EvalRunDetailPage = lazyPage(() => import("@/features/evals/pages/EvalRunDetailPage"), "EvalRunDetailPage")
@@ -64,6 +68,7 @@ export const router = createBrowserRouter([
           { path: "assistants/:id/chat", element: withPageSuspense(<AssistantChatPage />) },
           { path: "retrieval-debug", element: withPageSuspense(<RetrievalDebugPage />) },
           { path: "agent-runs", element: withPageSuspense(<AgentRunsPage />) },
+          { path: "agent-runs/:runId", element: withPageSuspense(<AgentRunDetailPage />) },
           { path: "evals", element: withPageSuspense(<EvalDatasetListPage />) },
           { path: "evals/policies", element: withPageSuspense(<AgentPolicyCenterPage />) },
           { path: "evals/runs/:runId", element: withPageSuspense(<EvalRunDetailPage />) },

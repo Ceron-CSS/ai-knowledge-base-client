@@ -54,7 +54,6 @@ describe("stepLabel", () => {
       "generate_answer",
       "verify_citations",
       // tool names
-      "analyze_query",
       "search_chunks",
       "search_keyword",
       "search_vector",
@@ -71,7 +70,11 @@ describe("stepLabel", () => {
 })
 
 describe("timeline display labels", () => {
-  it("shows the concrete tool used by planner and execute-tool steps in Chinese", () => {
+  it("uses model-decision wording for planner steps", () => {
+    expect(stepLabel("agent_planner")).toBe("模型决策")
+  })
+
+  it("shows the concrete action used by planner and execute-tool steps in Chinese", () => {
     expect(
       stepToolBadge({
         sequence: 1,
@@ -81,7 +84,7 @@ describe("timeline display labels", () => {
         durationMs: 8,
         outputSummary: { tool: "search_chunks" },
       }),
-    ).toBe("计划调用：统一检索")
+    ).toBe("决策调用：统一检索")
 
     expect(
       stepToolBadge({

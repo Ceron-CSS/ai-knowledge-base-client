@@ -168,6 +168,7 @@ export function AssistantChatPage() {
             open={!!traceRunId}
             runId={traceRunId}
             onClose={() => setTraceRunId(null)}
+            showAnswerResult={false}
           />
           <Dialog
             open={!!evalDraftMessageId}

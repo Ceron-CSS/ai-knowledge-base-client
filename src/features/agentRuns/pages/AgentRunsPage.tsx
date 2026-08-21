@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { useNavigate } from "react-router-dom"
 import { Activity, RotateCcw, Search } from "lucide-react"
 import { getAgentRunMetrics, listAgentRuns, type AgentRunListItem } from "@/api/agentRuns"
 import { listAssistants } from "@/api/assistants"
@@ -7,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { Select } from "@/components/ui/select"
-import { AgentRunTraceDrawer } from "@/features/assistantChat/components/AgentRunTraceDrawer"
 import { formatShanghaiDateTime, shanghaiDateInputToUtcIso } from "@/lib/dateTime"
 
 function statusLabel(status: string) {
@@ -16,6 +16,14 @@ function statusLabel(status: string) {
   if (status === "cancelled") return "已取消"
   if (status === "running") return "运行中"
   return status
+}
+
+function statusDotClass(status: string) {
+  if (status === "succeeded") return "bg-emerald-500"
+  if (status === "failed") return "bg-red-500"
+  if (status === "running") return "bg-amber-500"
+  if (status === "cancelled") return "bg-slate-400"
+  return "bg-muted-foreground"
 }
 
 function sourceLabel(source: string) {
@@ -64,10 +72,10 @@ const EMPTY_FILTERS: AgentRunFilters = {
 }
 
 export function AgentRunsPage() {
+  const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<AgentRunFilters>(EMPTY_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<AgentRunFilters>(EMPTY_FILTERS)
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
 
   const assistantsQuery = useQuery({
     queryKey: ["assistants", "agent-runs-filter"],
@@ -105,6 +113,8 @@ export function AgentRunsPage() {
       {
         key: "createdAt",
         header: "时间",
+        className: "w-36 whitespace-nowrap",
+        cellClassName: "whitespace-nowrap",
         render: (row) => (
           <span className="whitespace-nowrap text-xs">{formatRunTime(row.createdAt)}</span>
         ),
@@ -112,21 +122,41 @@ export function AgentRunsPage() {
       {
         key: "status",
         header: "状态",
-        render: (row) => statusLabel(row.status),
+        className: "w-24 whitespace-nowrap",
+        cellClassName: "whitespace-nowrap",
+        render: (row) => {
+          const label = statusLabel(row.status)
+          return (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap" aria-label={`运行状态：${label}`}>
+              <span className={`h-2 w-2 rounded-full ${statusDotClass(row.status)}`} aria-hidden="true" />
+              {label}
+            </span>
+          )
+        },
       },
       {
         key: "source",
         header: "来源",
-        render: (row) => sourceLabel(row.source),
+        className: "w-20 whitespace-nowrap",
+        cellClassName: "whitespace-nowrap",
+        render: (row) => <span className="whitespace-nowrap">{sourceLabel(row.source)}</span>,
       },
       {
         key: "question",
         header: "问题",
-        render: (row) => <span className="line-clamp-2 max-w-[280px]">{row.question}</span>,
+        className: "w-[34%]",
+        cellClassName: "min-w-0",
+        render: (row) => (
+          <span className="block truncate" title={row.question}>
+            {row.question}
+          </span>
+        ),
       },
       {
         key: "wait",
         header: "首字等待",
+        className: "w-24 whitespace-nowrap",
+        cellClassName: "whitespace-nowrap",
         render: (row) => {
           const metric = formatTtft(row)
           return (
@@ -139,6 +169,8 @@ export function AgentRunsPage() {
       {
         key: "latency",
         header: "端到端",
+        className: "w-24 whitespace-nowrap",
+        cellClassName: "whitespace-nowrap",
         render: (row) => (
           <span
             className="tabular-nums"
@@ -151,24 +183,34 @@ export function AgentRunsPage() {
       {
         key: "tools",
         header: "工具调用",
-        render: (row) => <span className="tabular-nums">{row.summary.toolCallCount}</span>,
+        className: "w-20 whitespace-nowrap",
+        cellClassName: "whitespace-nowrap",
+        render: (row) => <span className="tabular-nums">{row.summary.toolCallCount}次</span>,
       },
       {
         key: "error",
         header: "错误码",
-        render: (row) => row.errorCode || "-",
+        className: "w-24 whitespace-nowrap",
+        cellClassName: "whitespace-nowrap",
+        render: (row) => (
+          <span className="block truncate" title={row.errorCode || undefined}>
+            {row.errorCode || "-"}
+          </span>
+        ),
       },
       {
         key: "actions",
         header: "操作",
+        className: "w-20 whitespace-nowrap",
+        cellClassName: "whitespace-nowrap",
         render: (row) => (
-          <Button variant="outline" size="sm" onClick={() => setSelectedRunId(row.id)}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/agent-runs/${row.id}`)}>
             详情
           </Button>
         ),
       },
     ],
-    [],
+    [navigate],
   )
 
   const metrics = metricsQuery.data
@@ -294,11 +336,6 @@ export function AgentRunsPage() {
           }}
         />
 
-        <AgentRunTraceDrawer
-          open={!!selectedRunId}
-          runId={selectedRunId}
-          onClose={() => setSelectedRunId(null)}
-        />
       </PageBody>
     </Page>
   )
