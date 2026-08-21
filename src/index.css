@@ -135,6 +135,7 @@
     }
   html {
     @apply font-sans;
+    scrollbar-gutter: stable;
     }
 
   button {
@@ -220,6 +221,16 @@
 
   *::-webkit-scrollbar-corner {
     background: transparent;
+  }
+}
+
+@layer utilities {
+  .stable-scrollbar {
+    scrollbar-gutter: stable;
+  }
+
+  .stable-scrollbar-both {
+    scrollbar-gutter: stable both-edges;
   }
 }
 

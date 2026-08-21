@@ -5,6 +5,8 @@ export type ChunkPreviewSnapshot = {
   mode: ChunkPreviewMode
   separators: ChunkPreviewSeparator[]
   maxLength: number
+  overlapLength: number
+  parentMaxLength: number
   trimSpaces: boolean
 }
 
@@ -17,6 +19,8 @@ export function chunkPreviewSnapshotMatches(
     current.text === snapshot.text &&
     current.mode === snapshot.mode &&
     current.maxLength === snapshot.maxLength &&
+    current.overlapLength === snapshot.overlapLength &&
+    current.parentMaxLength === snapshot.parentMaxLength &&
     current.trimSpaces === snapshot.trimSpaces &&
     current.separators.length === snapshot.separators.length &&
     current.separators.every((separator, index) => separator === snapshot.separators[index])

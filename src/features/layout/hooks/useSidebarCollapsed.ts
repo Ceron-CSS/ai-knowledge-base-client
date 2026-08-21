@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 
 const SIDEBAR_COLLAPSED_KEY = "app.sidebarCollapsed"
@@ -25,17 +25,23 @@ export function useSidebarCollapsed() {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(readCollapsed)
 
-  const isAssistantChatRoute = useMemo(
-    () => /^\/assistants\/[^/]+\/chat\/?$/.test(location.pathname),
+  const isAutoCollapsedRoute = useMemo(
+    () =>
+      /^\/assistants\/[^/]+\/chat\/?$/.test(location.pathname) ||
+      /^\/kb\/[^/]+\/upload\/?$/.test(location.pathname),
     [location.pathname],
   )
+  const prevIsAutoCollapsedRoute = useRef(false)
 
-  const [prevIsAssistantChatRoute, setPrevIsAssistantChatRoute] = useState(isAssistantChatRoute)
-
-  if (isAssistantChatRoute !== prevIsAssistantChatRoute) {
-    setPrevIsAssistantChatRoute(isAssistantChatRoute)
-    setCollapsed(isAssistantChatRoute)
-  }
+  useEffect(() => {
+    const wasAutoCollapsedRoute = prevIsAutoCollapsedRoute.current
+    if (!wasAutoCollapsedRoute && isAutoCollapsedRoute) {
+      setCollapsed(true)
+    } else if (wasAutoCollapsedRoute && !isAutoCollapsedRoute) {
+      setCollapsed(readCollapsed())
+    }
+    prevIsAutoCollapsedRoute.current = isAutoCollapsedRoute
+  }, [isAutoCollapsedRoute])
 
   function toggleCollapsed() {
     setCollapsed((v) => {

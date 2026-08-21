@@ -41,6 +41,10 @@ type UploadPreviewInitialState = {
   separators: ChunkPreviewSeparator[]
   maxLength: number
   maxLengthInput: string
+  overlapLength: number
+  overlapLengthInput: string
+  parentMaxLength: number
+  parentMaxLengthInput: string
   trimSpaces: boolean
   chunks: ChunkPreviewChunk[]
   highlightChunkIndex: number | null
@@ -52,6 +56,23 @@ const WIZARD_STEPS: Array<{ id: UploadWizardStep; label: string }> = [
   { id: "source", label: "原文预览" },
   { id: "chunking", label: "分片配置与预览" },
 ]
+
+function normalizeChunkMode(mode: ChunkPreviewMode | undefined): ChunkPreviewMode {
+  if (mode === "smart") return "recursive"
+  if (mode === "advanced") return "structure"
+  if (mode === "sliding") return "recursive"
+  return mode ?? "recursive"
+}
+
+function clampOverlapLength(value: number, maxLength: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(Math.floor(value), Math.max(0, maxLength - 1)))
+}
+
+function clampParentMaxLength(value: number, childMaxLength: number) {
+  if (!Number.isFinite(value)) return Math.max(1000, childMaxLength * 2)
+  return Math.max(childMaxLength, Math.min(4000, Math.floor(value)))
+}
 
 function buildUploadPreviewInitialState(state: unknown): UploadPreviewInitialState | null {
   const nav = state as KbUploadNavigationState | null
@@ -71,10 +92,14 @@ function buildUploadPreviewInitialState(state: unknown): UploadPreviewInitialSta
     isImportFlow: Boolean(nav.ingestItemId) || nav.mode === "import",
     text: nav.text ?? "",
     fileName: nav.fileName ?? "",
-    mode: "smart",
+    mode: "recursive",
     separators: [],
     maxLength: 500,
     maxLengthInput: "500",
+    overlapLength: 80,
+    overlapLengthInput: "80",
+    parentMaxLength: 1200,
+    parentMaxLengthInput: "1200",
     trimSpaces: true,
     chunks: [],
     highlightChunkIndex: hasHighlight ? Math.max(0, Math.floor(nav.highlightChunkIndex!)) : null,
@@ -84,11 +109,23 @@ function buildUploadPreviewInitialState(state: unknown): UploadPreviewInitialSta
   }
 
   if (nav.chunkConfig) {
-    initial.mode = nav.chunkConfig.mode
+    initial.mode = normalizeChunkMode(nav.chunkConfig.mode)
     initial.separators = nav.chunkConfig.separators
     const nextMaxLength = clampMaxLength(nav.chunkConfig.maxLength)
     initial.maxLength = nextMaxLength
     initial.maxLengthInput = String(nextMaxLength)
+    const nextOverlapLength = clampOverlapLength(
+      nav.chunkConfig.overlapLength ?? 0,
+      nextMaxLength,
+    )
+    initial.overlapLength = nextOverlapLength
+    initial.overlapLengthInput = String(nextOverlapLength)
+    const nextParentMaxLength = clampParentMaxLength(
+      nav.chunkConfig.parentMaxLength ?? 1200,
+      nextMaxLength,
+    )
+    initial.parentMaxLength = nextParentMaxLength
+    initial.parentMaxLengthInput = String(nextParentMaxLength)
     initial.trimSpaces = nav.chunkConfig.trimSpaces
   }
 
@@ -125,12 +162,20 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [pageRevision, setPageRevision] = useState<string | null>(null)
   const [configHash, setConfigHash] = useState<string | null>(null)
-  const [mode, setMode] = useState<ChunkPreviewMode>(() => initial?.mode ?? "smart")
+  const [mode, setMode] = useState<ChunkPreviewMode>(() => initial?.mode ?? "recursive")
   const [separators, setSeparators] = useState<ChunkPreviewSeparator[]>(
     () => initial?.separators ?? [],
   )
   const [maxLength, setMaxLength] = useState(() => initial?.maxLength ?? 500)
   const [maxLengthInput, setMaxLengthInput] = useState(() => initial?.maxLengthInput ?? "500")
+  const [overlapLength, setOverlapLength] = useState(() => initial?.overlapLength ?? 80)
+  const [overlapLengthInput, setOverlapLengthInput] = useState(
+    () => initial?.overlapLengthInput ?? "80",
+  )
+  const [parentMaxLength, setParentMaxLength] = useState(() => initial?.parentMaxLength ?? 1200)
+  const [parentMaxLengthInput, setParentMaxLengthInput] = useState(
+    () => initial?.parentMaxLengthInput ?? "1200",
+  )
   const [trimSpaces, setTrimSpaces] = useState(() => initial?.trimSpaces ?? true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -151,6 +196,8 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     ingestionStatus === "active" ||
     ingestionStatus === "indexing" ||
     ingestionStatus === "indexing_failed"
+  const requiresStructureSeparators =
+    (mode === "structure" || mode === "parent_child") && separators.length === 0
 
   useEffect(() => {
     if (!isImportFlow || !ingestItemId) return
@@ -223,8 +270,30 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     return maxLengthInput === "" ? maxLength : clampMaxLength(Number(maxLengthInput))
   }
 
+  function resolveOverlapLength(resolvedMaxLength = resolveMaxLength()) {
+    return overlapLengthInput === ""
+      ? clampOverlapLength(overlapLength, resolvedMaxLength)
+      : clampOverlapLength(Number(overlapLengthInput), resolvedMaxLength)
+  }
+
+  function resolveParentMaxLength(resolvedMaxLength = resolveMaxLength()) {
+    return parentMaxLengthInput === ""
+      ? clampParentMaxLength(parentMaxLength, resolvedMaxLength)
+      : clampParentMaxLength(Number(parentMaxLengthInput), resolvedMaxLength)
+  }
+
   function currentSnapshot(resolvedMaxLength: number): ChunkPreviewSnapshot {
-    return { text, mode, separators, maxLength: resolvedMaxLength, trimSpaces }
+    const resolvedOverlapLength = resolveOverlapLength(resolvedMaxLength)
+    const resolvedParentMaxLength = resolveParentMaxLength(resolvedMaxLength)
+    return {
+      text,
+      mode,
+      separators,
+      maxLength: resolvedMaxLength,
+      overlapLength: resolvedOverlapLength,
+      parentMaxLength: resolvedParentMaxLength,
+      trimSpaces,
+    }
   }
 
   async function generateChunks(): Promise<{
@@ -232,6 +301,9 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     pageRevision: string | null
     configHash: string | null
   }> {
+    if (requiresStructureSeparators) {
+      throw new Error()
+    }
     setError(null)
     setPreviewSnapshot(null)
     setChunks([])
@@ -241,8 +313,14 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     abortRef.current = controller
     setLoading(true)
     const previewMaxLength = resolveMaxLength()
+    const previewOverlapLength = resolveOverlapLength(previewMaxLength)
+    const previewParentMaxLength = resolveParentMaxLength(previewMaxLength)
     setMaxLength(previewMaxLength)
     setMaxLengthInput(String(previewMaxLength))
+    setOverlapLength(previewOverlapLength)
+    setOverlapLengthInput(String(previewOverlapLength))
+    setParentMaxLength(previewParentMaxLength)
+    setParentMaxLengthInput(String(previewParentMaxLength))
     const snapshot = currentSnapshot(previewMaxLength)
     let nextRevision: string | null = pageRevision
     let nextHash: string | null = null
@@ -256,6 +334,8 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
             mode,
             separators,
             maxLength: previewMaxLength,
+            overlapLength: previewOverlapLength,
+            parentMaxLength: previewParentMaxLength,
             trimSpaces,
           },
           (meta) => {
@@ -271,7 +351,7 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
           controller.signal,
         )
         if (!nextChunks.length) {
-          throw new Error("分片结果为空，请检查抽取文本或分段参数")
+          throw new Error("分片结果为空，请检查抽取文本或分片参数")
         }
         setPreviewSnapshot(snapshot)
         return { chunks: nextChunks, pageRevision: nextRevision, configHash: nextHash }
@@ -288,7 +368,7 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
         controller.signal,
       )
       if (!nextChunks.length) {
-        throw new Error("分片结果为空，请检查文本内容或分段参数")
+        throw new Error("分片结果为空，请检查文本内容或分片参数")
       }
       setPreviewSnapshot(snapshot)
       return { chunks: nextChunks, pageRevision: null, configHash: null }
@@ -334,13 +414,30 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
       setSaveError("文本内容不能为空")
       return
     }
+    if (requiresStructureSeparators) {
+      setSaveError(null)
+      return
+    }
     setSaveError(null)
     setSaving(true)
     const saveMaxLength = resolveMaxLength()
+    const saveOverlapLength = resolveOverlapLength(saveMaxLength)
+    const saveParentMaxLength = resolveParentMaxLength(saveMaxLength)
     setMaxLength(saveMaxLength)
     setMaxLengthInput(String(saveMaxLength))
+    setOverlapLength(saveOverlapLength)
+    setOverlapLengthInput(String(saveOverlapLength))
+    setParentMaxLength(saveParentMaxLength)
+    setParentMaxLengthInput(String(saveParentMaxLength))
     try {
-      const chunkConfig = { mode, separators, maxLength: saveMaxLength, trimSpaces }
+      const chunkConfig = {
+        mode,
+        separators,
+        maxLength: saveMaxLength,
+        overlapLength: saveOverlapLength,
+        parentMaxLength: saveParentMaxLength,
+        trimSpaces,
+      }
       if (isImportFlow && ingestItemId) {
         const snapshot = currentSnapshot(saveMaxLength)
         let revision = pageRevision
@@ -376,7 +473,7 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
           chunkTexts = generated.map((chunk) => chunk.text)
         }
         if (!chunkTexts.length) {
-          throw new Error("分片结果为空，请检查文本内容或分段参数")
+          throw new Error("分片结果为空，请检查文本内容或分片参数")
         }
         if (editingItemId) {
           await updateKbItem(kbId, editingItemId, {
@@ -424,8 +521,48 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
 
   function handleMaxLengthBlur() {
     const next = maxLengthInput === "" ? maxLength : clampMaxLength(Number(maxLengthInput))
+    const nextOverlap = clampOverlapLength(overlapLength, next)
+    const nextParentMaxLength = clampParentMaxLength(parentMaxLength, next)
     setMaxLength(next)
     setMaxLengthInput(String(next))
+    setOverlapLength(nextOverlap)
+    setOverlapLengthInput(String(nextOverlap))
+    setParentMaxLength(nextParentMaxLength)
+    setParentMaxLengthInput(String(nextParentMaxLength))
+  }
+
+  function handleOverlapLengthInputChange(next: string) {
+    if (!/^\d*$/.test(next)) return
+    setOverlapLengthInput(next)
+    if (next === "") return
+    const parsed = Number(next)
+    if (Number.isFinite(parsed)) setOverlapLength(parsed)
+  }
+
+  function handleOverlapLengthBlur() {
+    const next = clampOverlapLength(
+      overlapLengthInput === "" ? overlapLength : Number(overlapLengthInput),
+      resolveMaxLength(),
+    )
+    setOverlapLength(next)
+    setOverlapLengthInput(String(next))
+  }
+
+  function handleParentMaxLengthInputChange(next: string) {
+    if (!/^\d*$/.test(next)) return
+    setParentMaxLengthInput(next)
+    if (next === "") return
+    const parsed = Number(next)
+    if (Number.isFinite(parsed)) setParentMaxLength(parsed)
+  }
+
+  function handleParentMaxLengthBlur() {
+    const next = clampParentMaxLength(
+      parentMaxLengthInput === "" ? parentMaxLength : Number(parentMaxLengthInput),
+      resolveMaxLength(),
+    )
+    setParentMaxLength(next)
+    setParentMaxLengthInput(String(next))
   }
 
   const stepIndex = useMemo(
@@ -436,7 +573,7 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
   const canGoNext = useMemo(() => {
     if (extracting || extractionFailed || loading || saving) return false
     if (step === "source") return readyForChunking && (isImportFlow || text.trim().length > 0)
-    if (step === "chunking") return chunks.length > 0
+    if (step === "chunking") return chunks.length > 0 && !requiresStructureSeparators
     return false
   }, [
     extracting,
@@ -448,6 +585,7 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     isImportFlow,
     text,
     chunks.length,
+    requiresStructureSeparators,
   ])
 
   const nextLabel =
@@ -470,6 +608,8 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     separators,
     setSeparators,
     maxLengthInput,
+    overlapLengthInput,
+    parentMaxLengthInput,
     trimSpaces,
     setTrimSpaces,
     loading,
@@ -489,7 +629,14 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     warnings,
     expiresAt,
     canGoNext,
-    canPreview: readyForChunking && !extracting && !extractionFailed && !loading && !saving,
+    canPreview:
+      readyForChunking &&
+      !requiresStructureSeparators &&
+      !extracting &&
+      !extractionFailed &&
+      !loading &&
+      !saving,
+    requiresStructureSeparators,
     nextLabel,
     goNext: () => void goNext(),
     goBack,
@@ -501,6 +648,10 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     onRetryExtraction: () => void onRetryExtraction(),
     handleMaxLengthInputChange,
     handleMaxLengthBlur,
+    handleOverlapLengthInputChange,
+    handleOverlapLengthBlur,
+    handleParentMaxLengthInputChange,
+    handleParentMaxLengthBlur,
     backToList: () => navigate(`/kb/${kbId}`),
   }
 }

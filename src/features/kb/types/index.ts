@@ -1,5 +1,5 @@
 import type { Kb } from "@/api/kb"
-import type { ChunkPreviewMode, ChunkPreviewSeparator } from "@/api/kb"
+import type { ChunkPreviewConfig } from "@/api/kb"
 
 export type KbEditingState = { mode: "create" } | { mode: "edit"; kb: Kb } | { mode: "none" }
 
@@ -12,12 +12,7 @@ export type KbUploadNavigationState = {
   highlightChunkIndex?: number
   /** 1-based PDF page from citation. */
   sourcePage?: number
-  chunkConfig?: {
-    mode: ChunkPreviewMode
-    separators: ChunkPreviewSeparator[]
-    maxLength: number
-    trimSpaces: boolean
-  }
+  chunkConfig?: ChunkPreviewConfig
   /** File-import flow: wait for extraction then configure chunks. */
   ingestItemId?: string
   mode?: "manual" | "import"

@@ -3,6 +3,8 @@ import {
   createKb,
   deleteKb,
   deleteKbItem,
+  getKb,
+  type KbItem,
   listKbItems,
   listKbs,
   retryKbItemExtraction,
@@ -12,6 +14,7 @@ import {
   updateKb,
   type KbItemListParams,
   type KbListParams,
+  type PaginatedResult,
 } from "@/api/kb"
 import { MAX_PAGE_SIZE } from "@/api/listQuery"
 
@@ -23,6 +26,7 @@ export type KbFeedParams = Omit<KbListParams, "page" | "pageSize"> & {
 
 const kbKeys = {
   all: ["kb"] as const,
+  detail: (kbId: string) => ["kb", "detail", kbId] as const,
   list: (params: KbListParams) => ["kb", "list", params] as const,
   feed: (params: KbFeedParams) => ["kb", "feed", params] as const,
   items: (kbId: string, params: KbItemListParams) => ["kb", "items", kbId, params] as const,
@@ -36,6 +40,14 @@ export function useKbList(params?: KbListParams) {
   return useQuery({
     queryKey: kbKeys.list(effectiveParams),
     queryFn: () => listKbs(effectiveParams),
+  })
+}
+
+export function useKb(kbId: string) {
+  return useQuery({
+    queryKey: kbKeys.detail(kbId),
+    queryFn: () => getKb(kbId),
+    enabled: !!kbId,
   })
 }
 
@@ -111,11 +123,14 @@ export function useDeleteKb() {
 }
 
 export function useKbItems(kbId: string, params?: KbItemListParams) {
+  const qc = useQueryClient()
   const effectiveParams = params ?? EMPTY_ITEM_PARAMS
   return useQuery({
     queryKey: kbKeys.items(kbId, effectiveParams),
     queryFn: () => listKbItems(kbId, effectiveParams),
     enabled: !!kbId,
+    placeholderData: (previousData) =>
+      previousData ?? findCachedKbItemsPage(qc, kbId, effectiveParams),
     refetchInterval: (query) => {
       const rows = query.state.data?.items ?? []
       const busy = rows.some(
@@ -124,6 +139,27 @@ export function useKbItems(kbId: string, params?: KbItemListParams) {
       return busy ? 2500 : false
     },
   })
+}
+
+function findCachedKbItemsPage(
+  qc: ReturnType<typeof useQueryClient>,
+  kbId: string,
+  params: KbItemListParams,
+) {
+  const matches = qc.getQueriesData<PaginatedResult<KbItem>>({
+    queryKey: ["kb", "items", kbId],
+  })
+  const found = matches.find(([key, data]) => {
+    if (!data || !Array.isArray(key) || key.length < 4) return false
+    const cachedParams = key[3] as KbItemListParams
+    return (
+      cachedParams.pageSize === params.pageSize &&
+      (cachedParams.q ?? "") === (params.q ?? "") &&
+      cachedParams.sortBy === params.sortBy &&
+      cachedParams.sortDir === params.sortDir
+    )
+  })
+  return found?.[1]
 }
 
 export function useRetryKbItemExtraction() {

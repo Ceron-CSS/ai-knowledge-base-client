@@ -39,6 +39,10 @@ export function listKbs(params: KbListParams = {}) {
   })
 }
 
+export function getKb(id: string) {
+  return requestJson<Kb>(`/kb/${id}`)
+}
+
 export function createKb(body: { name: string; description?: string }) {
   return requestJson<Kb>("/kb", { method: "POST", body })
 }
@@ -125,12 +129,7 @@ export type KbItemDetail = {
   content: string
   chunks: string[]
   chunkRecords?: KbItemChunkRecord[]
-  chunkConfig?: {
-    mode: ChunkPreviewMode
-    separators: ChunkPreviewSeparator[]
-    maxLength: number
-    trimSpaces: boolean
-  }
+  chunkConfig?: ChunkPreviewConfig
   status?: string
   pageRevision?: string | null
   hasOriginalFile?: boolean
@@ -149,7 +148,14 @@ export function deleteKbItem(kbId: string, itemId: string) {
   return requestJson<void>(`/kb/${kbId}/items/${itemId}`, { method: "DELETE" })
 }
 
-export type ChunkPreviewMode = "smart" | "advanced"
+export type ChunkPreviewMode =
+  | "smart"
+  | "advanced"
+  | "recursive"
+  | "token"
+  | "sliding"
+  | "structure"
+  | "parent_child"
 export type ChunkPreviewSeparator =
   | "newline"
   | "markdown_h1"
@@ -164,8 +170,12 @@ export type ChunkPreviewRequest = {
   mode: ChunkPreviewMode
   separators: ChunkPreviewSeparator[]
   maxLength: number
+  overlapLength: number
+  parentMaxLength: number
   trimSpaces: boolean
 }
+
+export type ChunkPreviewConfig = Omit<ChunkPreviewRequest, "text">
 
 export type ChunkPreviewChunk = {
   index: number
@@ -284,12 +294,7 @@ export type ItemChunkPreviewMeta = {
 export async function streamKbItemChunkPreview(
   kbId: string,
   itemId: string,
-  body: {
-    mode: ChunkPreviewMode
-    separators: ChunkPreviewSeparator[]
-    maxLength: number
-    trimSpaces: boolean
-  },
+  body: ChunkPreviewConfig,
   onMeta: (meta: ItemChunkPreviewMeta) => void,
   onChunk: (chunk: ItemChunkPreviewChunk) => void,
   signal?: AbortSignal,
@@ -325,12 +330,7 @@ export function finalizeKbItem(
   kbId: string,
   itemId: string,
   body: {
-    chunkConfig: {
-      mode: ChunkPreviewMode
-      separators: ChunkPreviewSeparator[]
-      maxLength: number
-      trimSpaces: boolean
-    }
+    chunkConfig: ChunkPreviewConfig
     pageRevision: string
     configHash: string
   },
@@ -367,12 +367,7 @@ export function createKbItem(
     fileName: string
     content: string
     chunks: string[]
-    chunkConfig?: {
-      mode: ChunkPreviewMode
-      separators: ChunkPreviewSeparator[]
-      maxLength: number
-      trimSpaces: boolean
-    }
+    chunkConfig?: ChunkPreviewConfig
   },
 ) {
   return requestJson<{ id: string }>(`/kb/${kbId}/items`, { method: "POST", body })
@@ -385,12 +380,7 @@ export function updateKbItem(
     fileName: string
     content: string
     chunks: string[]
-    chunkConfig?: {
-      mode: ChunkPreviewMode
-      separators: ChunkPreviewSeparator[]
-      maxLength: number
-      trimSpaces: boolean
-    }
+    chunkConfig?: ChunkPreviewConfig
   },
 ) {
   return requestJson<void>(`/kb/${kbId}/items/${itemId}`, { method: "PATCH", body })
