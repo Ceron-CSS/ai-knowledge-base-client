@@ -43,47 +43,94 @@ export type AssistantCitation = {
   pageEnd?: number
 }
 
-export function listAssistantConversations(assistantId: string, params: AssistantConversationListParams = {}) {
+export function listAssistantConversations(
+  assistantId: string,
+  params: AssistantConversationListParams = {}
+) {
   const listParams = listQueryToSearchParams(params)
-  return requestJson<PaginatedResult<AssistantConversation>>(`/assistants/${assistantId}/conversations`, {
-    query: {
-      ...listParams,
-      sortBy: params.sortBy ?? "createdAt",
-      sortDir: params.sortDir ?? "desc",
-    },
-  })
+  return requestJson<PaginatedResult<AssistantConversation>>(
+    `/assistants/${assistantId}/conversations`,
+    {
+      query: {
+        ...listParams,
+        sortBy: params.sortBy ?? "createdAt",
+        sortDir: params.sortDir ?? "desc",
+      },
+    }
+  )
 }
 
 export function createAssistantConversation(assistantId: string) {
-  return requestJson<AssistantConversation>(`/assistants/${assistantId}/conversations`, { method: "POST" })
+  return requestJson<AssistantConversation>(
+    `/assistants/${assistantId}/conversations`,
+    { method: "POST" }
+  )
 }
 
-export function deleteAssistantConversation(assistantId: string, conversationId: string) {
-  return requestJson<void>(`/assistants/${assistantId}/conversations/${conversationId}`, { method: "DELETE" })
+export function deleteAssistantConversation(
+  assistantId: string,
+  conversationId: string
+) {
+  return requestJson<void>(
+    `/assistants/${assistantId}/conversations/${conversationId}`,
+    { method: "DELETE" }
+  )
 }
 
-export function renameAssistantConversation(assistantId: string, conversationId: string, title: string) {
-  return requestJson<AssistantConversation>(`/assistants/${assistantId}/conversations/${conversationId}`, {
-    method: "PATCH",
-    body: { title },
-  })
+export function renameAssistantConversation(
+  assistantId: string,
+  conversationId: string,
+  title: string
+) {
+  return requestJson<AssistantConversation>(
+    `/assistants/${assistantId}/conversations/${conversationId}`,
+    {
+      method: "PATCH",
+      body: { title },
+    }
+  )
 }
 
-export function listAssistantMessages(assistantId: string, conversationId: string) {
-  return requestJson<AssistantMessage[]>(`/assistants/${assistantId}/conversations/${conversationId}/messages`)
+export function listAssistantMessages(
+  assistantId: string,
+  conversationId: string
+) {
+  return requestJson<AssistantMessage[]>(
+    `/assistants/${assistantId}/conversations/${conversationId}/messages`
+  )
 }
 
 export type StreamEvent =
   | { type: "run_started"; runId: string; requestedExecutionMode?: string }
-  | { type: "tool_started"; runId: string; toolStep: number; toolCall: { id: string; name: string } }
+  | {
+      type: "progress"
+      runId: string
+      stage: string
+      title: string
+      detail?: string
+    }
+  | {
+      type: "tool_started"
+      runId: string
+      toolStep: number
+      toolCall: { id: string; name: string }
+    }
   | {
       type: "tool_finished"
       runId: string
       toolStep: number
       toolCall: { id: string; name: string; durationMs?: number }
+      status?: "succeeded" | "failed" | "timeout"
+      errorCode?: string
+      errorMessage?: string
       summary?: Record<string, unknown>
     }
-  | { type: "tool_rejected"; runId: string; toolCall: { id: string; name: string }; code?: string }
+  | {
+      type: "tool_rejected"
+      runId: string
+      toolCall: { id: string; name: string }
+      code?: string
+    }
   | { type: "generation_started"; runId: string }
   | { type: "delta"; delta: string; runId?: string }
   | {
@@ -109,7 +156,9 @@ export type AssistantFileAttachment = {
   extractedText: string
 }
 
-export type AssistantAttachment = AssistantImageAttachment | AssistantFileAttachment
+export type AssistantAttachment =
+  | AssistantImageAttachment
+  | AssistantFileAttachment
 
 function isAssistantMessage(value: unknown): value is AssistantMessage {
   if (!value || typeof value !== "object") return false
@@ -132,8 +181,10 @@ function isAssistantCitation(value: unknown): value is AssistantCitation {
     typeof citation.fileName === "string" &&
     typeof citation.snippet === "string" &&
     typeof citation.score === "number" &&
-    (citation.chunkIndex === undefined || typeof citation.chunkIndex === "number") &&
-    (citation.pageStart === undefined || typeof citation.pageStart === "number") &&
+    (citation.chunkIndex === undefined ||
+      typeof citation.chunkIndex === "number") &&
+    (citation.pageStart === undefined ||
+      typeof citation.pageStart === "number") &&
     (citation.pageEnd === undefined || typeof citation.pageEnd === "number")
   )
 }
@@ -148,6 +199,20 @@ function parseStreamEvent(parsed: unknown): StreamEvent | null {
       ...(typeof event.requestedExecutionMode === "string"
         ? { requestedExecutionMode: event.requestedExecutionMode }
         : {}),
+    }
+  }
+  if (
+    event.type === "progress" &&
+    typeof event.runId === "string" &&
+    typeof event.stage === "string" &&
+    typeof event.title === "string"
+  ) {
+    return {
+      type: "progress",
+      runId: event.runId,
+      stage: event.stage,
+      title: event.title,
+      ...(typeof event.detail === "string" ? { detail: event.detail } : {}),
     }
   }
   if (
@@ -183,8 +248,21 @@ function parseStreamEvent(parsed: unknown): StreamEvent | null {
         toolCall: {
           id: toolCall.id,
           name: toolCall.name,
-          ...(typeof toolCall.durationMs === "number" ? { durationMs: toolCall.durationMs } : {}),
+          ...(typeof toolCall.durationMs === "number"
+            ? { durationMs: toolCall.durationMs }
+            : {}),
         },
+        ...(event.status === "succeeded" ||
+        event.status === "failed" ||
+        event.status === "timeout"
+          ? { status: event.status }
+          : {}),
+        ...(typeof event.errorCode === "string"
+          ? { errorCode: event.errorCode }
+          : {}),
+        ...(typeof event.errorMessage === "string"
+          ? { errorMessage: event.errorMessage }
+          : {}),
         ...(event.summary && typeof event.summary === "object"
           ? { summary: event.summary as Record<string, unknown> }
           : {}),
@@ -219,7 +297,9 @@ function parseStreamEvent(parsed: unknown): StreamEvent | null {
   }
   if (event.type === "done" && isAssistantMessage(event.message)) {
     const citations = Array.isArray(event.citations)
-      ? event.citations.filter((item): item is AssistantCitation => isAssistantCitation(item))
+      ? event.citations.filter((item): item is AssistantCitation =>
+          isAssistantCitation(item)
+        )
       : undefined
     return {
       type: "done",
@@ -254,9 +334,12 @@ export async function streamAssistantReply(args: {
     {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: args.text, attachments: args.attachments ?? [] }),
+      body: JSON.stringify({
+        text: args.text,
+        attachments: args.attachments ?? [],
+      }),
       signal: args.signal,
-    },
+    }
   )
 
   return readSseJsonStream(response, parseStreamEvent)
@@ -274,7 +357,7 @@ export async function uploadAssistantImageAttachment(args: {
     {
       method: "POST",
       body: formData,
-    },
+    }
   )
   await throwIfNotOk(response)
   return (await response.json()) as AssistantImageAttachment
@@ -292,7 +375,7 @@ export async function uploadAssistantFileForExtraction(args: {
     {
       method: "POST",
       body: formData,
-    },
+    }
   )
   await throwIfNotOk(response)
   return (await response.json()) as AssistantFileAttachment
@@ -347,6 +430,6 @@ export function submitCitationFeedback(args: {
         snippet: args.body.snippet,
         feedback: args.body.feedback ?? "irrelevant",
       },
-    },
+    }
   )
 }

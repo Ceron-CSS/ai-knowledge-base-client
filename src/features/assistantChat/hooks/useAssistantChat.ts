@@ -11,21 +11,31 @@ type UseAssistantChatOptions = {
 }
 
 export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
-  const [previewImage, setPreviewImage] = useState<{ url: string; name?: string } | null>(null)
+  const [previewImage, setPreviewImage] = useState<{
+    url: string
+    name?: string
+  } | null>(null)
 
   const assistant = useAssistant(assistantId, !!assistantId)
-  const blockedByUnpublished = !assistant.isLoading && !!assistant.data && !assistant.data.publishedAt
+  const blockedByUnpublished =
+    !assistant.isLoading && !!assistant.data && !assistant.data.publishedAt
 
-  const conversation = useConversationState({ assistantId, blockedByUnpublished })
+  const conversation = useConversationState({
+    assistantId,
+    blockedByUnpublished,
+  })
   const composer = useChatComposer()
   const attachments = useAttachmentPreviews()
 
   const messagesQuery = useAssistantMessages(
     assistantId,
     conversation.selectedConversationId,
-    !!conversation.selectedConversationId,
+    !!conversation.selectedConversationId
   )
-  const baseMessages = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data])
+  const baseMessages = useMemo(
+    () => messagesQuery.data ?? [],
+    [messagesQuery.data]
+  )
 
   const streaming = useStreamingReply({
     assistantId,
@@ -64,6 +74,8 @@ export function useAssistantChat({ assistantId }: UseAssistantChatOptions) {
     pendingFilePreviews: attachments.pendingFilePreviews,
     sending: streaming.sending,
     streamError: streaming.streamError,
+    activeProcess: streaming.activeProcess,
+    completedProcessByMessageId: streaming.completedProcessByMessageId,
     previewImage,
     setPreviewImage,
     composerExpanded: composer.composerExpanded,

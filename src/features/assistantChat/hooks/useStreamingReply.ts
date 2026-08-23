@@ -10,6 +10,11 @@ import {
 } from "@/api/assistantChat"
 import { cancelAgentRun } from "@/api/agentRuns"
 import { useTypewriter } from "@/features/assistantChat/hooks/useTypewriter"
+import {
+  applyStreamEventToProcess,
+  buildInitialRunProcess,
+  type RunProcess,
+} from "@/features/assistantChat/lib/runProcess"
 import { message } from "@/components/ui/message"
 
 type CreateConversationMutation = {
@@ -34,7 +39,10 @@ function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError"
 }
 
-function appendMessageIfMissing(messages: AssistantMessage[], message: AssistantMessage) {
+function appendMessageIfMissing(
+  messages: AssistantMessage[],
+  message: AssistantMessage
+) {
   const index = messages.findIndex((item) => item.id === message.id)
   if (index !== -1) {
     const next = [...messages]
@@ -46,7 +54,7 @@ function appendMessageIfMissing(messages: AssistantMessage[], message: Assistant
     (item) =>
       item.conversationId === message.conversationId &&
       item.role === message.role &&
-      item.content === message.content,
+      item.content === message.content
   )
   return alreadyRendered ? messages : [...messages, message]
 }
@@ -68,11 +76,16 @@ export function useStreamingReply({
   const [sending, setSending] = useState(false)
   const [streamError, setStreamError] = useState<string | null>(null)
   const [pendingUser, setPendingUser] = useState<AssistantMessage | null>(null)
-  const [pendingAssistant, setPendingAssistant] = useState<AssistantMessage | null>(null)
+  const [pendingAssistant, setPendingAssistant] =
+    useState<AssistantMessage | null>(null)
+  const [activeProcess, setActiveProcess] = useState<RunProcess | null>(null)
+  const [completedProcessByMessageId, setCompletedProcessByMessageId] =
+    useState<Record<string, RunProcess>>({})
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const activeRunIdRef = useRef<string | null>(null)
+  const activeProcessRef = useRef<RunProcess | null>(null)
 
   const typewriter = useTypewriter((text) => {
     setPendingAssistant((prev) => (prev ? { ...prev, content: text } : prev))
@@ -103,9 +116,17 @@ export function useStreamingReply({
 
   function invalidateConversationQueries(conversationId: string) {
     return Promise.all([
-      qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] }),
       qc.invalidateQueries({
-        queryKey: ["assistantChat", assistantId, "conversations", conversationId, "messages"],
+        queryKey: ["assistantChat", assistantId, "conversations"],
+      }),
+      qc.invalidateQueries({
+        queryKey: [
+          "assistantChat",
+          assistantId,
+          "conversations",
+          conversationId,
+          "messages",
+        ],
       }),
     ])
   }
@@ -117,15 +138,21 @@ export function useStreamingReply({
   function commitStreamedMessages(
     conversationId: string,
     userMessage: AssistantMessage | null,
-    assistantMessage: AssistantMessage,
+    assistantMessage: AssistantMessage
   ) {
     qc.setQueryData<AssistantMessage[]>(
-      ["assistantChat", assistantId, "conversations", conversationId, "messages"],
+      [
+        "assistantChat",
+        assistantId,
+        "conversations",
+        conversationId,
+        "messages",
+      ],
       (current) => {
         let next = current ?? baseMessages
         if (userMessage) next = appendMessageIfMissing(next, userMessage)
         return appendMessageIfMissing(next, assistantMessage)
-      },
+      }
     )
     refreshConversationQueries(conversationId)
   }
@@ -138,6 +165,11 @@ export function useStreamingReply({
   function restoreComposer(savedInput: string, savedFiles: File[]) {
     setInput(savedInput)
     setPendingFiles(savedFiles)
+  }
+
+  function setCurrentProcess(nextProcess: RunProcess | null) {
+    activeProcessRef.current = nextProcess
+    setActiveProcess(nextProcess)
   }
 
   function stopGeneration() {
@@ -168,9 +200,15 @@ export function useStreamingReply({
     if (!text && !hasFiles) return
     if (!assistantId) return
 
-    const imageFiles = savedFiles.filter((file) => file.type.startsWith("image/"))
-    const nonImageFiles = savedFiles.filter((file) => !file.type.startsWith("image/"))
-    const isVisionModel = (assistantBaseModel?.trim() ?? "").startsWith("qwen-vl-")
+    const imageFiles = savedFiles.filter((file) =>
+      file.type.startsWith("image/")
+    )
+    const nonImageFiles = savedFiles.filter(
+      (file) => !file.type.startsWith("image/")
+    )
+    const isVisionModel = (assistantBaseModel?.trim() ?? "").startsWith(
+      "qwen-vl-"
+    )
     if (imageFiles.length && !isVisionModel) {
       message.error("当前模型不支持图片理解，请切换到 qwen-vl-* 模型", 3000)
       return
@@ -183,6 +221,7 @@ export function useStreamingReply({
     const controller = new AbortController()
     abortRef.current = controller
     activeRunIdRef.current = null
+    setCurrentProcess(null)
 
     let conversationId = selectedConversationId
     let messageCommitted = false
@@ -221,10 +260,22 @@ export function useStreamingReply({
 
       const attachments: AssistantAttachment[] = []
       for (const imageFile of imageFiles) {
-        attachments.push(await uploadAssistantImageAttachment({ assistantId, conversationId, file: imageFile }))
+        attachments.push(
+          await uploadAssistantImageAttachment({
+            assistantId,
+            conversationId,
+            file: imageFile,
+          })
+        )
       }
       for (const file of nonImageFiles) {
-        attachments.push(await uploadAssistantFileForExtraction({ assistantId, conversationId, file }))
+        attachments.push(
+          await uploadAssistantFileForExtraction({
+            assistantId,
+            conversationId,
+            file,
+          })
+        )
       }
 
       const stream = await streamAssistantReply({
@@ -235,6 +286,11 @@ export function useStreamingReply({
         signal: controller.signal,
       })
       for await (const ev of stream) {
+        const nextProcess = applyStreamEventToProcess(
+          activeProcessRef.current ?? buildInitialRunProcess(),
+          ev
+        )
+        setCurrentProcess(nextProcess)
         if (ev.type === "run_started") {
           activeRunIdRef.current = ev.runId
         } else if (ev.type === "delta") {
@@ -243,29 +299,54 @@ export function useStreamingReply({
           typewriter.flush()
           typewriter.stop()
           if (ev.saved) {
-            commitStreamedMessages(conversationId, optimisticUserMessage, ev.saved)
+            if (nextProcess) {
+              setCompletedProcessByMessageId((current) => ({
+                ...current,
+                [ev.saved!.id]: nextProcess as RunProcess,
+              }))
+            }
+            commitStreamedMessages(
+              conversationId,
+              optimisticUserMessage,
+              ev.saved
+            )
             clearPendingMessages()
+            setCurrentProcess(null)
             setStreamError(null)
           } else {
             restoreComposer(savedInput, savedFiles)
             clearPendingMessages()
+            setCurrentProcess(null)
             setStreamError(ev.message || "请求失败")
           }
         } else if (ev.type === "done") {
           typewriter.flush()
           typewriter.stop()
-          commitStreamedMessages(conversationId, optimisticUserMessage, ev.message)
+          if (nextProcess) {
+            setCompletedProcessByMessageId((current) => ({
+              ...current,
+              [ev.message.id]: nextProcess as RunProcess,
+            }))
+          }
+          commitStreamedMessages(
+            conversationId,
+            optimisticUserMessage,
+            ev.message
+          )
           clearPendingMessages()
+          setCurrentProcess(null)
         }
       }
     } catch (error) {
       typewriter.stop()
       if (isAbortError(error)) {
         clearPendingMessages()
+        setCurrentProcess(null)
         if (conversationId) await invalidateConversationQueries(conversationId)
       } else {
         if (messageCommitted) restoreComposer(savedInput, savedFiles)
         clearPendingMessages()
+        setCurrentProcess(null)
         setStreamError(error instanceof Error ? error.message : "请求失败")
       }
     } finally {
@@ -279,6 +360,8 @@ export function useStreamingReply({
     combinedMessages,
     sending,
     streamError,
+    activeProcess,
+    completedProcessByMessageId,
     bottomRef,
     send,
     stopGeneration,

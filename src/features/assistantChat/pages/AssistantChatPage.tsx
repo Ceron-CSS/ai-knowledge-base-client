@@ -1,7 +1,10 @@
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useParams } from "react-router-dom"
-import { createEvalQueryFromAssistantMessage, type EvalFeedbackType } from "@/api/evals"
+import {
+  createEvalQueryFromAssistantMessage,
+  type EvalFeedbackType,
+} from "@/api/evals"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
@@ -26,16 +29,23 @@ export function AssistantChatPage() {
   const params = useParams()
   const assistantId = params.id ?? ""
   const [traceRunId, setTraceRunId] = useState<string | null>(null)
-  const [evalDraftMessageId, setEvalDraftMessageId] = useState<string | null>(null)
+  const [evalDraftMessageId, setEvalDraftMessageId] = useState<string | null>(
+    null
+  )
   const [targetDatasetId, setTargetDatasetId] = useState("")
-  const [feedbackType, setFeedbackType] = useState<EvalFeedbackType>("answer_incorrect")
+  const [feedbackType, setFeedbackType] =
+    useState<EvalFeedbackType>("answer_incorrect")
   const qc = useQueryClient()
 
   const chat = useAssistantChat({ assistantId })
   const evalDatasets = useEvalDatasets()
   const createEvalDraft = useMutation({
     mutationFn: () => {
-      if (!evalDraftMessageId || !targetDatasetId || !chat.selectedConversationId) {
+      if (
+        !evalDraftMessageId ||
+        !targetDatasetId ||
+        !chat.selectedConversationId
+      ) {
         throw new Error("请选择评测集")
       }
       return createEvalQueryFromAssistantMessage(targetDatasetId, {
@@ -47,13 +57,20 @@ export function AssistantChatPage() {
     },
     onSuccess: async (query) => {
       await qc.invalidateQueries({ queryKey: evalKeys.datasets() })
-      await qc.invalidateQueries({ queryKey: evalKeys.dataset(query.datasetId) })
-      await qc.invalidateQueries({ queryKey: evalKeys.queries(query.datasetId) })
+      await qc.invalidateQueries({
+        queryKey: evalKeys.dataset(query.datasetId),
+      })
+      await qc.invalidateQueries({
+        queryKey: evalKeys.queries(query.datasetId),
+      })
       setEvalDraftMessageId(null)
     },
   })
   const datasetOptions =
-    evalDatasets.data?.map((dataset) => ({ value: dataset.id, label: dataset.name })) ?? []
+    evalDatasets.data?.map((dataset) => ({
+      value: dataset.id,
+      label: dataset.name,
+    })) ?? []
 
   return (
     <Page fill>
@@ -71,7 +88,9 @@ export function AssistantChatPage() {
             assistantLoading={chat.assistant.isLoading}
             conversationQuery={chat.conversationQuery}
             onConversationQueryChange={chat.setConversationQuery}
-            conversationsLoading={chat.conversations.isLoading && chat.list.length === 0}
+            conversationsLoading={
+              chat.conversations.isLoading && chat.list.length === 0
+            }
             conversationsError={chat.conversations.isError}
             conversationsFetching={chat.conversations.isFetchingNextPage}
             list={chat.list}
@@ -87,7 +106,9 @@ export function AssistantChatPage() {
             onSelectConversation={chat.selectConversation}
             onStartRename={chat.startRenameConversation}
             onCancelRename={chat.cancelRenameConversation}
-            onSubmitRename={(conversationId) => void chat.submitRenameConversation(conversationId)}
+            onSubmitRename={(conversationId) =>
+              void chat.submitRenameConversation(conversationId)
+            }
             onConfirmDelete={chat.setConfirmDelete}
           />
 
@@ -107,13 +128,17 @@ export function AssistantChatPage() {
               messages={chat.combinedMessages}
               sending={chat.sending}
               streamError={chat.streamError}
+              activeProcess={chat.activeProcess}
+              completedProcessByMessageId={chat.completedProcessByMessageId}
               bottomRef={chat.bottomRef}
               onPreviewImage={chat.setPreviewImage}
               onResend={chat.resend}
               onOpenRunTrace={setTraceRunId}
               onCreateEvalQuery={(messageId) => {
                 setEvalDraftMessageId(messageId)
-                setTargetDatasetId((current) => current || datasetOptions[0]?.value || "")
+                setTargetDatasetId(
+                  (current) => current || datasetOptions[0]?.value || ""
+                )
                 createEvalDraft.reset()
               }}
             />
@@ -146,7 +171,9 @@ export function AssistantChatPage() {
                 ? `将删除对话「${normalizeConversationTitle(chat.confirmDelete.title)}」，该操作不可恢复`
                 : undefined
             }
-            errorText={chat.deleteConversation.isError ? "删除失败，请重试" : null}
+            errorText={
+              chat.deleteConversation.isError ? "删除失败，请重试" : null
+            }
             confirming={chat.deleteConversation.isPending}
           />
           <Dialog
@@ -180,13 +207,19 @@ export function AssistantChatPage() {
           >
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium">目标评测集</label>
+                <label className="mb-1.5 block text-sm font-medium">
+                  目标评测集
+                </label>
                 <Select
                   value={targetDatasetId}
                   onValueChange={setTargetDatasetId}
                   options={datasetOptions}
-                  placeholder={evalDatasets.isLoading ? "正在加载评测集" : "选择评测集"}
-                  disabled={evalDatasets.isLoading || datasetOptions.length === 0}
+                  placeholder={
+                    evalDatasets.isLoading ? "正在加载评测集" : "选择评测集"
+                  }
+                  disabled={
+                    evalDatasets.isLoading || datasetOptions.length === 0
+                  }
                 />
                 {datasetOptions.length === 0 && !evalDatasets.isLoading ? (
                   <div className="mt-1.5 text-xs text-muted-foreground">
@@ -196,16 +229,22 @@ export function AssistantChatPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium">反馈类型</label>
+                <label className="mb-1.5 block text-sm font-medium">
+                  反馈类型
+                </label>
                 <Select
                   value={feedbackType}
-                  onValueChange={(value) => setFeedbackType(value as EvalFeedbackType)}
+                  onValueChange={(value) =>
+                    setFeedbackType(value as EvalFeedbackType)
+                  }
                   options={feedbackOptions}
                 />
               </div>
 
               {createEvalDraft.isError ? (
-                <div className="text-sm text-destructive">创建草稿失败，请检查评测集和对话消息是否仍存在。</div>
+                <div className="text-sm text-destructive">
+                  创建草稿失败，请检查评测集和对话消息是否仍存在。
+                </div>
               ) : null}
 
               <div className="flex justify-end gap-3">

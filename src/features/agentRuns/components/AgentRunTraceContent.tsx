@@ -7,11 +7,17 @@ import { LoadingText } from "@/components/ui/loading-text"
 import { MarkdownMessage } from "@/components/ui/markdown-message"
 import { cn } from "@/lib/utils"
 import { openKbItemChunk } from "@/features/kb/lib/openKbItemChunk"
+import { RunProcessPanel } from "@/features/assistantChat/components/RunProcessPanel"
+import {
+  type RunProcess,
+  type RunProcessStep,
+} from "@/features/assistantChat/lib/runProcess"
 
 export type TimelineStep = {
   sequence: number
   name: string
   kind: string
+  status?: string
   decision?: string
   durationMs: number
   inputSummary?: Record<string, unknown>
@@ -145,6 +151,10 @@ function readString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null
 }
 
+function readNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
 export function stepToolName(step: TimelineStep) {
   if (step.kind === "tool") return step.name
   const output = step.outputSummary ?? {}
@@ -181,8 +191,14 @@ export function visibleTimelineSteps(steps: TimelineStep[]) {
 
 function segmentBucket(step: TimelineStep): string {
   if (step.name === "eval_run") return "其他开销"
-  if (step.kind === "tool" || step.name.includes("tool") || step.name === "execute_tool") return "工具调用"
-  if (step.name.includes("retrieve") || step.kind === "retrieval") return "知识检索"
+  if (
+    step.kind === "tool" ||
+    step.name.includes("tool") ||
+    step.name === "execute_tool"
+  )
+    return "工具调用"
+  if (step.name.includes("retrieve") || step.kind === "retrieval")
+    return "知识检索"
   if (
     step.name.includes("route") ||
     step.name.includes("plan") ||
@@ -196,7 +212,8 @@ function segmentBucket(step: TimelineStep): string {
   ) {
     return "编排开销"
   }
-  if (step.name === "generate_answer" || step.name.startsWith("generate_")) return "模型生成"
+  if (step.name === "generate_answer" || step.name.startsWith("generate_"))
+    return "模型生成"
   return "其他开销"
 }
 
@@ -220,10 +237,15 @@ function parseSteps(rawSteps: Array<Record<string, unknown>>): TimelineStep[] {
       sequence: Number(step.sequence ?? index + 1),
       name: String(step.name ?? "step"),
       kind: String(step.kind ?? "node"),
+      status: step.status != null ? String(step.status) : undefined,
       decision: step.decision != null ? String(step.decision) : undefined,
       durationMs: Math.max(0, Number(step.durationMs ?? 0)),
-      inputSummary: isPlainObject(step.inputSummary) ? step.inputSummary : undefined,
-      outputSummary: isPlainObject(step.outputSummary) ? step.outputSummary : undefined,
+      inputSummary: isPlainObject(step.inputSummary)
+        ? step.inputSummary
+        : undefined,
+      outputSummary: isPlainObject(step.outputSummary)
+        ? step.outputSummary
+        : undefined,
     }))
 }
 
@@ -231,7 +253,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
-export function buildEvalFallbackSteps(detail: AgentRunDetail | null, passes: RetrievalPass[]): TimelineStep[] {
+export function buildEvalFallbackSteps(
+  detail: AgentRunDetail | null,
+  passes: RetrievalPass[]
+): TimelineStep[] {
   if (!detail || detail.source !== "eval") return []
   const totalLatencyMs = detail.summary.latencyMs
   if (totalLatencyMs == null || totalLatencyMs <= 0) return []
@@ -240,7 +265,10 @@ export function buildEvalFallbackSteps(detail: AgentRunDetail | null, passes: Re
   let sequence = 1
   let accounted = 0
   if (detail.executionMode === "agent" && passes.length === 0) {
-    const orchestrationMs = Math.max(1, Math.min(250, Math.round(totalLatencyMs * 0.08)))
+    const orchestrationMs = Math.max(
+      1,
+      Math.min(250, Math.round(totalLatencyMs * 0.08))
+    )
     steps.push({
       sequence,
       name: "agent_planner",
@@ -281,7 +309,10 @@ export function buildEvalFallbackSteps(detail: AgentRunDetail | null, passes: Re
   return steps
 }
 
-function buildSegments(steps: TimelineStep[], totalLatencyMs: number | null): DurationSegment[] {
+function buildSegments(
+  steps: TimelineStep[],
+  totalLatencyMs: number | null
+): DurationSegment[] {
   const buckets = new Map<string, number>()
   const firstSeen = new Map<string, number>()
   for (const step of steps) {
@@ -319,24 +350,222 @@ function buildSegments(steps: TimelineStep[], totalLatencyMs: number | null): Du
 }
 
 function useTraceViewModel(detail: AgentRunDetail | null) {
-  const passes = useMemo(() => detail?.trace?.retrievalPasses ?? [], [detail?.trace?.retrievalPasses])
+  const passes = useMemo(
+    () => detail?.trace?.retrievalPasses ?? [],
+    [detail?.trace?.retrievalPasses]
+  )
   const steps = useMemo(() => {
     const parsed = parseSteps(detail?.trace?.steps ?? [])
     return parsed.length ? parsed : buildEvalFallbackSteps(detail, passes)
   }, [detail, passes])
   const timelineSteps = useMemo(() => visibleTimelineSteps(steps), [steps])
   const totalLatencyMs = detail?.summary.latencyMs ?? null
-  const segments = useMemo(() => buildSegments(timelineSteps, totalLatencyMs), [timelineSteps, totalLatencyMs])
+  const segments = useMemo(
+    () => buildSegments(timelineSteps, totalLatencyMs),
+    [timelineSteps, totalLatencyMs]
+  )
   const segmentTotal = Math.max(
     totalLatencyMs ?? 0,
     segments.reduce((sum, row) => sum + row.durationMs, 0),
-    1,
+    1
   )
-  const timelineScale = Math.max(totalLatencyMs ?? 0, ...timelineSteps.map((step) => step.durationMs), 1)
+  const timelineScale = Math.max(
+    totalLatencyMs ?? 0,
+    ...timelineSteps.map((step) => step.durationMs),
+    1
+  )
   const retrieved = detail?.citations?.retrieved ?? []
   const used = detail?.citations?.used ?? []
+  const process = useMemo(
+    () => buildTraceProcess(detail, steps),
+    [detail, steps]
+  )
 
-  return { passes, timelineSteps, totalLatencyMs, segments, segmentTotal, timelineScale, retrieved, used }
+  return {
+    passes,
+    timelineSteps,
+    totalLatencyMs,
+    segments,
+    segmentTotal,
+    timelineScale,
+    retrieved,
+    used,
+    process,
+  }
+}
+
+function buildTraceProcess(
+  detail: AgentRunDetail | null,
+  steps: TimelineStep[]
+): RunProcess {
+  return {
+    runId: detail?.id ?? null,
+    status:
+      detail?.status === "failed"
+        ? "failed"
+        : detail?.status === "running"
+          ? "running"
+          : "succeeded",
+    steps: steps.map(traceStepToProcessStep),
+  }
+}
+
+function traceStepToProcessStep(step: TimelineStep): RunProcessStep {
+  const toolName = stepToolName(step)
+  const status = processStatus(step.status)
+  const failure = traceFailureDetail(step, toolName)
+  if (failure) {
+    return {
+      id: `${step.sequence}:${step.kind}:${step.name}`,
+      title: toolName ? `调用 ${toolName}` : stepTitle(step),
+      status: "failed",
+      detail: failure,
+      durationMs: step.durationMs,
+    }
+  }
+
+  if (step.name === "agent_planner" && step.decision === "tool_call") {
+    const plannedTool = toolName || "工具"
+    const reason = readSummaryValue(step.outputSummary, [
+      "reason",
+      "reasonCode",
+      "decisionReason",
+    ])
+    return {
+      id: `${step.sequence}:${step.kind}:${step.name}`,
+      title: `决定调用 ${plannedTool}`,
+      status,
+      detail: [
+        `这是知识库问题，不是闲聊；当前证据不足，需要调用 ${plannedTool}。`,
+        reason ? `原因：${reason}。` : "",
+      ].join(""),
+      durationMs: step.durationMs,
+    }
+  }
+
+  if (step.kind === "tool" && toolName) {
+    return {
+      id: `${step.sequence}:${step.kind}:${step.name}`,
+      title: `调用 ${toolName}`,
+      status,
+      detail: summarizeTraceToolStep(step, toolName),
+      durationMs: step.durationMs,
+    }
+  }
+
+  return {
+    id: `${step.sequence}:${step.kind}:${step.name}`,
+    title: stepTitle(step),
+    status,
+    detail: summarizeTraceDecision(step),
+    durationMs: step.durationMs,
+  }
+}
+
+function processStatus(status: string | undefined): RunProcessStep["status"] {
+  if (status === "failed") return "failed"
+  if (status === "rejected") return "rejected"
+  if (status === "running") return "running"
+  if (status === "pending") return "pending"
+  return "succeeded"
+}
+
+function summarizeTraceDecision(step: TimelineStep): string | undefined {
+  const detailParts: string[] = []
+  if (step.decision) detailParts.push(`决策：${decisionLabel(step.decision)}`)
+  const reason = readSummaryValue(step.outputSummary, [
+    "reason",
+    "reasonCode",
+    "decisionReason",
+  ])
+  if (reason) detailParts.push(`原因：${reason}`)
+  return detailParts.length ? `${detailParts.join("。")}。` : undefined
+}
+
+function summarizeTraceToolStep(
+  step: TimelineStep,
+  toolName: string
+): string | undefined {
+  const input = unwrapSummaryObject(step.inputSummary)
+  const output = unwrapSummaryObject(step.outputSummary)
+  const parts: string[] = []
+  const query = readTraceQuery(input)
+  if (query) {
+    parts.push(`使用查询 ${query} 检索知识库`)
+  } else if (SEARCH_TOOL_NAMES_FOR_UI.has(toolName)) {
+    parts.push("在知识库中检索相关证据")
+  } else {
+    parts.push(`${toolName} 已执行`)
+  }
+  const fusedCount = readNumber(output?.fusedCount)
+  const hitCount = readNumber(output?.hitCount) ?? readNumber(output?.count)
+  if (fusedCount != null) parts.push(`命中候选 ${fusedCount} 条`)
+  else if (hitCount != null) parts.push(`命中 ${hitCount} 条`)
+  return parts.map((part) => `${part}。`).join("")
+}
+
+const SEARCH_TOOL_NAMES_FOR_UI = new Set([
+  "search_chunks",
+  "search_keyword",
+  "search_vector",
+  "search_hybrid",
+])
+
+function traceFailureDetail(
+  step: TimelineStep,
+  toolName: string | null
+): string | null {
+  if (processStatus(step.status) !== "failed") return null
+  const output = unwrapSummaryObject(step.outputSummary)
+  const code =
+    readSummaryValue(output ?? undefined, ["errorCode", "error_code", "code"]) ||
+    step.decision
+  const message =
+    readSummaryValue(output ?? undefined, [
+      "errorMessage",
+      "error",
+      "message",
+      "reason",
+    ]) || "未返回具体错误信息"
+  const name = toolName || step.name
+  return code
+    ? `${name} 执行失败：${message}。失败类型：${code}。`
+    : `${name} 执行失败：${message}。`
+}
+
+function readTraceQuery(value: Record<string, unknown> | null): string | null {
+  if (!value) return null
+  const query = readString(value.query)
+  if (query) return query
+  const queries = value.queries
+  if (Array.isArray(queries)) {
+    const first = queries.find((item) => typeof item === "string" && item.trim())
+    return typeof first === "string" ? first.trim() : null
+  }
+  return null
+}
+
+function unwrapSummaryObject(
+  value: Record<string, unknown> | undefined
+): Record<string, unknown> | null {
+  if (!value) return null
+  const args = value.arguments
+  if (isPlainObject(args)) return args
+  const resultSummary = value.resultSummary
+  if (isPlainObject(resultSummary)) return resultSummary
+  return value
+}
+
+function readSummaryValue(
+  value: Record<string, unknown> | undefined,
+  keys: string[]
+): string | null {
+  if (!value) return null
+  for (const key of keys) {
+    const item = value[key]
+    if (typeof item === "string" && item.trim()) return item.trim()
+  }
+  return null
 }
 
 export function AgentRunTraceContent({
@@ -349,15 +578,24 @@ export function AgentRunTraceContent({
 }: AgentRunTraceContentProps) {
   const view = useTraceViewModel(detail)
 
-  if (loading && !detail) return <LoadingText className="justify-start">加载中</LoadingText>
+  if (loading && !detail)
+    return <LoadingText className="justify-start">加载中</LoadingText>
   if (error) return <div className="text-sm text-destructive">{error}</div>
   if (!detail) return null
 
   if (variant === "page") {
-    return <AgentRunTracePageContent detail={detail} runId={runId} view={view} />
+    return (
+      <AgentRunTracePageContent detail={detail} runId={runId} view={view} />
+    )
   }
 
-  return <AgentRunTraceStack detail={detail} view={view} showAnswerResult={showAnswerResult} />
+  return (
+    <AgentRunTraceStack
+      detail={detail}
+      view={view}
+      showAnswerResult={showAnswerResult}
+    />
+  )
 }
 
 function AgentRunTracePageContent({
@@ -370,20 +608,43 @@ function AgentRunTracePageContent({
 }) {
   return (
     <div className="space-y-4">
-      <section className="grid grid-flow-col auto-cols-[minmax(9.5rem,1fr)] gap-3 overflow-x-auto pb-1">
+      <section className="grid auto-cols-[minmax(9.5rem,1fr)] grid-flow-col gap-3 overflow-x-auto pb-1">
         <MetricCard label="状态" value={statusLabel(detail.status)} />
         <MetricCard label="模型" value={detail.model || "-"} />
-        <MetricCard label="首字等待" value={formatDuration(detail.summary.ttftMs)} />
-        <MetricCard label="端到端" value={formatDuration(detail.summary.latencyMs)} />
-        <MetricCard label="工具调用" value={String(detail.summary.toolCallCount)} />
-        <MetricCard label="引用" value={String(detail.summary.usedCitationCount)} />
+        <MetricCard
+          label="首字等待"
+          value={formatDuration(detail.summary.ttftMs)}
+        />
+        <MetricCard
+          label="端到端"
+          value={formatDuration(detail.summary.latencyMs)}
+        />
+        <MetricCard
+          label="工具调用"
+          value={String(detail.summary.toolCallCount)}
+        />
+        <MetricCard
+          label="引用"
+          value={String(detail.summary.usedCitationCount)}
+        />
       </section>
 
       <div
         className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
         data-testid="agent-run-detail-layout"
       >
-        <div className="min-w-0 space-y-4" data-testid="agent-run-detail-main-rail">
+        <div
+          className="min-w-0 space-y-4"
+          data-testid="agent-run-detail-main-rail"
+        >
+          <Panel title="思考过程">
+            <RunProcessPanel
+              process={view.process}
+              title="思考过程"
+              defaultOpen
+              testId="agent-run-process"
+            />
+          </Panel>
           <Panel title="步骤耗时（技术）">
             <DurationSummary view={view} />
           </Panel>
@@ -392,9 +653,12 @@ function AgentRunTracePageContent({
           </Panel>
         </div>
 
-        <aside className="min-w-0 space-y-4" data-testid="agent-run-detail-side-rail">
+        <aside
+          className="min-w-0 space-y-4"
+          data-testid="agent-run-detail-side-rail"
+        >
           <Panel title="检索详情">
-            <RetrievalPasses passes={view.passes} />
+            <RetrievalPasses passes={view.passes} layout="multi" />
           </Panel>
           <Panel title="引用结果">
             <CitationGrid retrieved={view.retrieved} used={view.used} />
@@ -429,9 +693,20 @@ function AgentRunTraceStack({
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-3">
           <h3 className="text-sm font-medium">步骤耗时（技术）</h3>
-          <div className="text-xs text-muted-foreground">端到端 {formatDuration(view.totalLatencyMs)}</div>
+          <div className="text-xs text-muted-foreground">
+            端到端 {formatDuration(view.totalLatencyMs)}
+          </div>
         </div>
         <DurationSummary view={view} />
+      </section>
+      <section className="space-y-2">
+        <h3 className="text-sm font-medium">思考过程</h3>
+        <RunProcessPanel
+          process={view.process}
+          title="思考过程"
+          defaultOpen
+          testId="agent-run-process"
+        />
       </section>
       <section className="space-y-2">
         <h3 className="text-sm font-medium">执行时间线</h3>
@@ -439,7 +714,7 @@ function AgentRunTraceStack({
       </section>
       <section className="space-y-2">
         <h3 className="text-sm font-medium">检索详情</h3>
-        <RetrievalPasses passes={view.passes} />
+        <RetrievalPasses passes={view.passes} layout="single" />
       </section>
       <section className="space-y-2">
         <h3 className="text-sm font-medium">引用结果</h3>
@@ -455,10 +730,20 @@ function AgentRunTraceStack({
   )
 }
 
-function SummaryBlock({ detail, runId }: { detail: AgentRunDetail; runId?: string | null }) {
+function SummaryBlock({
+  detail,
+  runId,
+}: {
+  detail: AgentRunDetail
+  runId?: string | null
+}) {
   return (
     <div className="space-y-3">
-      {runId ? <div className="break-all text-xs text-muted-foreground">Run ID：{runId}</div> : null}
+      {runId ? (
+        <div className="text-xs break-all text-muted-foreground">
+          Run ID：{runId}
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div>状态：{statusLabel(detail.status)}</div>
         <div>模式：{modeLabel(detail.executionMode)}</div>
@@ -470,15 +755,21 @@ function SummaryBlock({ detail, runId }: { detail: AgentRunDetail; runId?: strin
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
           <div>
             <div className="text-xs text-muted-foreground">首字等待</div>
-            <div className="tabular-nums font-medium">{formatDuration(detail.summary.ttftMs)}</div>
+            <div className="font-medium tabular-nums">
+              {formatDuration(detail.summary.ttftMs)}
+            </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">流式输出</div>
-            <div className="tabular-nums font-medium">{formatDuration(detail.summary.streamingMs)}</div>
+            <div className="font-medium tabular-nums">
+              {formatDuration(detail.summary.streamingMs)}
+            </div>
           </div>
           <div className="col-span-2 text-xs text-muted-foreground">
             端到端 {formatDuration(detail.summary.latencyMs)}
-            {detail.summary.ttftMs != null ? "（含流式；首字后内容已在边出边看）" : " · 暂无首字拆分"}
+            {detail.summary.ttftMs != null
+              ? "（含流式；首字后内容已在边出边看）"
+              : " · 暂无首字拆分"}
           </div>
         </div>
       </div>
@@ -489,13 +780,19 @@ function SummaryBlock({ detail, runId }: { detail: AgentRunDetail; runId?: strin
         </div>
       ) : null}
       {detail.traceUnavailable ? (
-        <div className="text-sm text-muted-foreground">当前过程详情不可用，仅展示摘要。</div>
+        <div className="text-sm text-muted-foreground">
+          当前过程详情不可用，仅展示摘要。
+        </div>
       ) : null}
     </div>
   )
 }
 
-function DurationSummary({ view }: { view: ReturnType<typeof useTraceViewModel> }) {
+function DurationSummary({
+  view,
+}: {
+  view: ReturnType<typeof useTraceViewModel>
+}) {
   if (view.segments.length === 0) {
     return <div className="text-sm text-muted-foreground">暂无耗时明细</div>
   }
@@ -507,7 +804,9 @@ function DurationSummary({ view }: { view: ReturnType<typeof useTraceViewModel> 
           <div
             key={segment.key}
             className={segment.color}
-            style={{ width: `${Math.max(1.5, (segment.durationMs / view.segmentTotal) * 100)}%` }}
+            style={{
+              width: `${Math.max(1.5, (segment.durationMs / view.segmentTotal) * 100)}%`,
+            }}
             title={`${segment.label}: ${formatDuration(segment.durationMs)}`}
           />
         ))}
@@ -517,10 +816,16 @@ function DurationSummary({ view }: { view: ReturnType<typeof useTraceViewModel> 
           const pct = (segment.durationMs / view.segmentTotal) * 100
           return (
             <div key={segment.key} className="flex items-center gap-2 text-sm">
-              <span className={`h-2.5 w-2.5 shrink-0 rounded-sm ${segment.color}`} />
+              <span
+                className={`h-2.5 w-2.5 shrink-0 rounded-sm ${segment.color}`}
+              />
               <span className="min-w-0 flex-1 truncate">{segment.label}</span>
-              <span className="tabular-nums text-muted-foreground">{formatDuration(segment.durationMs)}</span>
-              <span className="w-14 text-right tabular-nums text-muted-foreground">{pct.toFixed(0)}%</span>
+              <span className="text-muted-foreground tabular-nums">
+                {formatDuration(segment.durationMs)}
+              </span>
+              <span className="w-14 text-right text-muted-foreground tabular-nums">
+                {pct.toFixed(0)}%
+              </span>
             </div>
           )
         })}
@@ -533,7 +838,11 @@ function DurationSummary({ view }: { view: ReturnType<typeof useTraceViewModel> 
   )
 }
 
-function TimelineList({ view }: { view: ReturnType<typeof useTraceViewModel> }) {
+function TimelineList({
+  view,
+}: {
+  view: ReturnType<typeof useTraceViewModel>
+}) {
   if (view.timelineSteps.length === 0) {
     return <div className="text-sm text-muted-foreground">暂无步骤</div>
   }
@@ -541,18 +850,26 @@ function TimelineList({ view }: { view: ReturnType<typeof useTraceViewModel> }) 
   return (
     <ol className="space-y-2">
       {view.timelineSteps.map((step) => {
-        const widthPct = Math.max(step.durationMs > 0 ? 2 : 0.5, (step.durationMs / view.timelineScale) * 100)
+        const widthPct = Math.max(
+          step.durationMs > 0 ? 2 : 0.5,
+          (step.durationMs / view.timelineScale) * 100
+        )
         const pctOfTotal =
           view.totalLatencyMs && view.totalLatencyMs > 0
             ? (step.durationMs / view.totalLatencyMs) * 100
             : null
         const color = stepDurationColor(segmentBucket(step))
         return (
-          <li key={`${step.name}-${step.sequence}`} className="rounded-md border px-3 py-2 text-sm">
+          <li
+            key={`${step.name}-${step.sequence}`}
+            className="rounded-md border px-3 py-2 text-sm"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground">#{step.sequence}</span>
+                  <span className="text-xs text-muted-foreground">
+                    #{step.sequence}
+                  </span>
                   <span className="font-medium">{stepTitle(step)}</span>
                   {stepToolBadge(step) ? (
                     <span className="rounded-sm bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
@@ -567,14 +884,21 @@ function TimelineList({ view }: { view: ReturnType<typeof useTraceViewModel> }) 
                 ) : null}
               </div>
               <div className="shrink-0 text-right">
-                <div className="tabular-nums font-medium">{formatDuration(step.durationMs)}</div>
+                <div className="font-medium tabular-nums">
+                  {formatDuration(step.durationMs)}
+                </div>
                 {pctOfTotal != null ? (
-                  <div className="text-xs tabular-nums text-muted-foreground">{pctOfTotal.toFixed(0)}%</div>
+                  <div className="text-xs text-muted-foreground tabular-nums">
+                    {pctOfTotal.toFixed(0)}%
+                  </div>
                 ) : null}
               </div>
             </div>
             <div className="mt-2 h-2 rounded-full bg-muted">
-              <div className={`h-2 rounded-full ${color}`} style={{ width: `${widthPct}%` }} />
+              <div
+                className={`h-2 rounded-full ${color}`}
+                style={{ width: `${widthPct}%` }}
+              />
             </div>
           </li>
         )
@@ -583,22 +907,42 @@ function TimelineList({ view }: { view: ReturnType<typeof useTraceViewModel> }) 
   )
 }
 
-function RetrievalPasses({ passes }: { passes: RetrievalPass[] }) {
+function RetrievalPasses({
+  passes,
+  layout,
+}: {
+  passes: RetrievalPass[]
+  layout: "single" | "multi"
+}) {
   if (passes.length === 0) {
     return <div className="text-sm text-muted-foreground">无检索 Pass</div>
   }
 
   return (
-    <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3" data-testid="agent-run-retrieval-passes">
+    <div
+      className={cn(
+        "grid gap-2",
+        layout === "multi" ? "md:grid-cols-2 2xl:grid-cols-3" : "grid-cols-1"
+      )}
+      data-testid="agent-run-retrieval-passes"
+    >
       {passes.map((pass, index) => (
-        <div key={index} className="min-w-0 rounded-md border px-2.5 py-1.5 text-sm">
+        <div
+          key={index}
+          className="min-w-0 rounded-md border px-2.5 py-1.5 text-sm"
+        >
           <div className="flex min-w-0 items-center justify-between gap-2">
             <div className="shrink-0 font-medium">Pass {index + 1}</div>
-            <div className="shrink-0 tabular-nums text-xs text-muted-foreground">
-              {formatDuration(typeof pass.durationMs === "number" ? pass.durationMs : null)}
+            <div className="shrink-0 text-xs text-muted-foreground tabular-nums">
+              {formatDuration(
+                typeof pass.durationMs === "number" ? pass.durationMs : null
+              )}
             </div>
           </div>
-          <div className="mt-1 truncate text-xs text-muted-foreground" title={String(pass.query ?? "")}>
+          <div
+            className="mt-1 truncate text-xs text-muted-foreground"
+            title={String(pass.query ?? "")}
+          >
             {String(pass.query ?? "") || "-"}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -621,8 +965,14 @@ function CitationGrid({
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-      <CitationColumn title={`召回候选 (${dedupeCitationRows(retrieved).length})`} rows={dedupeCitationRows(retrieved)} />
-      <CitationColumn title={`最终使用 (${dedupeCitationRows(used).length})`} rows={dedupeCitationRows(used)} />
+      <CitationColumn
+        title={`召回候选 (${dedupeCitationRows(retrieved).length})`}
+        rows={dedupeCitationRows(retrieved)}
+      />
+      <CitationColumn
+        title={`最终使用 (${dedupeCitationRows(used).length})`}
+        rows={dedupeCitationRows(used)}
+      />
     </div>
   )
 }
@@ -639,7 +989,9 @@ function AnswerResult({ detail }: { detail: AgentRunDetail }) {
 function QuestionBlock({ detail }: { detail: AgentRunDetail }) {
   return (
     <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
-      <div className="whitespace-pre-wrap break-words">{detail.question || "-"}</div>
+      <div className="break-words whitespace-pre-wrap">
+        {detail.question || "-"}
+      </div>
     </div>
   )
 }
@@ -648,7 +1000,10 @@ function AnswerBlock({ detail }: { detail: AgentRunDetail }) {
   return (
     <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
       {detail.answer ? (
-        <MarkdownMessage content={detail.answer} citationCount={detail.summary.usedCitationCount} />
+        <MarkdownMessage
+          content={detail.answer}
+          citationCount={detail.summary.usedCitationCount}
+        />
       ) : (
         <div className="text-muted-foreground">暂无回答记录</div>
       )}
@@ -675,7 +1030,8 @@ function CitationColumn({
           const kbId = String(row.kbId ?? "")
           const itemId = String(row.itemId ?? "")
           const fileName = String(row.fileName ?? "document")
-          const chunkIndex = typeof row.chunkIndex === "number" ? row.chunkIndex : 0
+          const chunkIndex =
+            typeof row.chunkIndex === "number" ? row.chunkIndex : 0
           const label = `${fileName} #${chunkIndex + 1}`
           return (
             <div
@@ -689,7 +1045,9 @@ function CitationColumn({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={() => openKbItemChunk(navigate, { kbId, itemId, chunkIndex })}
+                  onClick={() =>
+                    openKbItemChunk(navigate, { kbId, itemId, chunkIndex })
+                  }
                   aria-label="打开原文"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
@@ -710,7 +1068,9 @@ function MetricCard({ label, value }: { label: string; value: string }) {
         <Activity className="h-3.5 w-3.5 text-primary" />
         <span className="truncate">{label}</span>
       </div>
-      <div className="mt-2 truncate text-xl font-semibold tabular-nums">{value}</div>
+      <div className="mt-2 truncate text-xl font-semibold tabular-nums">
+        {value}
+      </div>
     </div>
   )
 }
@@ -725,7 +1085,12 @@ function Panel({
   className?: string
 }) {
   return (
-    <section className={cn("space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm", className)}>
+    <section
+      className={cn(
+        "space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm",
+        className
+      )}
+    >
       <h3 className="text-sm font-medium">{title}</h3>
       {children}
     </section>

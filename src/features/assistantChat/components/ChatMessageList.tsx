@@ -4,8 +4,13 @@ import type { AssistantMessage } from "@/api/assistantChat"
 import { MarkdownMessageLazy } from "@/components/ui/markdown-message-lazy"
 import { LoadingText } from "@/components/ui/loading-text"
 import { TypingDots } from "@/components/ui/typing-dots"
-import { MessageCitations, openCitationInNewTab } from "@/features/assistantChat/components/MessageCitations"
+import {
+  MessageCitations,
+  openCitationInNewTab,
+} from "@/features/assistantChat/components/MessageCitations"
 import { parseMessageContent } from "@/features/assistantChat/lib/parseMessageContent"
+import { RunProcessPanel } from "@/features/assistantChat/components/RunProcessPanel"
+import type { RunProcess } from "@/features/assistantChat/lib/runProcess"
 
 type ChatMessageListProps = {
   messagesLoading: boolean
@@ -19,6 +24,8 @@ type ChatMessageListProps = {
   onResend?: () => void
   onOpenRunTrace?: (runId: string) => void
   onCreateEvalQuery?: (messageId: string) => void
+  activeProcess?: RunProcess | null
+  completedProcessByMessageId?: Record<string, RunProcess>
 }
 
 export function ChatMessageList({
@@ -33,6 +40,8 @@ export function ChatMessageList({
   onResend,
   onOpenRunTrace,
   onCreateEvalQuery,
+  activeProcess = null,
+  completedProcessByMessageId = {},
 }: ChatMessageListProps) {
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
@@ -40,28 +49,63 @@ export function ChatMessageList({
         messages.map((m, index) => {
           const parsed = parseMessageContent(m.content)
           const isLastMessage = index === messages.length - 1
-          const showTypingDots = m.role === "assistant" && sending && isLastMessage && !parsed.text
+          const showTypingDots =
+            m.role === "assistant" && sending && isLastMessage && !parsed.text
+          const completedProcess =
+            m.role === "assistant" && !sending
+              ? completedProcessByMessageId[m.id]
+              : undefined
+          const showActiveProcess =
+            m.role === "assistant" && sending && isLastMessage && activeProcess
           return (
-            <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+            <div
+              key={m.id}
+              className={
+                m.role === "user" ? "flex justify-end" : "flex justify-start"
+              }
+            >
               <div
                 className={[
                   "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed",
-                  m.role === "user" ? "whitespace-pre-wrap bg-primary text-primary-foreground" : "bg-muted",
+                  m.role === "user"
+                    ? "bg-primary whitespace-pre-wrap text-primary-foreground"
+                    : "bg-muted",
                 ].join(" ")}
               >
                 {m.role === "assistant" ? (
-                  showTypingDots ? (
-                    <TypingDots />
-                  ) : (
-                    <MarkdownMessageLazy
-                      content={parsed.text}
-                      citationCount={parsed.citations.length}
-                      onCitationClick={(citationIndex) => {
-                        const citation = parsed.citations[citationIndex]
-                        if (citation) openCitationInNewTab(citation)
-                      }}
-                    />
-                  )
+                  <>
+                    {showActiveProcess ? (
+                      <div className="mb-2">
+                        <RunProcessPanel
+                          process={activeProcess}
+                          title="思考过程"
+                          testId="chat-active-process"
+                        />
+                      </div>
+                    ) : null}
+                    {completedProcess ? (
+                      <div className="mb-2">
+                        <RunProcessPanel
+                          process={completedProcess}
+                          title="思考过程"
+                          defaultOpen={false}
+                          testId="chat-completed-process"
+                        />
+                      </div>
+                    ) : null}
+                    {showTypingDots ? (
+                      <TypingDots />
+                    ) : (
+                      <MarkdownMessageLazy
+                        content={parsed.text}
+                        citationCount={parsed.citations.length}
+                        onCitationClick={(citationIndex) => {
+                          const citation = parsed.citations[citationIndex]
+                          if (citation) openCitationInNewTab(citation)
+                        }}
+                      />
+                    )}
+                  </>
                 ) : (
                   <div>{parsed.text}</div>
                 )}
@@ -72,9 +116,18 @@ export function ChatMessageList({
                         key={`${img.fileName ?? "img"}-${i}`}
                         type="button"
                         className="overflow-hidden rounded-md border"
-                        onClick={() => onPreviewImage({ url: img.dataUrl, name: img.fileName })}
+                        onClick={() =>
+                          onPreviewImage({
+                            url: img.dataUrl,
+                            name: img.fileName,
+                          })
+                        }
                       >
-                        <img src={img.dataUrl} alt={img.fileName ?? "图片"} className="h-20 w-20 object-cover" />
+                        <img
+                          src={img.dataUrl}
+                          alt={img.fileName ?? "图片"}
+                          className="h-20 w-20 object-cover"
+                        />
                       </button>
                     ))}
                   </div>
@@ -82,13 +135,18 @@ export function ChatMessageList({
                 {parsed.files.length ? (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {parsed.files.map((f, i) => (
-                      <span key={`${f.fileName}-${i}`} className="rounded border px-2 py-0.5 text-xs opacity-90">
+                      <span
+                        key={`${f.fileName}-${i}`}
+                        className="rounded border px-2 py-0.5 text-xs opacity-90"
+                      >
                         {f.fileName}
                       </span>
                     ))}
                   </div>
                 ) : null}
-                {m.role === "assistant" && !showTypingDots ? <MessageCitations citations={parsed.citations} /> : null}
+                {m.role === "assistant" && !showTypingDots ? (
+                  <MessageCitations citations={parsed.citations} />
+                ) : null}
                 {m.role === "assistant" && !showTypingDots ? (
                   <div className="mt-2 flex flex-wrap gap-3">
                     {m.runId && onOpenRunTrace ? (
@@ -118,9 +176,13 @@ export function ChatMessageList({
       ) : messagesLoading && selectedConversationId ? (
         <LoadingText className="flex w-full">加载中</LoadingText>
       ) : messagesError ? (
-        <div className="text-center text-sm text-destructive">加载失败，请检查后端服务</div>
+        <div className="text-center text-sm text-destructive">
+          加载失败，请检查后端服务
+        </div>
       ) : (
-        <div className="text-center text-sm text-muted-foreground">开始提问吧</div>
+        <div className="text-center text-sm text-muted-foreground">
+          开始提问吧
+        </div>
       )}
       {streamError ? (
         <div className="flex justify-start">

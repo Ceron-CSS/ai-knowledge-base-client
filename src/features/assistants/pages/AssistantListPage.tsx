@@ -92,7 +92,7 @@ export function AssistantListPage() {
         <button
           type="button"
           className="block max-w-full truncate text-left text-sm text-foreground hover:text-primary"
-          onClick={() => navigate(`/assistants/${encodeURIComponent(a.id)}`)}
+          onClick={() => goChat(a)}
           title={a.name}
         >
           {a.name}
