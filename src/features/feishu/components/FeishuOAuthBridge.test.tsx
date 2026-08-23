@@ -40,6 +40,7 @@ beforeEach(() => {
 
 describe("FeishuOAuthBridge", () => {
   it("shows success, requests dialog reopen and leaves the param for the page", async () => {
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState")
     setup("/home?feishu=connected")
 
     await waitFor(() =>
@@ -47,7 +48,7 @@ describe("FeishuOAuthBridge", () => {
     )
     expect(reopen.requestReopenImportDialog).toHaveBeenCalledTimes(1)
     // 参数由 KB 页面读取后清理，桥接组件不动它。
-    expect(window.location.search).toContain("feishu")
+    expect(replaceStateSpy).not.toHaveBeenCalled()
   })
 
   it("shows error with reason and clears the query param", async () => {

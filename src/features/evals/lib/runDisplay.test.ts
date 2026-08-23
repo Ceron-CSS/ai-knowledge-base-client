@@ -33,6 +33,6 @@ describe("evalRunAssistantSummary", () => {
   it("shows the model from model-based eval snapshots", () => {
     expect(
       evalRunAssistantSummary(runWithSnapshot({ model: "gpt-5-mini" }))
-    ).toBe("模型 gpt-5-mini")
+    ).toBe("gpt-5-mini")
   })
 })

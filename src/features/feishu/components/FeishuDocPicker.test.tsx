@@ -102,7 +102,7 @@ describe("FeishuDocPicker", () => {
     await waitFor(() =>
       expect(api.importFeishuDocs).toHaveBeenCalledWith("kb-1", [
         { id: "dox1", name: "FAQ", kind: "drive", type: "docx" },
-      ])
+      ], [])
     )
     await waitFor(() => expect(screen.getByText("已提交")).toBeInTheDocument())
   })
