@@ -34,6 +34,8 @@ export function KbPage() {
         <KbDeleteDialog
           kb={kb.deleting}
           linkedAssistants={kb.deletingLinked}
+          checkingLinked={kb.deletingLinkedChecking}
+          linkedCheckError={kb.deletingLinkedError}
           confirming={kb.deleteKb.isPending}
           onCancel={kb.cancelDelete}
           onConfirm={kb.confirmDelete}

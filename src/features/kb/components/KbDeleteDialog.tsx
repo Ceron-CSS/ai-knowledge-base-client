@@ -6,6 +6,8 @@ import { KbLinkedAssistantsList } from "@/features/kb/components/KbLinkedAssista
 type KbDeleteDialogProps = {
   kb: Kb | null
   linkedAssistants: KbLinkedAssistant[]
+  checkingLinked: boolean
+  linkedCheckError: string | null
   confirming: boolean
   onCancel: () => void
   onConfirm: () => void
@@ -14,10 +16,14 @@ type KbDeleteDialogProps = {
 export function KbDeleteDialog({
   kb,
   linkedAssistants,
+  checkingLinked,
+  linkedCheckError,
   confirming,
   onCancel,
   onConfirm,
 }: KbDeleteDialogProps) {
+  const confirmDisabled = confirming || checkingLinked || !!linkedCheckError
+
   return (
     <Dialog
       open={!!kb}
@@ -29,7 +35,11 @@ export function KbDeleteDialog({
       {kb ? (
         <>
           <div className="space-y-3">
-            {linkedAssistants.length ? (
+            {checkingLinked ? (
+              <p className="text-sm text-muted-foreground">正在检查关联助手...</p>
+            ) : linkedCheckError ? (
+              <p className="text-sm text-destructive">{linkedCheckError}</p>
+            ) : linkedAssistants.length ? (
               <>
                 <p className="text-sm text-muted-foreground">
                   以下问答助手正在关联知识库「{kb.name}」，删除后将<b>取消发布</b>这些助手：
@@ -47,7 +57,13 @@ export function KbDeleteDialog({
             <Button variant="dialog-cancel" size="dialog" onClick={onCancel} disabled={confirming}>
               取消
             </Button>
-            <Button variant="dialog-danger" size="dialog" onClick={onConfirm} loading={confirming}>
+            <Button
+              variant="dialog-danger"
+              size="dialog"
+              onClick={onConfirm}
+              loading={confirming}
+              disabled={confirmDisabled}
+            >
               确认删除
             </Button>
           </div>

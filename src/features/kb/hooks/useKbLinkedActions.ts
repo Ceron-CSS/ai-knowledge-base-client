@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import type { Kb, KbLinkedAssistant } from "@/api/kb"
 import { getKbLinkedAssistants } from "@/api/kb"
 import { useDeleteKb, useSetKbEnabled } from "@/features/kb/hooks/queries"
@@ -9,18 +9,25 @@ export function useKbLinkedActions() {
 
   const [deleting, setDeleting] = useState<Kb | null>(null)
   const [deletingLinked, setDeletingLinked] = useState<KbLinkedAssistant[]>([])
+  const [deletingLinkedChecking, setDeletingLinkedChecking] = useState(false)
+  const [deletingLinkedError, setDeletingLinkedError] = useState<string | null>(null)
   const [disablingKb, setDisablingKb] = useState<Kb | null>(null)
   const [disablingLinked, setDisablingLinked] = useState<KbLinkedAssistant[]>([])
   const [checkingLinked, setCheckingLinked] = useState(false)
   const [linkedCheckError, setLinkedCheckError] = useState<string | null>(null)
+  const deleteCheckSeq = useRef(0)
 
   function cancelDelete() {
+    deleteCheckSeq.current += 1
     setDeleting(null)
     setDeletingLinked([])
+    setDeletingLinkedChecking(false)
+    setDeletingLinkedError(null)
+    setCheckingLinked(false)
   }
 
   async function confirmDelete() {
-    if (!deleting) return
+    if (!deleting || deletingLinkedChecking || deletingLinkedError) return
 
     const id = deleting.id
     const acknowledgeLinked = deletingLinked.length > 0
@@ -36,16 +43,28 @@ export function useKbLinkedActions() {
   }
 
   const handleDelete = useCallback(async (kb: Kb) => {
+    const seq = deleteCheckSeq.current + 1
+    deleteCheckSeq.current = seq
+    setDeleting(kb)
+    setDeletingLinked([])
+    setDeletingLinkedError(null)
+    setDeletingLinkedChecking(true)
     setCheckingLinked(true)
     setLinkedCheckError(null)
     try {
       const linked = await getKbLinkedAssistants(kb.id)
-      setDeleting(kb)
-      setDeletingLinked(linked)
+      if (deleteCheckSeq.current === seq) {
+        setDeletingLinked(linked)
+      }
     } catch {
-      setLinkedCheckError("无法检查关联助手，请稍后重试")
+      if (deleteCheckSeq.current === seq) {
+        setDeletingLinkedError("无法检查关联助手，请稍后重试")
+      }
     } finally {
-      setCheckingLinked(false)
+      if (deleteCheckSeq.current === seq) {
+        setDeletingLinkedChecking(false)
+        setCheckingLinked(false)
+      }
     }
   }, [])
 
@@ -95,6 +114,8 @@ export function useKbLinkedActions() {
     deleteKb,
     deleting,
     deletingLinked,
+    deletingLinkedChecking,
+    deletingLinkedError,
     disablingKb,
     disablingLinked,
     checkingLinked,

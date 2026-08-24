@@ -68,6 +68,8 @@ export function useKbPage() {
     setDescription: form.setDescription,
     deleting: actions.deleting,
     deletingLinked: actions.deletingLinked,
+    deletingLinkedChecking: actions.deletingLinkedChecking,
+    deletingLinkedError: actions.deletingLinkedError,
     disablingKb: actions.disablingKb,
     disablingLinked: actions.disablingLinked,
     linkedCheckError: actions.linkedCheckError,
