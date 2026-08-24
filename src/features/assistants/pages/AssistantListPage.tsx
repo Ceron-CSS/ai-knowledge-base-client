@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { MessageSquare, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,8 @@ import { MODEL_PROVIDERS } from "@/features/modelProviders/constants/providers"
 import { message } from "@/components/ui/message"
 import { formatShanghaiDateTime } from "@/lib/dateTime"
 
+const ASSISTANT_PAGE_SIZE = 10
+
 function modelProviderLabel(provider: string) {
   return MODEL_PROVIDERS.find((item) => item.value === provider)?.label ?? provider
 }
@@ -31,6 +33,7 @@ export function AssistantListPage() {
 
   const [deleting, setDeleting] = useState<Assistant | null>(null)
   const [query, setQuery] = useState("")
+  const [page, setPage] = useState(1)
 
   const items = useMemo(() => assistants.data ?? [], [assistants.data])
   const filteredItems = useMemo(() => {
@@ -40,6 +43,19 @@ export function AssistantListPage() {
       [a.name, a.description, a.modelProvider, a.baseModel].some((value) => value?.toLowerCase().includes(q)),
     )
   }, [items, query])
+  const pageCount = Math.max(1, Math.ceil(filteredItems.length / ASSISTANT_PAGE_SIZE))
+  const normalizedPage = Math.min(page, pageCount)
+  const pagedItems = useMemo(() => {
+    const start = (normalizedPage - 1) * ASSISTANT_PAGE_SIZE
+    return filteredItems.slice(start, start + ASSISTANT_PAGE_SIZE)
+  }, [filteredItems, normalizedPage])
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount)
+    }
+  }, [page, pageCount])
+
   const countLabel = useMemo(() => {
     if (query.trim()) return `${filteredItems.length}/${items.length} 个助手`
     return `${items.length} 个助手`
@@ -103,7 +119,6 @@ export function AssistantListPage() {
       key: "description",
       header: "描述",
       className: "w-[18%]",
-      cellClassName: "text-xs text-muted-foreground",
       render: (a) => (
         <div className="line-clamp-2 leading-5" title={a.description ?? undefined}>
           {a.description?.trim() || "暂无描述"}
@@ -143,7 +158,7 @@ export function AssistantListPage() {
       key: "createdAt",
       header: "创建时间",
       className: "w-[12%]",
-      cellClassName: "text-xs text-muted-foreground",
+      cellClassName: "tabular-nums",
       render: (a) => (
         <span className="whitespace-nowrap">
           {formatShanghaiDateTime(a.createdAt, { includeSeconds: true })}
@@ -154,7 +169,7 @@ export function AssistantListPage() {
       key: "updatedAt",
       header: "修改时间",
       className: "w-[12%]",
-      cellClassName: "text-xs text-muted-foreground",
+      cellClassName: "tabular-nums",
       render: (a) => (
         <span className="whitespace-nowrap">
           {formatShanghaiDateTime(a.updatedAt, { includeSeconds: true })}
@@ -233,7 +248,10 @@ export function AssistantListPage() {
             <Input
               clearable
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setPage(1)
+              }}
               placeholder="搜索助手、描述或模型"
             />
             <Button variant="primary" size="lg" onClick={() => navigate("/assistants/new")}>
@@ -244,13 +262,20 @@ export function AssistantListPage() {
 
         <DataTable
           columns={columns}
-          data={filteredItems}
+          data={pagedItems}
           getRowKey={(a) => a.id}
           loading={assistants.isLoading}
           error={assistants.isError}
           errorText="加载失败，请检查后端服务"
           emptyText={items.length ? "没有匹配的问答助手" : "暂无数据"}
           tableClassName="min-w-[1120px]"
+          pagination={{
+            page: normalizedPage,
+            pageSize: ASSISTANT_PAGE_SIZE,
+            total: filteredItems.length,
+            onPageChange: setPage,
+            showWhenSinglePage: true,
+          }}
         />
 
         <ConfirmDeleteDialog

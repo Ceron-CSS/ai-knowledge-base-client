@@ -65,7 +65,10 @@ export function AgentPolicyCenterPage() {
 
   return (
     <Page>
-      <PageHeader items={[{ label: "Agent 策略" }]} />
+      <PageHeader
+        items={[{ label: "Agent 策略" }]}
+        description="管理线上 Agent 策略、候选策略草稿与历史发布复制。"
+      />
 
       <PageBody className="space-y-4">
         {policies.isLoading ? (

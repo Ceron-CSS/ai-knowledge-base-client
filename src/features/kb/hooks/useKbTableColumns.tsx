@@ -86,7 +86,7 @@ export function useKbTableColumns({
       },
       {
         key: "enabled",
-        header: "状态",
+        header: "启用状态",
         className: "w-[8%]",
         render: (kb) => (
           <Switch

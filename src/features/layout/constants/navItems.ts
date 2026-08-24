@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   Cpu,
+  FileText,
   FlaskConical,
   Home,
   Search,
@@ -35,6 +36,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "知识",
     items: [
       { to: "/kb", label: "知识库", Icon: BookOpen, onboardingTarget: "nav-kb" },
+      { to: "/items", label: "文档条目", Icon: FileText, onboardingTarget: "nav-kb-items" },
     ],
   },
   {

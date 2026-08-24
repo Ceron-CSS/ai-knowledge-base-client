@@ -27,6 +27,8 @@ export function Select({
   modal = true,
   className,
 }: SelectProps) {
+  const selectedOption = options.find((option) => option.value === value)
+
   return (
     <BaseSelect.Root
       value={value}
@@ -42,7 +44,14 @@ export function Select({
           className,
         )}
       >
-        <BaseSelect.Value placeholder={placeholder} />
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate text-left",
+            !selectedOption && "text-muted-foreground",
+          )}
+        >
+          {selectedOption?.label ?? placeholder}
+        </span>
         <BaseSelect.Icon>
           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[popup-open]:rotate-180" />
         </BaseSelect.Icon>

@@ -80,6 +80,7 @@ export function KbPage() {
             pageSize: kb.pageSize,
             total: kb.total,
             onPageChange: kb.setPage,
+            showWhenSinglePage: true,
           }}
         />
       </PageBody>

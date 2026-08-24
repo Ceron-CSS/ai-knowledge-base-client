@@ -189,7 +189,7 @@ export function EvalComparePage() {
     <Page>
       <PageHeader
         items={[
-          { label: "评测与策略", href: "/evals" },
+          { label: "评测数据集", href: "/evals" },
           { label: dataset.data?.name || "数据集", href: `/evals/${datasetId}` },
           { label: "运行对比" },
         ]}

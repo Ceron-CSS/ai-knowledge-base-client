@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { Activity, RotateCcw, Search } from "lucide-react"
+import { Activity, Eye, RotateCcw, Search } from "lucide-react"
 import { getAgentRunMetrics, listAgentRuns, type AgentRunListItem } from "@/api/agentRuns"
 import { listAssistants } from "@/api/assistants"
 import { Button } from "@/components/ui/button"
@@ -98,8 +98,8 @@ export function AgentRunsPage() {
         assistantId: appliedFilters.assistantId || undefined,
         status: appliedFilters.status || undefined,
         source: appliedFilters.source || undefined,
-        dateFrom: dateFromIso,
-        dateTo: dateToIso,
+        ...(dateFromIso ? { dateFrom: dateFromIso } : {}),
+        ...(dateToIso ? { dateTo: dateToIso } : {}),
       }),
   })
 
@@ -204,8 +204,15 @@ export function AgentRunsPage() {
         className: "w-20 whitespace-nowrap",
         cellClassName: "whitespace-nowrap",
         render: (row) => (
-          <Button variant="outline" size="sm" onClick={() => navigate(`/agent-runs/${row.id}`)}>
-            详情
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
+            onClick={() => navigate(`/agent-runs/${row.id}`)}
+            title="详情"
+            aria-label="详情"
+          >
+            <Eye />
           </Button>
         ),
       },
@@ -333,6 +340,7 @@ export function AgentRunsPage() {
             pageSize: 10,
             total: runsQuery.data?.total ?? 0,
             onPageChange: setPage,
+            showWhenSinglePage: true,
           }}
         />
 

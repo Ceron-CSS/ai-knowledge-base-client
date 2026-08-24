@@ -103,7 +103,7 @@ export function useEvalDatasetListPage() {
         key: "description",
         header: "说明",
         render: (row) => (
-          <span className="line-clamp-2 max-w-[320px] text-muted-foreground">
+          <span className="line-clamp-2 max-w-[320px]">
             {row.description || "-"}
           </span>
         ),
@@ -117,8 +117,9 @@ export function useEvalDatasetListPage() {
       {
         key: "updatedAt",
         header: "更新时间",
+        cellClassName: "tabular-nums",
         render: (row) => (
-          <span className="whitespace-nowrap text-xs">{formatEvalDateTime(row.updatedAt)}</span>
+          <span className="whitespace-nowrap">{formatEvalDateTime(row.updatedAt)}</span>
         ),
       },
       {

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { describe, expect, it, vi } from "vitest"
@@ -90,6 +90,48 @@ describe("AgentRunsPage", () => {
     expect(screen.getByRole("columnheader", { name: "来源" })).toHaveClass("w-20")
     expect(screen.getByRole("columnheader", { name: "工具调用" })).toHaveClass("w-20")
     expect(screen.getByRole("columnheader", { name: "错误码" })).toHaveClass("w-24")
+  })
+
+  it("loads all run logs by default while keeping metrics scoped to the last 7 days", async () => {
+    apiMocks.listAssistants.mockResolvedValue([])
+    apiMocks.getAgentRunMetrics.mockResolvedValue({
+      totalRuns: 0,
+      successRate: 0,
+      p95TtftMs: null,
+      p95LatencyMs: null,
+      avgToolCallCount: 0,
+      plannerFallbackRate: 0,
+      insufficientContextRate: 0,
+      dailyRuns: [],
+    })
+    apiMocks.listAgentRuns.mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 10,
+      total: 0,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/agent-runs"]}>
+          <AgentRunsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(apiMocks.listAgentRuns).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          dateFrom: expect.anything(),
+          dateTo: expect.anything(),
+        }),
+      )
+      expect(apiMocks.getAgentRunMetrics).toHaveBeenCalledWith({ assistantId: undefined, days: 7 })
+    })
   })
 
   it("navigates to the run detail page from the table action", async () => {

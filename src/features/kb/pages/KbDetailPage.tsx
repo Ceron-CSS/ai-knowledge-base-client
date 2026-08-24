@@ -16,8 +16,8 @@ export function KbDetailPage() {
   return (
     <Page>
       <PageHeader
-        items={[{ label: kb.kbName, href: "/kb" }, { label: "文档列表" }]}
-        description="查看文档列表，支持删除与启用/禁用"
+        items={[{ label: kb.kbName, href: "/kb" }, { label: "文档条目" }]}
+        description="查看文档条目，支持删除与启用/禁用"
       />
 
       <PageBody className="space-y-2">

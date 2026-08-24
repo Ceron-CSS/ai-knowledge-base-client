@@ -57,7 +57,7 @@ export function KbUploadPreviewPage() {
       <PageHeader
         items={[
           { label: kb.data?.name ?? "加载中…", href: "/kb" },
-          { label: "文档列表", href: `/kb/${id}` },
+          { label: "文档条目", href: `/kb/${id}` },
           { label: uploadBreadcrumbLabel },
         ]}
         description="先确认原文，再配置分片并预览，最后提交索引"

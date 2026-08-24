@@ -17,6 +17,7 @@ export type DataTablePagination = {
   pageSize: number
   total: number
   onPageChange: (page: number) => void
+  showWhenSinglePage?: boolean
 }
 
 type DataTableProps<T> = {
@@ -36,6 +37,7 @@ type DataTableProps<T> = {
 
 function shouldShowPagination(pagination: DataTablePagination | undefined) {
   if (!pagination) return false
+  if (pagination.showWhenSinglePage) return true
   return pagination.total > pagination.pageSize || pagination.page > 1
 }
 

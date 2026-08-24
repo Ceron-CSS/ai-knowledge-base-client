@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { getKbItemDetail, type KbItemChunkRecord, type KbItemDetail } from "@/api/kb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingText } from "@/components/ui/loading-text"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { KbSourcePreview } from "@/features/kb/components/KbSourcePreview"
-import { useKb } from "@/features/kb/hooks/queries"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
 
 type DetailTab = "source" | "chunks"
@@ -15,6 +14,7 @@ const CHUNK_PAGE_SIZE = 80
 export function KbItemDetailPage() {
   const { id: kbId = "", itemId = "" } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const [detail, setDetail] = useState<KbItemDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -22,7 +22,6 @@ export function KbItemDetailPage() {
   const [chunkSearch, setChunkSearch] = useState("")
   const [chunkPageIndex, setChunkPageIndex] = useState(0)
   const highlightRef = useRef<HTMLButtonElement | null>(null)
-  const kb = useKb(kbId)
 
   const tab = (searchParams.get("tab") === "chunks" ? "chunks" : "source") as DetailTab
   const page = Number(searchParams.get("page") || "1")
@@ -32,6 +31,14 @@ export function KbItemDetailPage() {
     chunkIndexParam != null && Number.isFinite(Number(chunkIndexParam))
       ? Math.max(0, Math.floor(Number(chunkIndexParam)))
       : null
+  const detailOrigin =
+    location.state &&
+    typeof location.state === "object" &&
+    "kbItemOrigin" in location.state &&
+    (location.state as { kbItemOrigin?: unknown }).kbItemOrigin === "items"
+      ? "items"
+      : "kb"
+  const backTo = detailOrigin === "items" ? "/items" : `/kb/${kbId}`
 
   useEffect(() => {
     let cancelled = false
@@ -164,8 +171,7 @@ export function KbItemDetailPage() {
     <Page fill>
       <PageHeader
         items={[
-          { label: kb.data?.name ?? "加载中…", href: "/kb" },
-          { label: "文档列表", href: `/kb/${kbId}` },
+          { label: "文档条目", href: "/items" },
           { label: detail?.fileName ?? "文档详情" },
         ]}
         description={
@@ -192,7 +198,7 @@ export function KbItemDetailPage() {
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="dialog-cancel" size="lg" onClick={() => navigate(`/kb/${kbId}`)}>
+            <Button variant="dialog-cancel" size="lg" onClick={() => navigate(backTo)}>
               返回列表
             </Button>
             <Button

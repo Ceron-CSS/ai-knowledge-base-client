@@ -5,6 +5,8 @@ import {
   deleteKbItem,
   getKb,
   type KbItem,
+  type KbItemWithKb,
+  listAllKbItems,
   listKbItems,
   listKbs,
   retryKbItemExtraction,
@@ -30,6 +32,7 @@ const kbKeys = {
   list: (params: KbListParams) => ["kb", "list", params] as const,
   feed: (params: KbFeedParams) => ["kb", "feed", params] as const,
   items: (kbId: string, params: KbItemListParams) => ["kb", "items", kbId, params] as const,
+  allItems: (params: KbItemListParams) => ["kb", "items", "all", params] as const,
 }
 
 const EMPTY_LIST_PARAMS: KbListParams = {}
@@ -141,6 +144,24 @@ export function useKbItems(kbId: string, params?: KbItemListParams) {
   })
 }
 
+export function useAllKbItems(params?: KbItemListParams) {
+  const qc = useQueryClient()
+  const effectiveParams = params ?? EMPTY_ITEM_PARAMS
+  return useQuery({
+    queryKey: kbKeys.allItems(effectiveParams),
+    queryFn: () => listAllKbItems(effectiveParams),
+    placeholderData: (previousData) =>
+      previousData ?? findCachedAllKbItemsPage(qc, effectiveParams),
+    refetchInterval: (query) => {
+      const rows = query.state.data?.items ?? []
+      const busy = rows.some(
+        (item) => item.status === "extracting" || item.status === "indexing",
+      )
+      return busy ? 2500 : false
+    },
+  })
+}
+
 function findCachedKbItemsPage(
   qc: ReturnType<typeof useQueryClient>,
   kbId: string,
@@ -162,6 +183,26 @@ function findCachedKbItemsPage(
   return found?.[1]
 }
 
+function findCachedAllKbItemsPage(
+  qc: ReturnType<typeof useQueryClient>,
+  params: KbItemListParams,
+) {
+  const matches = qc.getQueriesData<PaginatedResult<KbItemWithKb>>({
+    queryKey: ["kb", "items", "all"],
+  })
+  const found = matches.find(([key, data]) => {
+    if (!data || !Array.isArray(key) || key.length < 4) return false
+    const cachedParams = key[3] as KbItemListParams
+    return (
+      cachedParams.pageSize === params.pageSize &&
+      (cachedParams.q ?? "") === (params.q ?? "") &&
+      cachedParams.sortBy === params.sortBy &&
+      cachedParams.sortDir === params.sortDir
+    )
+  })
+  return found?.[1]
+}
+
 export function useRetryKbItemExtraction() {
   const qc = useQueryClient()
   return useMutation({
@@ -169,6 +210,7 @@ export function useRetryKbItemExtraction() {
       retryKbItemExtraction(kbId, itemId),
     onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
+      await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
     },
   })
 }
@@ -180,6 +222,7 @@ export function useRetryKbItemIndexing() {
       retryKbItemIndexing(kbId, itemId),
     onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
+      await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
     },
   })
 }
@@ -191,6 +234,7 @@ export function useSetKbItemEnabled() {
       setKbItemEnabled(kbId, itemId, enabled),
     onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
+      await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
     },
   })
 }
@@ -201,6 +245,7 @@ export function useDeleteKbItem() {
     mutationFn: ({ kbId, itemId }: { kbId: string; itemId: string }) => deleteKbItem(kbId, itemId),
     onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
+      await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
       await qc.invalidateQueries({ queryKey: kbKeys.all })
     },
   })

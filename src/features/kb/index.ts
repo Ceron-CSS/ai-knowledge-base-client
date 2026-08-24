@@ -1,4 +1,5 @@
 export { KbPage } from "./pages/KbPage"
+export { KbItemsPage } from "./pages/KbItemsPage"
 export { KbDetailPage } from "./pages/KbDetailPage"
 export { KbUploadPreviewPage } from "./pages/KbUploadPreviewPage"
 export { useKbList, useKbFeed } from "./hooks/queries"

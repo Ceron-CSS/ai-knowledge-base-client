@@ -96,6 +96,11 @@ export type KbItem = {
   updatedAt: string
 }
 
+export type KbItemWithKb = KbItem & {
+  kbId: string
+  kbName: string
+}
+
 export type KbItemSortBy = "updatedAt" | "createdAt" | "fileName"
 
 export type KbItemListParams = ListQuery & {
@@ -106,6 +111,17 @@ export type KbItemListParams = ListQuery & {
 export function listKbItems(kbId: string, params: KbItemListParams = {}) {
   const listParams = listQueryToSearchParams(params)
   return requestJson<PaginatedResult<KbItem>>(`/kb/${kbId}/items`, {
+    query: {
+      ...listParams,
+      sortBy: params.sortBy ?? "createdAt",
+      sortDir: params.sortDir ?? "desc",
+    },
+  })
+}
+
+export function listAllKbItems(params: KbItemListParams = {}) {
+  const listParams = listQueryToSearchParams(params)
+  return requestJson<PaginatedResult<KbItemWithKb>>("/kb/items", {
     query: {
       ...listParams,
       sortBy: params.sortBy ?? "createdAt",

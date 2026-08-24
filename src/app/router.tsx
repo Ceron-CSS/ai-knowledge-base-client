@@ -9,6 +9,7 @@ import { PageFallback } from "@/app/PageFallback"
 const LoginPage = lazyPage(() => import("@/features/auth/pages/LoginPage"), "LoginPage")
 const HomePage = lazyPage(() => import("@/features/home/pages/HomePage"), "HomePage")
 const KbPage = lazyPage(() => import("@/features/kb/pages/KbPage"), "KbPage")
+const KbItemsPage = lazyPage(() => import("@/features/kb/pages/KbItemsPage"), "KbItemsPage")
 const KbDetailPage = lazyPage(() => import("@/features/kb/pages/KbDetailPage"), "KbDetailPage")
 const KbItemDetailPage = lazyPage(
   () => import("@/features/kb/pages/KbItemDetailPage"),
@@ -59,6 +60,8 @@ export const router = createBrowserRouter([
           { index: true, loader: () => redirect("/home") },
           { path: "home", element: withPageSuspense(<HomePage />) },
           { path: "kb", element: withPageSuspense(<KbPage />) },
+          { path: "items", element: withPageSuspense(<KbItemsPage />) },
+          { path: "kb/items", loader: () => redirect("/items") },
           { path: "kb/:id", element: withPageSuspense(<KbDetailPage />) },
           { path: "kb/:id/items/:itemId", element: withPageSuspense(<KbItemDetailPage />) },
           { path: "kb/:id/upload", element: withPageSuspense(<KbUploadPreviewPage />) },

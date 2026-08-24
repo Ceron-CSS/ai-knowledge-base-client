@@ -203,10 +203,10 @@ export function EvalRunDetailPage() {
       : "用于检查固定评测每道题实际使用的召回/排序策略、Top K 和停止原因。"
 
   return (
-    <Page>
+    <Page fill>
       <PageHeader
         items={[
-          { label: "评测与策略", href: "/evals" },
+          { label: "评测数据集", href: "/evals" },
           {
             label: dataset.data?.name || "数据集",
             href: run ? `/evals/${run.datasetId}?tab=runs` : undefined,
@@ -232,7 +232,7 @@ export function EvalRunDetailPage() {
         }
       />
 
-      <PageBody className="space-y-4">
+      <PageBody className="min-h-0 overflow-y-auto space-y-4">
         {runQuery.isLoading ? (
           <div className="rounded-lg border border-border bg-card px-4 py-10">
             <LoadingText className="mx-auto">加载中</LoadingText>
@@ -426,7 +426,7 @@ function MetricCard({
   help?: string
 }) {
   return (
-    <div className="relative min-h-[5.75rem] rounded-lg border border-border bg-card p-3 shadow-sm">
+    <div className="relative z-0 min-h-[5.75rem] rounded-lg border border-border bg-card p-3 shadow-sm focus-within:z-20 hover:z-20">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 truncate text-xs text-muted-foreground">{label}</div>
         {help ? (

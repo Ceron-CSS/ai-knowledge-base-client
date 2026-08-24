@@ -1,20 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Pencil, RotateCcw, Trash2 } from "lucide-react"
-import type { KbItem } from "@/api/kb"
-import { getKbItemDetail, importKbItem } from "@/api/kb"
+import { Eye, Pencil, RotateCcw, Trash2 } from "lucide-react"
+import type { KbItemWithKb } from "@/api/kb"
+import { getKbItemDetail } from "@/api/kb"
 import { Button } from "@/components/ui/button"
 import type { DataTableColumn } from "@/components/ui/data-table"
 import { message } from "@/components/ui/message"
 import { Switch } from "@/components/ui/switch"
 import {
-  clearReopenImportDialog,
-  peekReopenImportDialog,
-} from "@/features/feishu/lib/reopenImportDialog"
-import {
+  useAllKbItems,
   useDeleteKbItem,
-  useKb,
-  useKbItems,
   useRetryKbItemExtraction,
   useRetryKbItemIndexing,
   useSetKbItemEnabled,
@@ -33,147 +28,77 @@ const STATUS_LABELS: Record<string, string> = {
   disabled: "已禁用",
 }
 
-const KB_DETAIL_ITEM_PAGE_SIZE = 10
+const DOCUMENT_PAGE_SIZE = 10
 
-type UseKbDetailPageOptions = {
-  kbId: string
-}
-
-type KbItemListState = {
-  page: number
-  query: string
-}
-
-function getKbItemListStateKey(kbId: string) {
-  return `kb-item-list-state:${kbId}`
-}
-
-function normalizePage(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? Math.floor(value)
-    : 1
-}
-
-function readKbItemListState(kbId: string): KbItemListState {
-  if (!kbId || typeof window === "undefined") return { page: 1, query: "" }
-  try {
-    const raw = window.sessionStorage.getItem(getKbItemListStateKey(kbId))
-    if (!raw) return { page: 1, query: "" }
-    const parsed = JSON.parse(raw) as Partial<KbItemListState>
-    return {
-      page: normalizePage(parsed.page),
-      query: typeof parsed.query === "string" ? parsed.query : "",
-    }
-  } catch {
-    return { page: 1, query: "" }
-  }
-}
-
-function writeKbItemListState(kbId: string, state: KbItemListState) {
-  if (!kbId || typeof window === "undefined") return
-  try {
-    window.sessionStorage.setItem(
-      getKbItemListStateKey(kbId),
-      JSON.stringify({
-        page: normalizePage(state.page),
-        query: state.query,
-      }),
-    )
-  } catch {
-    // Ignore storage failures; pagination still works for the current mount.
-  }
-}
-
-export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
+export function useKbItemsPage() {
   const navigate = useNavigate()
-  const [query, setQueryState] = useState(() => readKbItemListState(kbId).query)
+  const [query, setQueryState] = useState("")
   const debouncedQuery = useDebouncedValue(query, 250)
-  const [page, setPage] = useState(() => readKbItemListState(kbId).page)
+  const [page, setPage] = useState(1)
   const [pageQuery, setPageQuery] = useState(debouncedQuery)
   if (pageQuery !== debouncedQuery) {
     setPageQuery(debouncedQuery)
     setPage(1)
   }
 
-  useEffect(() => {
-    writeKbItemListState(kbId, { page, query })
-  }, [kbId, page, query])
-
-  const setQuery = useCallback((nextQuery: string) => {
-    setQueryState(nextQuery)
-    setPage(1)
-  }, [])
-
   const itemParams = useMemo(
     () => ({
       page,
-      pageSize: KB_DETAIL_ITEM_PAGE_SIZE,
+      pageSize: DOCUMENT_PAGE_SIZE,
       ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
       sortBy: "createdAt" as const,
       sortDir: "desc" as const,
     }),
-    [page, debouncedQuery]
+    [page, debouncedQuery],
   )
-  const kbDetail = useKb(kbId)
-  const items = useKbItems(kbId, itemParams)
+  const items = useAllKbItems(itemParams)
   const setEnabled = useSetKbItemEnabled()
   const deleteItem = useDeleteKbItem()
   const retryExtraction = useRetryKbItemExtraction()
   const retryIndexing = useRetryKbItemIndexing()
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const [uploadOpen, setUploadOpen] = useState(false)
-  // 飞书扫码授权成功跳回本页时自动打开导入对话框。
-  // 双保险：URL 参数（页面先挂载时读到）+ 模块标记（懒加载完成后读到）。
-  const [feishuOpen, setFeishuOpen] = useState(() => {
-    const params = new URLSearchParams(window.location.search)
-    return params.get("feishu") === "connected" || peekReopenImportDialog()
-  })
-
-  useEffect(() => {
-    clearReopenImportDialog()
-    if (window.location.search.includes("feishu")) {
-      const url = new URL(window.location.href)
-      url.searchParams.delete("feishu")
-      url.searchParams.delete("reason")
-      window.history.replaceState(null, "", url.toString())
-    }
-  }, [])
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const [dragOver, setDragOver] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
-  const [statusItem, setStatusItem] = useState<KbItem | null>(null)
-  const [deleting, setDeleting] = useState<KbItem | null>(null)
+  const [statusItem, setStatusItem] = useState<KbItemWithKb | null>(null)
+  const [deleting, setDeleting] = useState<KbItemWithKb | null>(null)
   const [retryingItemId, setRetryingItemId] = useState<string | null>(null)
 
   const list = items.data?.items ?? []
   const total = items.data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / KB_DETAIL_ITEM_PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(total / DOCUMENT_PAGE_SIZE))
   if (items.data && page > totalPages) {
     setPage(totalPages)
   }
+
   const countLabel = useMemo(() => {
     const q = debouncedQuery.trim()
     if (q) return `${list.length}/${total} 个文档`
     return `${total} 个文档`
   }, [list.length, total, debouncedQuery])
 
+  const setQuery = useCallback((nextQuery: string) => {
+    setQueryState(nextQuery)
+    setPage(1)
+  }, [])
+
   const onToggle = useCallback(
-    async (itemId: string, enabled: boolean) => {
-      await setEnabled.mutateAsync({ kbId, itemId, enabled: !enabled })
+    async (item: KbItemWithKb) => {
+      await setEnabled.mutateAsync({
+        kbId: item.kbId,
+        itemId: item.id,
+        enabled: !item.enabled,
+      })
     },
-    [kbId, setEnabled]
+    [setEnabled],
   )
 
   function confirmDelete() {
     if (!deleting) return
-    deleteItem.mutate({ kbId, itemId: deleting.id })
+    deleteItem.mutate({ kbId: deleting.kbId, itemId: deleting.id })
     setDeleting(null)
   }
 
   const openImportWizard = useCallback(
-    (item: KbItem, fileName?: string) => {
-      navigate(`/kb/${kbId}/upload`, {
+    (item: KbItemWithKb, fileName?: string) => {
+      navigate(`/kb/${item.kbId}/upload`, {
         state: {
           mode: "import",
           ingestItemId: item.id,
@@ -181,28 +106,28 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         },
       })
     },
-    [kbId, navigate]
+    [navigate],
   )
 
   const onEdit = useCallback(
-    async (itemId: string) => {
-      setEditingItemId(itemId)
+    async (item: KbItemWithKb) => {
+      setEditingItemId(item.id)
       try {
-        const detail = await getKbItemDetail(kbId, itemId)
+        const detail = await getKbItemDetail(item.kbId, item.id)
         if (detail.hasOriginalFile) {
-          navigate(`/kb/${kbId}/upload`, {
+          navigate(`/kb/${item.kbId}/upload`, {
             state: {
               mode: "import",
-              ingestItemId: itemId,
+              ingestItemId: item.id,
               fileName: detail.fileName,
               chunkConfig: detail.chunkConfig,
             },
           })
           return
         }
-        navigate(`/kb/${kbId}/upload`, {
+        navigate(`/kb/${item.kbId}/upload`, {
           state: {
-            itemId,
+            itemId: item.id,
             fileName: detail.fileName,
             text: detail.content,
             chunks: detail.chunks,
@@ -213,22 +138,22 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         setEditingItemId(null)
       }
     },
-    [kbId, navigate]
+    [navigate],
   )
 
   const onRetry = useCallback(
-    async (item: KbItem) => {
+    async (item: KbItemWithKb) => {
       setRetryingItemId(item.id)
       try {
         if (item.status === "extraction_failed") {
-          await retryExtraction.mutateAsync({ kbId, itemId: item.id })
+          await retryExtraction.mutateAsync({ kbId: item.kbId, itemId: item.id })
           message.success("已重新排队抽取")
           setStatusItem(null)
           openImportWizard(item)
           return
         }
         if (item.status === "indexing_failed") {
-          await retryIndexing.mutateAsync({ kbId, itemId: item.id })
+          await retryIndexing.mutateAsync({ kbId: item.kbId, itemId: item.id })
           message.success("已重新排队索引")
           setStatusItem(null)
         }
@@ -238,54 +163,27 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         setRetryingItemId(null)
       }
     },
-    [kbId, openImportWizard, retryExtraction, retryIndexing]
+    [openImportWizard, retryExtraction, retryIndexing],
   )
-
-  async function handlePickFile(file: File | null) {
-    if (!file) return
-    setUploadError(null)
-    setUploading(true)
-    try {
-      const imported = await importKbItem(kbId, file)
-      setUploadOpen(false)
-      navigate(`/kb/${kbId}/upload`, {
-        state: {
-          mode: "import",
-          ingestItemId: imported.itemId,
-          fileName: imported.fileName,
-        },
-      })
-    } catch (e) {
-      setUploadError(e instanceof Error ? e.message : "文件上传失败")
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  function handleDragOver(event: React.DragEvent) {
-    event.preventDefault()
-    if (!uploading) setDragOver(true)
-  }
 
   const busy = setEnabled.isPending || deleteItem.isPending || !!retryingItemId
 
-  const columns = useMemo<Array<DataTableColumn<KbItem>>>(
+  const columns = useMemo<Array<DataTableColumn<KbItemWithKb>>>(
     () => [
       {
         key: "fileName",
         header: "文档名称",
-        className: "w-[22%]",
+        className: "w-[20%]",
         cellClassName: "max-w-[18rem] truncate",
         render: (item) => (
           <Button
             variant="ghost"
             className="h-auto max-w-full truncate px-0 font-normal text-foreground hover:bg-transparent hover:text-primary"
-            onClick={() => {
-              writeKbItemListState(kbId, { page, query })
-              navigate(`/kb/${kbId}/items/${item.id}`, {
-                state: { kbItemOrigin: "kb" },
+            onClick={() =>
+              navigate(`/kb/${item.kbId}/items/${item.id}`, {
+                state: { kbItemOrigin: "items" },
               })
-            }}
+            }
             title={item.fileName}
           >
             {item.fileName}
@@ -293,18 +191,32 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
         ),
       },
       {
+        key: "kbName",
+        header: "所属知识库",
+        className: "w-[15%]",
+        cellClassName: "max-w-[12rem] truncate",
+        render: (item) => (
+          <Button
+            variant="ghost"
+            className="h-auto max-w-full truncate px-0 font-normal text-foreground hover:bg-transparent hover:text-primary"
+            onClick={() => navigate(`/kb/${item.kbId}`)}
+            title={item.kbName}
+          >
+            {item.kbName}
+          </Button>
+        ),
+      },
+      {
         key: "status",
         header: "状态",
-        className: "w-[12%]",
+        className: "w-[10%]",
         render: (item) => {
           const label = STATUS_LABELS[item.status ?? ""] ?? item.status ?? "—"
           const interactive =
             item.status === "extraction_failed" ||
             item.status === "indexing_failed" ||
             item.status === "draft"
-          if (!interactive) {
-            return <span>{label}</span>
-          }
+          if (!interactive) return <span>{label}</span>
           return (
             <Button
               variant="ghost"
@@ -325,35 +237,35 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
       {
         key: "charCount",
         header: "字符数",
-        className: "w-[9%]",
+        className: "w-[8%]",
         cellClassName: "tabular-nums",
         render: (item) => formatCharCountK(item.charCount),
       },
       {
         key: "chunkCount",
         header: "分片数",
-        className: "w-[9%]",
+        className: "w-[8%]",
         cellClassName: "tabular-nums",
         render: (item) => item.chunkCount,
       },
       {
         key: "createdAt",
         header: "创建时间",
-        className: "w-[15%]",
+        className: "w-[13%]",
         cellClassName: "tabular-nums",
         render: (item) => formatShanghaiDateTime(item.createdAt),
       },
       {
         key: "updatedAt",
         header: "更新时间",
-        className: "w-[15%]",
+        className: "w-[13%]",
         cellClassName: "tabular-nums",
         render: (item) => formatShanghaiDateTime(item.updatedAt),
       },
       {
         key: "enabled",
         header: "启用状态",
-        className: "w-[10%]",
+        className: "w-[9%]",
         render: (item) => (
           <Switch
             checked={item.enabled}
@@ -361,14 +273,14 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
             disabled={busy}
             aria-label={item.enabled ? "禁用文档" : "启用文档"}
             title={item.enabled ? "禁用" : "启用"}
-            onCheckedChange={() => void onToggle(item.id, item.enabled)}
+            onCheckedChange={() => void onToggle(item)}
           />
         ),
       },
       {
         key: "actions",
         header: "操作",
-        className: "w-[12%] text-center",
+        className: "w-[11%] text-center",
         cellClassName: "text-center",
         render: (item) => {
           const canRetry =
@@ -376,6 +288,20 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
             item.status === "indexing_failed"
           return (
             <div className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                onClick={() =>
+                  navigate(`/kb/${item.kbId}/items/${item.id}`, {
+                    state: { kbItemOrigin: "items" },
+                  })
+                }
+                title="查看"
+                aria-label="查看"
+              >
+                <Eye />
+              </Button>
               {canRetry ? (
                 <Button
                   variant="ghost"
@@ -402,7 +328,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
                 variant="ghost"
                 size="icon-sm"
                 className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
-                onClick={() => void onEdit(item.id)}
+                onClick={() => void onEdit(item)}
                 disabled={busy || editingItemId === item.id}
                 loading={editingItemId === item.id}
                 title="编辑"
@@ -429,47 +355,31 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
     [
       busy,
       editingItemId,
-      kbId,
       navigate,
       onEdit,
       onRetry,
       onToggle,
-      page,
-      query,
       retryingItemId,
-    ]
+    ],
   )
 
   return {
     query,
     setQuery,
-    kbDetail,
-    kbName: kbDetail.data?.name ?? "加载中…",
     items,
     list,
     total,
     page,
     setPage,
-    pageSize: KB_DETAIL_ITEM_PAGE_SIZE,
+    pageSize: DOCUMENT_PAGE_SIZE,
     countLabel,
     columns,
-    uploadOpen,
-    setUploadOpen,
-    feishuOpen,
-    setFeishuOpen,
-    uploading,
-    uploadError,
-    dragOver,
-    setDragOver,
-    fileInputRef,
     statusItem,
     setStatusItem,
     deleting,
     setDeleting,
     deleteItem,
     confirmDelete,
-    handlePickFile,
-    handleDragOver,
     retrying: !!retryingItemId,
     onRetryStatusItem: () => {
       if (statusItem) void onRetry(statusItem)

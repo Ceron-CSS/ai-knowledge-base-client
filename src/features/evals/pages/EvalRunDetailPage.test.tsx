@@ -2,29 +2,34 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { describe, expect, it, vi } from "vitest"
-import { AgentRunDetailPage } from "@/features/agentRuns/pages/AgentRunDetailPage"
+import { EvalRunDetailPage } from "@/features/evals/pages/EvalRunDetailPage"
 
-const apiMocks = vi.hoisted(() => ({
-  getAgentRun: vi.fn(),
+vi.mock("@/features/evals/hooks/queries", () => ({
+  useCancelEvalRun: () => ({
+    isError: false,
+    isPending: false,
+    mutateAsync: vi.fn(),
+  }),
+  useEvalDataset: () => ({ data: null }),
+  useEvalQueries: () => ({ data: [] }),
+  useEvalRun: () => ({
+    data: null,
+    isError: false,
+    isLoading: true,
+  }),
 }))
 
-vi.mock("@/api/agentRuns", () => ({
-  getAgentRun: apiMocks.getAgentRun,
-}))
-
-describe("AgentRunDetailPage", () => {
+describe("EvalRunDetailPage", () => {
   it("keeps the breadcrumb header fixed while the detail content scrolls", () => {
-    apiMocks.getAgentRun.mockResolvedValue(null)
-
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
 
     const { container } = render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/agent-runs/run-123"]}>
+        <MemoryRouter initialEntries={["/evals/runs/run-123"]}>
           <Routes>
-            <Route path="/agent-runs/:runId" element={<AgentRunDetailPage />} />
+            <Route path="/evals/runs/:runId" element={<EvalRunDetailPage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,

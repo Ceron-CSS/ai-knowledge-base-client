@@ -58,7 +58,7 @@ export function EvalDatasetDetailPage() {
     <Page>
       <PageHeader
         items={[
-          { label: "评测与策略", href: "/evals" },
+          { label: "评测数据集", href: "/evals" },
           {
             label:
               dataset?.name || (page.dataset.isLoading ? "加载中…" : "数据集"),
@@ -144,10 +144,11 @@ export function EvalDatasetDetailPage() {
 
                 <DataTable
                   columns={page.columns}
-                  data={page.filtered}
+                  data={page.pagedQueries}
                   getRowKey={(item) => item.id}
                   loading={page.queries.isLoading}
                   error={page.queries.isError}
+                  pagination={page.queryPagination}
                   errorText="问题列表加载失败"
                   emptyText="暂无问题，先新建并标注相关 Chunk"
                 />

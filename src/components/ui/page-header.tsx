@@ -17,7 +17,7 @@ export function PageHeader({ items, description, actions, className, children }:
   if (!items.length) return null
 
   return (
-    <header className={cn("shrink-0 border-b border-border bg-card", className)}>
+    <header className={cn("sticky top-0 z-40 shrink-0 border-b border-border bg-card", className)}>
       <div className="flex items-start justify-between gap-4 px-6 py-3">
         <div className="min-w-0 flex-1">
           <nav aria-label="面包屑" className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">

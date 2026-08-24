@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
 import { Pencil, Trash2 } from "lucide-react"
 import type { EvalQuery } from "@/api/evals"
@@ -16,6 +16,8 @@ import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 
 export type EvalDetailTab = "queries" | "runs"
 
+const QUERY_PAGE_SIZE = 10
+
 export function useEvalDatasetDetailPage() {
   const { datasetId = "" } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -30,6 +32,7 @@ export function useEvalDatasetDetailPage() {
   const [editingQuery, setEditingQuery] = useState<EvalQuery | null>(null)
   const [deleting, setDeleting] = useState<EvalQuery | null>(null)
   const [search, setSearch] = useState("")
+  const [queryPage, setQueryPage] = useState(1)
 
   const items = useMemo(() => queries.data ?? [], [queries.data])
   const filtered = useMemo(() => {
@@ -41,6 +44,22 @@ export function useEvalDatasetDetailPage() {
         (item.referenceAnswer ?? "").toLowerCase().includes(q),
     )
   }, [items, search])
+  const queryPageCount = Math.max(1, Math.ceil(filtered.length / QUERY_PAGE_SIZE))
+  const normalizedQueryPage = Math.min(queryPage, queryPageCount)
+  const pagedQueries = useMemo(() => {
+    const start = (normalizedQueryPage - 1) * QUERY_PAGE_SIZE
+    return filtered.slice(start, start + QUERY_PAGE_SIZE)
+  }, [filtered, normalizedQueryPage])
+
+  useEffect(() => {
+    setQueryPage(1)
+  }, [search])
+
+  useEffect(() => {
+    if (queryPage > queryPageCount) {
+      setQueryPage(queryPageCount)
+    }
+  }, [queryPage, queryPageCount])
 
   function startCreate() {
     setEditingQuery(null)
@@ -101,24 +120,33 @@ export function useEvalDatasetDetailPage() {
       },
       {
         key: "reference",
+        className: "w-[22%]",
         header: "参考答案",
         render: (row) => (
-          <span className="line-clamp-2 max-w-[240px] text-muted-foreground">
+          <span
+            className="block max-w-[220px] truncate text-muted-foreground"
+            title={row.referenceAnswer || "-"}
+          >
             {row.referenceAnswer || "-"}
           </span>
         ),
       },
       {
         key: "labels",
-        header: "相关 Chunk",
-        cellClassName: "tabular-nums",
+        className: "w-[72px] text-center",
+        header: "相关 Chunk数",
+        cellClassName: "text-center tabular-nums",
         render: (row) => row.relevantChunkIds.length,
       },
       {
         key: "type",
+        className: "w-[92px]",
         header: "类型",
         render: (row) => (
-          <span className="whitespace-nowrap text-xs text-muted-foreground">
+          <span
+            className="block truncate text-xs text-muted-foreground"
+            title={`${formatQuestionType(row.questionType)}${row.shouldAbstain ? " / abstain" : ""}`}
+          >
             {formatQuestionType(row.questionType)}
             {row.shouldAbstain ? " · 应拒答" : ""}
           </span>
@@ -187,6 +215,13 @@ export function useEvalDatasetDetailPage() {
     search,
     setSearch,
     filtered,
+    pagedQueries,
+    queryPagination: {
+      page: normalizedQueryPage,
+      pageSize: QUERY_PAGE_SIZE,
+      total: filtered.length,
+      onPageChange: setQueryPage,
+    },
     columns,
     editorOpen,
     editingQuery,
