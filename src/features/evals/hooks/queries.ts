@@ -306,6 +306,7 @@ export function useDeleteEvalDataset() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: evalKeys.datasets() })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }
 
@@ -356,6 +357,7 @@ export function useDeleteEvalQuery(datasetId: string) {
       await qc.invalidateQueries({ queryKey: evalKeys.dataset(datasetId) })
       await qc.invalidateQueries({ queryKey: evalKeys.datasets() })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }
 

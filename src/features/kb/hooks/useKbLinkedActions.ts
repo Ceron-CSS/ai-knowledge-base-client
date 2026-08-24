@@ -22,11 +22,17 @@ export function useKbLinkedActions() {
   async function confirmDelete() {
     if (!deleting) return
 
-    await deleteKb.mutateAsync({
-      id: deleting.id,
-      acknowledgeLinked: deletingLinked.length > 0,
-    })
+    const id = deleting.id
+    const acknowledgeLinked = deletingLinked.length > 0
     cancelDelete()
+    try {
+      await deleteKb.mutateAsync({
+        id,
+        acknowledgeLinked,
+      })
+    } catch {
+      // Error toast is handled by the delete mutation.
+    }
   }
 
   const handleDelete = useCallback(async (kb: Kb) => {

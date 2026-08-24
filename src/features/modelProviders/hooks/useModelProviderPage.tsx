@@ -204,12 +204,18 @@ export function useModelProviderPage() {
 
   async function confirmDelete() {
     if (!deleting) return
-    await deleteModel.mutateAsync({
-      id: deleting.id,
-      acknowledgeLinked: deletingLinked.length > 0,
-    })
+    const id = deleting.id
+    const acknowledgeLinked = deletingLinked.length > 0
     cancelDelete()
-    await qc.invalidateQueries({ queryKey: ["assistants"] })
+    try {
+      await deleteModel.mutateAsync({
+        id,
+        acknowledgeLinked,
+      })
+      await qc.invalidateQueries({ queryKey: ["assistants"] })
+    } catch {
+      // Error toast is handled by the delete mutation.
+    }
   }
 
   return {

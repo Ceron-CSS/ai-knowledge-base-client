@@ -94,5 +94,6 @@ export function useDeleteAssistant() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: assistantKeys.all })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }

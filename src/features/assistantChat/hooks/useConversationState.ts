@@ -93,9 +93,13 @@ export function useConversationState({ assistantId, blockedByUnpublished }: UseC
 
     const idToDelete = confirmDelete.id
     setConfirmDelete(null)
-    await deleteConversation.mutateAsync({ conversationId: idToDelete })
-    if (selectedConversationId === idToDelete) {
-      setSearchParams({}, { replace: true })
+    try {
+      await deleteConversation.mutateAsync({ conversationId: idToDelete })
+      if (selectedConversationId === idToDelete) {
+        setSearchParams({}, { replace: true })
+      }
+    } catch {
+      // Error toast and optimistic rollback are handled by the delete mutation.
     }
   }
 

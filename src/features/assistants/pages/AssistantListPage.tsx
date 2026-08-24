@@ -65,8 +65,13 @@ export function AssistantListPage() {
 
   async function confirmDelete() {
     if (!deleting) return
-    await deleteAssistant.mutateAsync({ id: deleting.id })
+    const id = deleting.id
     cancelDelete()
+    try {
+      await deleteAssistant.mutateAsync({ id })
+    } catch {
+      // Error toast is handled by the delete mutation.
+    }
   }
 
   function handlePublish(a: Assistant) {

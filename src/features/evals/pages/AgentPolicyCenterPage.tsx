@@ -244,8 +244,13 @@ export function AgentPolicyCenterPage() {
         }}
         onConfirm={async () => {
           if (!pendingDelete) return
-          await deletePolicy.mutateAsync({ policyId: pendingDelete.id })
+          const policyId = pendingDelete.id
           setPendingDelete(null)
+          try {
+            await deletePolicy.mutateAsync({ policyId })
+          } catch {
+            // Error toast is handled by the delete mutation.
+          }
         }}
       />
     </Page>

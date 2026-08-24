@@ -94,8 +94,13 @@ export function useEvalDatasetDetailPage() {
 
   async function confirmDelete() {
     if (!deleting) return
-    await deleteQuery.mutateAsync({ queryId: deleting.id })
+    const queryId = deleting.id
     setDeleting(null)
+    try {
+      await deleteQuery.mutateAsync({ queryId })
+    } catch {
+      // Error toast is handled by the delete mutation.
+    }
   }
 
   const saveErrorText = useMemo(() => {

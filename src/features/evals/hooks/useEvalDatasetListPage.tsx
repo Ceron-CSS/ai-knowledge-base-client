@@ -80,8 +80,13 @@ export function useEvalDatasetListPage() {
 
   async function confirmDelete() {
     if (!deleting) return
-    await deleteDataset.mutateAsync({ datasetId: deleting.id })
+    const datasetId = deleting.id
     setDeleting(null)
+    try {
+      await deleteDataset.mutateAsync({ datasetId })
+    } catch {
+      // Error toast is handled by the delete mutation.
+    }
   }
 
   const columns = useMemo<Array<DataTableColumn<EvalDataset>>>(
