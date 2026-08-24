@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { MessageSquare, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -49,12 +49,6 @@ export function AssistantListPage() {
     const start = (normalizedPage - 1) * ASSISTANT_PAGE_SIZE
     return filteredItems.slice(start, start + ASSISTANT_PAGE_SIZE)
   }, [filteredItems, normalizedPage])
-
-  useEffect(() => {
-    if (page > pageCount) {
-      setPage(pageCount)
-    }
-  }, [page, pageCount])
 
   const countLabel = useMemo(() => {
     if (query.trim()) return `${filteredItems.length}/${items.length} 个助手`

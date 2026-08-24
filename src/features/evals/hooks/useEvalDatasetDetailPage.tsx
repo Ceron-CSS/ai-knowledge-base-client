@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
 import { Pencil, Trash2 } from "lucide-react"
 import type { EvalQuery } from "@/api/evals"
@@ -51,15 +51,10 @@ export function useEvalDatasetDetailPage() {
     return filtered.slice(start, start + QUERY_PAGE_SIZE)
   }, [filtered, normalizedQueryPage])
 
-  useEffect(() => {
+  const setSearchQuery = useCallback((nextSearch: string) => {
+    setSearch(nextSearch)
     setQueryPage(1)
-  }, [search])
-
-  useEffect(() => {
-    if (queryPage > queryPageCount) {
-      setQueryPage(queryPageCount)
-    }
-  }, [queryPage, queryPageCount])
+  }, [])
 
   function startCreate() {
     setEditingQuery(null)
@@ -213,7 +208,7 @@ export function useEvalDatasetDetailPage() {
     tab,
     setTab,
     search,
-    setSearch,
+    setSearch: setSearchQuery,
     filtered,
     pagedQueries,
     queryPagination: {
