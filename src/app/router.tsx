@@ -61,9 +61,16 @@ export const router = createBrowserRouter([
           { path: "home", element: withPageSuspense(<HomePage />) },
           { path: "kb", element: withPageSuspense(<KbPage />) },
           { path: "items", element: withPageSuspense(<KbItemsPage />) },
+          { path: "item/:id/:itemId", element: withPageSuspense(<KbItemDetailPage />) },
           { path: "kb/items", loader: () => redirect("/items") },
           { path: "kb/:id", element: withPageSuspense(<KbDetailPage />) },
-          { path: "kb/:id/items/:itemId", element: withPageSuspense(<KbItemDetailPage />) },
+          {
+            path: "kb/:id/items/:itemId",
+            loader: ({ params, request }) => {
+              const search = new URL(request.url).search
+              return redirect(`/item/${params.id}/${params.itemId}${search}`)
+            },
+          },
           { path: "kb/:id/upload", element: withPageSuspense(<KbUploadPreviewPage />) },
           { path: "model-providers", element: withPageSuspense(<ModelProviderPage />) },
           { path: "assistants", element: withPageSuspense(<AssistantListPage />) },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { getKbItemDetail, type KbItemChunkRecord, type KbItemDetail } from "@/api/kb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,6 @@ const CHUNK_PAGE_SIZE = 80
 export function KbItemDetailPage() {
   const { id: kbId = "", itemId = "" } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const location = useLocation()
   const navigate = useNavigate()
   const [detail, setDetail] = useState<KbItemDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -31,14 +30,6 @@ export function KbItemDetailPage() {
     chunkIndexParam != null && Number.isFinite(Number(chunkIndexParam))
       ? Math.max(0, Math.floor(Number(chunkIndexParam)))
       : null
-  const detailOrigin =
-    location.state &&
-    typeof location.state === "object" &&
-    "kbItemOrigin" in location.state &&
-    (location.state as { kbItemOrigin?: unknown }).kbItemOrigin === "items"
-      ? "items"
-      : "kb"
-  const backTo = detailOrigin === "items" ? "/items" : `/kb/${kbId}`
 
   useEffect(() => {
     let cancelled = false
@@ -198,7 +189,7 @@ export function KbItemDetailPage() {
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="dialog-cancel" size="lg" onClick={() => navigate(backTo)}>
+            <Button variant="dialog-cancel" size="lg" onClick={() => navigate("/items")}>
               返回列表
             </Button>
             <Button

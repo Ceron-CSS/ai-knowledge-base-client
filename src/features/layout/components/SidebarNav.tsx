@@ -19,7 +19,7 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
             </div>
           ) : null}
           {group.items.map(({ to, label, Icon, onboardingTarget }) => {
-            const active = isNavItemActive(location.pathname, to, location.state)
+            const active = isNavItemActive(location.pathname, to)
 
             return (
               <NavLink
@@ -56,19 +56,15 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
   )
 }
 
-function isNavItemActive(pathname: string, to: string, state: unknown) {
-  const kbItemOrigin =
-    state && typeof state === "object" && "kbItemOrigin" in state
-      ? (state as { kbItemOrigin?: unknown }).kbItemOrigin
-      : null
+function isNavItemActive(pathname: string, to: string) {
   if (to === "/evals") {
     return pathname.startsWith("/evals") && !pathname.startsWith("/evals/policies")
   }
   if (to === "/items") {
-    return pathname === "/items" || kbItemOrigin === "items"
+    return pathname === "/items" || pathname.startsWith("/item/")
   }
   if (to === "/kb") {
-    return pathname === "/kb" || (kbItemOrigin !== "items" && /^\/kb\//.test(pathname))
+    return pathname === "/kb" || pathname.startsWith("/kb/")
   }
   return pathname === to || pathname.startsWith(`${to}/`)
 }

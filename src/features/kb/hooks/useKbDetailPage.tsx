@@ -282,9 +282,7 @@ export function useKbDetailPage({ kbId }: UseKbDetailPageOptions) {
             className="h-auto max-w-full truncate px-0 font-normal text-foreground hover:bg-transparent hover:text-primary"
             onClick={() => {
               writeKbItemListState(kbId, { page, query })
-              navigate(`/kb/${kbId}/items/${item.id}`, {
-                state: { kbItemOrigin: "kb" },
-              })
+              navigate(`/item/${kbId}/${item.id}`)
             }}
             title={item.fileName}
           >

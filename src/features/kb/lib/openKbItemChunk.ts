@@ -24,7 +24,7 @@ export function buildKbItemChunkPath(params: OpenKbItemChunkParams) {
   }
   if (params.chunkId) search.set("chunk", params.chunkId)
 
-  return `/kb/${params.kbId}/items/${params.itemId}?${search.toString()}`
+  return `/item/${params.kbId}/${params.itemId}?${search.toString()}`
 }
 
 /** 当前页打开文档详情：可定位原文页或高亮分片。 */

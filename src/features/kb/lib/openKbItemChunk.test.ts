@@ -11,7 +11,7 @@ describe("buildKbItemChunkPath", () => {
         chunkIndex: 4.2,
         chunkId: "chunk-1",
       }),
-    ).toBe("/kb/kb-1/items/item-1?tab=source&page=2&chunkIndex=4&chunk=chunk-1")
+    ).toBe("/item/kb-1/item-1?tab=source&page=2&chunkIndex=4&chunk=chunk-1")
   })
 
   it("opens chunk view when source preference is disabled and no page exists", () => {
@@ -22,7 +22,7 @@ describe("buildKbItemChunkPath", () => {
         chunkIndex: -2,
         preferSource: false,
       }),
-    ).toBe("/kb/kb-1/items/item-1?tab=chunks&chunkIndex=0")
+    ).toBe("/item/kb-1/item-1?tab=chunks&chunkIndex=0")
   })
 })
 
@@ -36,6 +36,6 @@ describe("openKbItemChunk", () => {
       chunkId: "chunk-1",
     })
 
-    expect(navigate).toHaveBeenCalledWith("/kb/kb-1/items/item-1?tab=source&chunk=chunk-1")
+    expect(navigate).toHaveBeenCalledWith("/item/kb-1/item-1?tab=source&chunk=chunk-1")
   })
 })

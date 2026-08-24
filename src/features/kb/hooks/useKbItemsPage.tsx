@@ -180,9 +180,7 @@ export function useKbItemsPage() {
             variant="ghost"
             className="h-auto max-w-full truncate px-0 font-normal text-foreground hover:bg-transparent hover:text-primary"
             onClick={() =>
-              navigate(`/kb/${item.kbId}/items/${item.id}`, {
-                state: { kbItemOrigin: "items" },
-              })
+              navigate(`/item/${item.kbId}/${item.id}`)
             }
             title={item.fileName}
           >
@@ -293,9 +291,7 @@ export function useKbItemsPage() {
                 size="icon-sm"
                 className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
                 onClick={() =>
-                  navigate(`/kb/${item.kbId}/items/${item.id}`, {
-                    state: { kbItemOrigin: "items" },
-                  })
+                  navigate(`/item/${item.kbId}/${item.id}`)
                 }
                 title="查看"
                 aria-label="查看"
