@@ -202,7 +202,6 @@ export function EvalDatasetDetailPage() {
               : undefined
           }
           confirming={page.deletePending}
-          errorText={page.deleteError ? "删除失败，请重试" : null}
           onCancel={() => page.setDeleting(null)}
           onConfirm={() => void page.confirmDelete()}
         />

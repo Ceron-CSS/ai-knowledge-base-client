@@ -2,22 +2,24 @@ import { useMemo, useState } from "react"
 import { Link, useParams, useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
-import { Dialog } from "@/components/ui/dialog"
 import { LoadingText } from "@/components/ui/loading-text"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { Select } from "@/components/ui/select"
-import type { EvalRunCompareQueryChange, EvalRunResultDetail } from "@/api/evals"
-import { ChunkRefList } from "@/features/evals/components/ChunkRefList"
-import { EvalAgentPolicyPanel } from "@/features/evals/components/EvalAgentPolicyPanel"
+import { Tooltip } from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
+import type {
+  AgentPolicyConfig,
+  EvalRun,
+  EvalRunCompareQueryChange,
+} from "@/api/evals"
 import { EvalBehaviorComparePanel } from "@/features/evals/components/EvalBehaviorComparePanel"
+import { EvalQuestionCompareDialog } from "@/features/evals/components/EvalQuestionCompareDialog"
 import {
   useEvalDataset,
   useEvalRunCompare,
   useEvalRunResult,
   useEvalRuns,
 } from "@/features/evals/hooks/queries"
-import { useChunkHits } from "@/features/evals/hooks/useChunkHits"
-import { formatModes, readDecisionSummary } from "@/features/evals/lib/decisionMetrics"
 import { formatEvalDateTime } from "@/features/evals/lib/formatDate"
 import {
   evalExecutionModeLabel,
@@ -25,54 +27,90 @@ import {
   formatLatencyMs,
   formatMetricNumber,
 } from "@/features/evals/lib/labels"
-import { buildReleaseConclusion, classificationLabel } from "@/features/evals/lib/comparePresentation"
-import { cn } from "@/lib/utils"
+import {
+  buildQueryComparisonSummary,
+  formatSignedMetricDelta,
+} from "@/features/evals/lib/comparePresentation"
+import {
+  evalRunConfigSummary,
+  evalRunShortId,
+  evalRunTitle,
+} from "@/features/evals/lib/runDisplay"
 
-function formatSignedDelta(value: number | null | undefined, digits = 3) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "-"
-  const sign = value > 0 ? "+" : ""
-  return `${sign}${value.toFixed(digits)}`
-}
-
-function formatSignedLatency(value: number | null | undefined) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "-"
-  const sign = value > 0 ? "+" : ""
-  if (Math.abs(value) < 1000) return `${sign}${Math.round(value)} ms`
-  return `${sign}${(value / 1000).toFixed(1)} 秒`
-}
+type Filter = "all" | "improved" | "regressed" | "unchanged" | "incomparable"
+const METRIC_ROWS = [
+  {
+    key: "recallAtK",
+    label: "Recall@K",
+    kind: "metric",
+    help: "前 K 个召回结果覆盖了多少相关 Chunk。越接近 1，说明遗漏的相关内容越少。",
+  },
+  {
+    key: "precisionAtK",
+    label: "Precision@K",
+    kind: "metric",
+    help: "前 K 个召回结果中，相关 Chunk 所占的比例。越接近 1，说明无关内容越少。",
+  },
+  {
+    key: "hitAtK",
+    label: "Hit@K",
+    kind: "metric",
+    help: "前 K 个结果中是否至少命中一个相关 Chunk；这里展示整批问题的平均命中率。",
+  },
+  {
+    key: "mrrAtK",
+    label: "MRR@K",
+    kind: "metric",
+    help: "第一个相关 Chunk 排名的倒数均值。越接近 1，说明首个相关结果出现得越靠前。",
+  },
+  {
+    key: "ndcgAtK",
+    label: "NDCG@K",
+    kind: "metric",
+    help: "综合衡量相关结果的排序质量，并对靠前位置赋予更高权重。越接近 1，排序越理想。",
+  },
+  {
+    key: "latencyMs",
+    label: "平均耗时",
+    kind: "latency",
+    help: "每个问题从开始执行到完成的平均时间，包含检索、重排和生成等已启用步骤。",
+  },
+  {
+    key: "providerCostProxy",
+    label: "重排成本代理",
+    kind: "cost",
+    help: "用于比较重排服务资源消耗的估算值：优先采用计费输入 Token，否则按参与重排的候选文档数估算。它是整次运行的累计值，不是实际金额。",
+  },
+] as const
 
 export function EvalComparePage() {
   const { datasetId = "" } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const dataset = useEvalDataset(datasetId)
   const runs = useEvalRuns(datasetId, { page: 1, pageSize: 100 })
-
-  const baselineId = searchParams.get("baseline") ?? ""
-  const candidateId = searchParams.get("candidate") ?? ""
-  const [filter, setFilter] = useState<"all" | "improved" | "regressed" | "unchanged" | "incomparable">(
-    "all",
-  )
-  const [detailChange, setDetailChange] = useState<EvalRunCompareQueryChange | null>(null)
-
-  const compare = useEvalRunCompare(baselineId, candidateId, Boolean(baselineId && candidateId))
-  const baselineResult = useEvalRunResult(
-    baselineId,
+  const runAId = searchParams.get("baseline") ?? ""
+  const runBId = searchParams.get("candidate") ?? ""
+  const [filter, setFilter] = useState<Filter>("all")
+  const [detailChange, setDetailChange] =
+    useState<EvalRunCompareQueryChange | null>(null)
+  const compare = useEvalRunCompare(runAId, runBId, Boolean(runAId && runBId))
+  const runAResult = useEvalRunResult(
+    runAId,
     detailChange?.baseline.resultId ?? "",
-    Boolean(detailChange?.baseline.resultId),
+    Boolean(detailChange?.baseline.resultId)
   )
-  const candidateResult = useEvalRunResult(
-    candidateId,
+  const runBResult = useEvalRunResult(
+    runBId,
     detailChange?.candidate.resultId ?? "",
-    Boolean(detailChange?.candidate.resultId),
+    Boolean(detailChange?.candidate.resultId)
   )
-
   const runOptions = useMemo(
     () =>
       (runs.data?.items ?? []).map((run) => ({
         value: run.id,
-        label: `${run.name || run.id.slice(0, 8)} · ${formatEvalDateTime(run.createdAt)}`,
+        label: `${evalRunTitle(run)} · ${policyName(run) ?? run.name ?? evalRunConfigSummary(run)} · ${formatEvalDateTime(run.createdAt)}`,
       })),
-    [runs.data?.items],
+    [runs.data?.items]
   )
 
   function updateParam(key: "baseline" | "candidate", value: string) {
@@ -81,222 +119,160 @@ export function EvalComparePage() {
     else next.delete(key)
     setSearchParams(next, { replace: true })
   }
-
+  function swapRuns() {
+    const next = new URLSearchParams(searchParams)
+    next.set("baseline", runBId)
+    next.set("candidate", runAId)
+    setSearchParams(next, { replace: true })
+    setDetailChange(null)
+  }
   const filteredChanges = useMemo(() => {
     const items = compare.data?.queryChanges ?? []
-    if (filter === "all") return items
-    return items.filter((item) => item.classification === filter)
+    return filter === "all"
+      ? items
+      : items.filter((item) => item.classification === filter)
   }, [compare.data?.queryChanges, filter])
-
   const counts = useMemo(() => {
     const items = compare.data?.queryChanges ?? []
     return {
-      improved: items.filter((i) => i.classification === "improved").length,
-      regressed: items.filter((i) => i.classification === "regressed").length,
-      unchanged: items.filter((i) => i.classification === "unchanged").length,
-      incomparable: items.filter((i) => i.classification === "incomparable").length,
+      improved: items.filter((item) => item.classification === "improved")
+        .length,
+      regressed: items.filter((item) => item.classification === "regressed")
+        .length,
+      unchanged: items.filter((item) => item.classification === "unchanged")
+        .length,
+      incomparable: items.filter(
+        (item) => item.classification === "incomparable"
+      ).length,
     }
   }, [compare.data?.queryChanges])
-
   const columns = useMemo<Array<DataTableColumn<EvalRunCompareQueryChange>>>(
     () => [
       {
         key: "question",
         header: "问题",
-        render: (row) => <span className="line-clamp-2 max-w-[320px]">{row.question}</span>,
+        className: "w-[34%]",
+        render: (row) => <span className="line-clamp-2">{row.question}</span>,
       },
       {
-        key: "classification",
-        header: "变化",
-        render: (row) => (
-          <span
-            className={cn(
-              "text-sm font-medium",
-              row.classification === "improved" && "text-emerald-700",
-              row.classification === "regressed" && "text-destructive",
-            )}
-          >
-            {classificationLabel(row.classification)}
-          </span>
-        ),
-      },
-      {
-        key: "baselineRecall",
-        header: "基线 Recall",
-        cellClassName: "tabular-nums",
-        render: (row) => formatMetricNumber(row.baseline.metrics?.recallAtK),
-      },
-      {
-        key: "candidateRecall",
-        header: "候选 Recall",
-        cellClassName: "tabular-nums",
-        render: (row) => formatMetricNumber(row.candidate.metrics?.recallAtK),
-      },
-      {
-        key: "baselineMrr",
-        header: "基线 MRR",
-        cellClassName: "tabular-nums",
-        render: (row) => formatMetricNumber(row.baseline.metrics?.mrrAtK),
-      },
-      {
-        key: "candidateMrr",
-        header: "候选 MRR",
-        cellClassName: "tabular-nums",
-        render: (row) => formatMetricNumber(row.candidate.metrics?.mrrAtK),
-      },
-      {
-        key: "behavior",
-        header: "决策变化",
+        key: "summary",
+        header: "结果摘要",
+        className: "w-[24%]",
         render: (row) => {
-          const baselineModes = readDecisionSummary(row.baseline.metrics ?? undefined)?.selectedModes
-          const candidateModes = readDecisionSummary(row.candidate.metrics ?? undefined)?.selectedModes
-          if (!baselineModes?.length && !candidateModes?.length) return "-"
+          const summary = buildQueryComparisonSummary(row)
           return (
-            <span className="line-clamp-2 max-w-[200px] text-xs text-muted-foreground">
-              {formatModes(baselineModes)} → {formatModes(candidateModes)}
-            </span>
+            <div>
+              <div className="font-medium">{summary.label}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {summary.detail}
+              </div>
+            </div>
           )
         },
       },
       {
+        key: "recall",
+        header: "Recall A → B",
+        className: "w-[14%]",
+        cellClassName: "tabular-nums",
+        render: (row) => formatMetricTransition(row, "recallAtK"),
+      },
+      {
+        key: "mrr",
+        header: "MRR A → B",
+        className: "w-[14%]",
+        cellClassName: "tabular-nums",
+        render: (row) => formatMetricTransition(row, "mrrAtK"),
+      },
+      {
         key: "actions",
-        header: "结果详情",
-        className: "w-[10%] text-center",
+        header: "差异详情",
+        className: "w-[14%] text-center",
         cellClassName: "text-center",
         render: (row) => (
           <Button
             variant="outline"
             size="sm"
-            className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
             disabled={!row.baseline.resultId && !row.candidate.resultId}
             onClick={() => setDetailChange(row)}
-            title="在当前对比页查看这一题的基线与候选完整结果"
-            aria-label="查看问题对比详情"
+            aria-label="查看问题差异"
           >
-            查看详情
+            查看差异
           </Button>
         ),
       },
     ],
-    [],
+    []
   )
-
-  const deltas = compare.data?.metricDeltas
-  const baseline = compare.data?.baseline
-  const candidate = compare.data?.candidate
+  const runA = compare.data?.baseline
+  const runB = compare.data?.candidate
 
   return (
     <Page>
       <PageHeader
         items={[
           { label: "评测数据集", href: "/evals" },
-          { label: dataset.data?.name || "数据集", href: `/evals/${datasetId}` },
+          {
+            label: dataset.data?.name || "数据集",
+            href: `/evals/${datasetId}`,
+          },
           { label: "运行对比" },
         ]}
-        description="比较同数据集两次运行的指标 Delta 与逐问题改善/回归；质量提升时请同时关注延迟权衡"
+        description="对比同一数据集中的两次历史运行。A/B 仅用于区分左右对象，不代表基线、候选或发布方向。"
       />
-
       <PageBody className="space-y-4">
-        <section className="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-sm md:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">基线 Run</label>
-            <Select
-              value={baselineId}
-              onValueChange={(value) => updateParam("baseline", value)}
-              options={[{ value: "", label: "选择基线" }, ...runOptions]}
-              disabled={runs.isLoading}
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">候选 Run</label>
-            <Select
-              value={candidateId}
-              onValueChange={(value) => updateParam("candidate", value)}
-              options={[{ value: "", label: "选择候选" }, ...runOptions]}
-              disabled={runs.isLoading}
-            />
-          </div>
-        </section>
-
-        {!baselineId || !candidateId ? (
-          <div className="rounded-lg border border-dashed px-4 py-12 text-center text-sm text-muted-foreground">
-            请选择同一数据集中的基线与候选运行
-          </div>
+        <RunSelectors
+          runAId={runAId}
+          runBId={runBId}
+          options={runOptions}
+          loading={runs.isLoading}
+          onChangeA={(v) => updateParam("baseline", v)}
+          onChangeB={(v) => updateParam("candidate", v)}
+          onSwap={swapRuns}
+        />
+        {!runAId || !runBId ? (
+          <Empty text="请选择同一数据集中的运行 A 与运行 B。" />
         ) : compare.isLoading ? (
           <div className="rounded-lg border border-border bg-card px-4 py-10">
-            <LoadingText className="mx-auto">对比计算中</LoadingText>
+            <LoadingText className="mx-auto">正在计算对比</LoadingText>
           </div>
         ) : compare.isError ? (
-          <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-destructive">
-            对比失败：请确认两次运行属于同一数据集且均已完成
-          </div>
-        ) : compare.data && baseline && candidate && deltas ? (
+          <Empty
+            text="对比失败，请确认两次运行属于同一数据集且均已完成。"
+            error
+          />
+        ) : compare.data && runA && runB ? (
           <>
-            <ConclusionBanner
-              conclusion={buildReleaseConclusion(counts)}
-              counts={counts}
-              onShowRegressed={() => setFilter("regressed")}
-              onShowImproved={() => setFilter("improved")}
-            />
-
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-              <DeltaCard label="Recall@K" value={formatSignedDelta(deltas.recallAtK)} positiveGood />
-              <DeltaCard label="Precision@K" value={formatSignedDelta(deltas.precisionAtK)} positiveGood />
-              <DeltaCard label="Hit@K" value={formatSignedDelta(deltas.hitAtK)} positiveGood />
-              <DeltaCard label="MRR@K" value={formatSignedDelta(deltas.mrrAtK)} positiveGood />
-              <DeltaCard label="NDCG@K" value={formatSignedDelta(deltas.ndcgAtK)} positiveGood />
-              <DeltaCard
-                label="延迟"
-                value={formatSignedLatency(deltas.latencyMs)}
-                positiveGood={false}
-                hint="数值上升表示变慢"
-              />
-              <DeltaCard
-                label="成本代理"
-                value={formatSignedDelta(deltas.providerCostProxy, 2)}
-                positiveGood={false}
-              />
-            </section>
-
             <section className="grid gap-3 md:grid-cols-2">
-              <ConfigSummary title="基线配置" run={baseline} href={`/evals/runs/${baseline.id}`} />
-              <ConfigSummary title="候选配置" run={candidate} href={`/evals/runs/${candidate.id}`} />
+              <RunIdentity label="运行 A" run={runA} />
+              <RunIdentity label="运行 B" run={runB} />
             </section>
-
+            <MetricComparison
+              runA={runA}
+              runB={runB}
+              deltas={compare.data.metricDeltas}
+            />
+            <ConfigComparison runA={runA} runB={runB} />
             <EvalBehaviorComparePanel deltas={compare.data.behaviorDeltas} />
-
-            {(candidate.executionMode === "agent" || candidate.executionMode === "auto") &&
-            (candidate.status === "succeeded" || candidate.status === "partial") ? (
-              <EvalAgentPolicyPanel
-                compact
-                highlightPolicyId={
-                  typeof candidate.configSnapshot?.agentPolicyId === "string"
-                    ? candidate.configSnapshot.agentPolicyId
-                    : null
-                }
-                evidenceEvalRunId={candidate.id}
-              />
-            ) : null}
-
             <section className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-sm font-medium">
-                  问题变化
-                  <span className="ml-2 font-normal text-muted-foreground">
-                  改善 {counts.improved} · 回归 {counts.regressed} · 不变 {counts.unchanged} · 不可比{" "}
-                  {counts.incomparable}
-                  </span>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold">逐题差异</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    B 较高 {counts.improved} · A 较高 {counts.regressed} ·
+                    基本一致 {counts.unchanged} · 无法比较 {counts.incomparable}
+                  </div>
                 </div>
                 <div className="w-44">
                   <Select
                     value={filter}
-                    onValueChange={(value) => setFilter(value as typeof filter)}
+                    onValueChange={(v) => setFilter(v as Filter)}
                     options={[
                       { value: "all", label: "全部问题" },
-                      { value: "improved", label: "仅改善" },
-                      { value: "regressed", label: "仅回归" },
-                      { value: "unchanged", label: "仅不变" },
-                      { value: "incomparable", label: "仅不可比" },
+                      { value: "improved", label: "B 较高" },
+                      { value: "regressed", label: "A 较高" },
+                      { value: "unchanged", label: "基本一致" },
+                      { value: "incomparable", label: "无法比较" },
                     ]}
                   />
                 </div>
@@ -305,18 +281,22 @@ export function EvalComparePage() {
                 columns={columns}
                 data={filteredChanges}
                 getRowKey={(row) => row.queryId}
-                emptyText="没有匹配的问题变化"
+                emptyText="没有符合当前筛选条件的问题"
               />
-              <CompareQuestionDetailDialog
+              <EvalQuestionCompareDialog
                 change={detailChange}
-                baselineName={baseline.name || baseline.id.slice(0, 8)}
-                candidateName={candidate.name || candidate.id.slice(0, 8)}
-                baselineResult={baselineResult.data ?? null}
-                candidateResult={candidateResult.data ?? null}
-                baselineLoading={baselineResult.isLoading}
-                candidateLoading={candidateResult.isLoading}
-                baselineError={baselineResult.isError}
-                candidateError={candidateResult.isError}
+                runAName={displayRunName(runA)}
+                runBName={displayRunName(runB)}
+                runAResult={{
+                  data: runAResult.data ?? null,
+                  loading: runAResult.isLoading,
+                  error: runAResult.isError,
+                }}
+                runBResult={{
+                  data: runBResult.data ?? null,
+                  loading: runBResult.isLoading,
+                  error: runBResult.isError,
+                }}
                 onClose={() => setDetailChange(null)}
               />
             </section>
@@ -327,270 +307,322 @@ export function EvalComparePage() {
   )
 }
 
-function CompareQuestionDetailDialog({
-  change,
-  baselineName,
-  candidateName,
-  baselineResult,
-  candidateResult,
-  baselineLoading,
-  candidateLoading,
-  baselineError,
-  candidateError,
-  onClose,
-}: {
-  change: EvalRunCompareQueryChange | null
-  baselineName: string
-  candidateName: string
-  baselineResult: EvalRunResultDetail | null
-  candidateResult: EvalRunResultDetail | null
-  baselineLoading: boolean
-  candidateLoading: boolean
-  baselineError: boolean
-  candidateError: boolean
-  onClose: () => void
-}) {
-  return (
-    <Dialog
-      open={Boolean(change)}
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-      title="问题对比详情"
-      description={change?.question}
-      contentClassName="max-w-5xl"
-      bodyClassName="max-h-[min(76vh,760px)] overflow-y-auto pr-1"
-      footer={
-        <Button variant="dialog-cancel" size="dialog" onClick={onClose}>
-          关闭
-        </Button>
-      }
-    >
-      <div className="grid gap-3 lg:grid-cols-2">
-        <CompareResultCard
-          title="基线结果"
-          runName={baselineName}
-          result={baselineResult}
-          loading={baselineLoading}
-          error={baselineError}
-        />
-        <CompareResultCard
-          title="候选结果"
-          runName={candidateName}
-          result={candidateResult}
-          loading={candidateLoading}
-          error={candidateError}
-        />
-      </div>
-    </Dialog>
-  )
-}
-
-function CompareResultCard({
-  title,
-  runName,
-  result,
+function RunSelectors({
+  runAId,
+  runBId,
+  options,
   loading,
-  error,
+  onChangeA,
+  onChangeB,
+  onSwap,
 }: {
-  title: string
-  runName: string
-  result: EvalRunResultDetail | null
+  runAId: string
+  runBId: string
+  options: Array<{ value: string; label: string }>
   loading: boolean
-  error: boolean
+  onChangeA: (value: string) => void
+  onChangeB: (value: string) => void
+  onSwap: () => void
 }) {
-  const chunkHits = useChunkHits(
-    result ? [...result.retrievedChunkIds, ...result.relevantChunkIds] : [],
-  )
-  const hitByChunkId = chunkHits.hitByChunkId
-
   return (
-    <div className="rounded-md border border-border bg-muted/15 p-3">
-      <div className="flex items-start justify-between gap-3">
+    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="grid items-end gap-3 md:grid-cols-[1fr_auto_1fr]">
         <div>
-          <div className="text-sm font-semibold">{title}</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">{runName}</div>
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {result ? formatMetricNumber(result.metrics.recallAtK) : "-"}
-        </div>
-      </div>
-      {loading ? (
-        <LoadingText className="py-8">加载结果详情</LoadingText>
-      ) : error ? (
-        <div className="py-8 text-sm text-destructive">结果详情加载失败</div>
-      ) : result ? (
-        <div className="mt-3 space-y-3 text-sm">
-          <CompareField
-            label="检索指标"
-            value={`Recall ${formatMetricNumber(result.metrics.recallAtK)} · Precision ${formatMetricNumber(result.metrics.precisionAtK)} · Hit ${formatMetricNumber(result.metrics.hitAtK, 0)} · MRR ${formatMetricNumber(result.metrics.mrrAtK)} · ${formatLatencyMs(result.durationMs ?? result.metrics.latencyMs)}`}
+          <label className="mb-1.5 block text-sm font-medium">运行 A</label>
+          <Select
+            value={runAId}
+            onValueChange={onChangeA}
+            options={[{ value: "", label: "选择运行 A" }, ...options]}
+            disabled={loading}
           />
-          <CompareField label="完整答案" value={result.generatedAnswer || "-"} pre />
-          <div>
-            <div className="mb-1 text-xs font-medium text-muted-foreground">召回 Chunk</div>
-            <ChunkRefList
-              chunkIds={result.retrievedChunkIds}
-              hitByChunkId={hitByChunkId}
-              loading={chunkHits.isFetching}
-            />
-          </div>
-          <div>
-            <div className="mb-1 text-xs font-medium text-muted-foreground">相关 Chunk</div>
-            <ChunkRefList
-              chunkIds={result.relevantChunkIds}
-              hitByChunkId={hitByChunkId}
-              loading={chunkHits.isFetching}
-            />
-          </div>
-          {result.error ? <CompareField label="错误" value={result.error} /> : null}
         </div>
-      ) : (
-        <div className="py-8 text-sm text-muted-foreground">这一侧没有结果记录</div>
-      )}
-    </div>
-  )
-}
-
-function CompareField({
-  label,
-  value,
-  pre,
-}: {
-  label: string
-  value: string
-  pre?: boolean
-}) {
-  return (
-    <div>
-      <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
-      {pre ? (
-        <pre className="whitespace-pre-wrap break-words rounded-md bg-background/70 p-2 text-sm">
-          {value}
-        </pre>
-      ) : (
-        <div className="whitespace-pre-wrap break-words">{value}</div>
-      )}
-    </div>
-  )
-}
-
-function ConclusionBanner({
-  conclusion,
-  counts,
-  onShowRegressed,
-  onShowImproved,
-}: {
-  conclusion: ReturnType<typeof buildReleaseConclusion>
-  counts: {
-    improved: number
-    regressed: number
-    unchanged: number
-    incomparable: number
-  }
-  onShowRegressed: () => void
-  onShowImproved: () => void
-}) {
-  return (
-    <section
-      className={cn(
-        "rounded-lg border p-4 shadow-sm",
-        conclusion.tone === "risk" && "border-destructive/30 bg-destructive/5",
-        conclusion.tone === "ready" && "border-emerald-300 bg-emerald-50 text-emerald-950",
-        conclusion.tone === "neutral" && "border-border bg-card",
-      )}
-    >
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onSwap}
+          disabled={!runAId || !runBId}
+          aria-label="交换运行 A 和运行 B"
+        >
+          交换 A/B
+        </Button>
         <div>
-          <div className="text-sm font-semibold">{conclusion.title}</div>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
-            {conclusion.description}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {counts.regressed > 0 ? (
-            <Button variant="outline" size="sm" onClick={onShowRegressed}>
-              查看回归问题
-            </Button>
-          ) : null}
-          {counts.improved > 0 ? (
-            <Button variant="outline" size="sm" onClick={onShowImproved}>
-              查看改善问题
-            </Button>
-          ) : null}
+          <label className="mb-1.5 block text-sm font-medium">运行 B</label>
+          <Select
+            value={runBId}
+            onValueChange={onChangeB}
+            options={[{ value: "", label: "选择运行 B" }, ...options]}
+            disabled={loading}
+          />
         </div>
       </div>
     </section>
   )
 }
 
-function DeltaCard({
-  label,
-  value,
-  positiveGood,
-  hint,
-}: {
-  label: string
-  value: string
-  positiveGood: boolean
-  hint?: string
-}) {
-  const numeric = Number(value.replace("+", ""))
-  const tone =
-    value === "-" || !Number.isFinite(numeric) || numeric === 0
-      ? "text-foreground"
-      : numeric > 0
-        ? positiveGood
-          ? "text-emerald-700"
-          : "text-destructive"
-        : positiveGood
-          ? "text-destructive"
-          : "text-emerald-700"
-
+function RunIdentity({ label, run }: { label: string; run: EvalRun }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={cn("mt-2 text-xl font-semibold tabular-nums", tone)}>{value}</div>
-      {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-medium text-muted-foreground">
+            {label}
+          </div>
+          <div className="mt-1 truncate text-base font-semibold">
+            {displayRunName(run)}
+          </div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            {evalRunTitle(run)} · {evalRunConfigSummary(run)}
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground">
+            {formatEvalDateTime(run.createdAt)} · ID {evalRunShortId(run)}
+          </div>
+        </div>
+        <Link
+          to={`/evals/runs/${run.id}`}
+          className="shrink-0 text-sm text-muted-foreground hover:underline"
+        >
+          打开详情
+        </Link>
+      </div>
     </div>
   )
 }
 
-function ConfigSummary({
-  title,
-  run,
-  href,
+function MetricComparison({
+  runA,
+  runB,
+  deltas,
 }: {
-  title: string
-  run: {
-    id: string
-    name: string | null
-    executionMode: string
-    retrieverMode: string
-    topK: number
-    includeGeneration: boolean
-    configSnapshot?: Record<string, unknown> | null
-  }
-  href: string
+  runA: EvalRun
+  runB: EvalRun
+  deltas: Record<string, number | null>
 }) {
-  const policyId =
-    typeof run.configSnapshot?.agentPolicyId === "string" ? run.configSnapshot.agentPolicyId : null
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-medium">{title}</div>
-        <Link to={href} className="text-sm text-muted-foreground hover:underline">
-          打开详情
-        </Link>
+    <section>
+      <div className="mb-2">
+        <div className="text-sm font-semibold">总体结果</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          差值统一按 B − A 计算，仅描述数值变化。
+        </p>
       </div>
-      <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-        <div>{run.name || run.id.slice(0, 8)}</div>
-        <div>
-          {evalExecutionModeLabel(run.executionMode)} · {evalRetrieverModeLabel(run.retrieverMode)} ·
-          Top K={run.topK}
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-[#F1F5F9] text-[#17243D]">
+            <tr>
+              <th className="px-4 py-3 font-semibold">指标</th>
+              <th className="px-4 py-3 font-semibold">运行 A</th>
+              <th className="px-4 py-3 font-semibold">运行 B</th>
+              <th className="px-4 py-3 font-semibold">B − A</th>
+            </tr>
+          </thead>
+          <tbody>
+            {METRIC_ROWS.map((row) => (
+              <tr key={row.key} className="border-t border-border">
+                <td className="px-4 py-2.5 font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    {row.label}
+                    <Tooltip
+                      content={row.help}
+                      className="max-w-72 text-left leading-relaxed whitespace-normal"
+                    >
+                      <button
+                        type="button"
+                        className="rounded-full text-muted-foreground/70 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                        aria-label={`${row.label} 指标说明`}
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </Tooltip>
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 tabular-nums">
+                  {formatMetricValue(runA.metrics[row.key], row.kind)}
+                </td>
+                <td className="px-4 py-2.5 tabular-nums">
+                  {formatMetricValue(runB.metrics[row.key], row.kind)}
+                </td>
+                <td className="px-4 py-2.5 tabular-nums">
+                  {formatDeltaValue(deltas[row.key], row.kind)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+type ConfigRow = { label: string; a: string; b: string }
+function ConfigComparison({ runA, runB }: { runA: EvalRun; runB: EvalRun }) {
+  const rows = buildConfigRows(runA, runB),
+    changed = rows.filter((r) => r.a !== r.b),
+    same = rows.filter((r) => r.a === r.b)
+  return (
+    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="text-sm font-semibold">配置差异</div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        优先展示运行前配置不同的项目；相同配置收起显示。
+      </p>
+      <div className="mt-3">
+        {changed.length ? (
+          <ConfigTable rows={changed} />
+        ) : (
+          <div className="rounded-md bg-muted/25 px-3 py-4 text-sm text-muted-foreground">
+            两次运行的已记录配置相同。
+          </div>
+        )}
+        {same.length ? (
+          <details className="mt-3 rounded-md border border-border px-3 py-2.5">
+            <summary className="cursor-pointer text-sm text-muted-foreground">
+              查看相同配置（{same.length} 项）
+            </summary>
+            <div className="mt-2">
+              <ConfigTable rows={same} />
+            </div>
+          </details>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+function ConfigTable({ rows }: { rows: ConfigRow[] }) {
+  return (
+    <div className="overflow-hidden rounded-md border border-border">
+      <div className="grid grid-cols-[1fr_1.4fr_1.4fr] bg-muted/40 text-xs font-medium text-muted-foreground">
+        <div className="px-3 py-2">配置项</div>
+        <div className="px-3 py-2">运行 A</div>
+        <div className="px-3 py-2">运行 B</div>
+      </div>
+      {rows.map((row) => (
+        <div
+          key={row.label}
+          className="grid grid-cols-[1fr_1.4fr_1.4fr] border-t border-border text-sm"
+        >
+          <div className="bg-muted/15 px-3 py-2 font-medium">{row.label}</div>
+          <div className="px-3 py-2 break-words">{row.a}</div>
+          <div className="border-l border-border px-3 py-2 break-words">
+            {row.b}
+          </div>
         </div>
-        <div>{run.includeGeneration ? "含生成" : "仅检索"}</div>
-        <div>Agent 策略：{policyId || "-"}</div>
-      </div>
+      ))}
+    </div>
+  )
+}
+
+function buildConfigRows(a: EvalRun, b: EvalRun): ConfigRow[] {
+  const ap = policySnapshot(a),
+    bp = policySnapshot(b),
+    ac = ap.config,
+    bc = bp.config
+  const fields: Array<{ label: string; a: unknown; b: unknown }> = [
+    {
+      label: "执行方式",
+      a: evalExecutionModeLabel(a.executionMode),
+      b: evalExecutionModeLabel(b.executionMode),
+    },
+    {
+      label: "Agent 策略",
+      a: ap.name ?? readSnapshot(a, "agentPolicyId"),
+      b: bp.name ?? readSnapshot(b, "agentPolicyId"),
+    },
+    {
+      label: "默认检索模式",
+      a: evalRetrieverModeLabel(a.retrieverMode),
+      b: evalRetrieverModeLabel(b.retrieverMode),
+    },
+    {
+      label: "回答上下文 TopK",
+      a: ac.answerContextTopK ?? ac.defaultTopK ?? a.topK,
+      b: bc.answerContextTopK ?? bc.defaultTopK ?? b.topK,
+    },
+    { label: "生成答案", a: a.includeGeneration, b: b.includeGeneration },
+    { label: "模型", a: readModel(a), b: readModel(b) },
+    { label: "工具调用上限", a: ac.maxToolCalls, b: bc.maxToolCalls },
+    { label: "Planner 调用上限", a: ac.maxPlannerCalls, b: bc.maxPlannerCalls },
+    {
+      label: "工具失败重试次数",
+      a: ac.maxToolFailureRetries,
+      b: bc.maxToolFailureRetries,
+    },
+    { label: "最低证据分数", a: ac.minEvidenceScore, b: bc.minEvidenceScore },
+    {
+      label: "Planner Prompt",
+      a: ac.plannerPromptHash ?? readSnapshot(a, "plannerPromptHash"),
+      b: bc.plannerPromptHash ?? readSnapshot(b, "plannerPromptHash"),
+    },
+    {
+      label: "助手系统提示词",
+      a: readAssistantField(a, "systemPromptHash"),
+      b: readAssistantField(b, "systemPromptHash"),
+    },
+  ]
+  return fields.map((f) => ({
+    label: f.label,
+    a: formatConfigValue(f.a),
+    b: formatConfigValue(f.b),
+  }))
+}
+function policySnapshot(run: EvalRun): {
+  name: string | null
+  config: AgentPolicyConfig
+} {
+  const value = run.configSnapshot?.agentPolicySnapshot
+  if (!value || typeof value !== "object") return { name: null, config: {} }
+  const snapshot = value as Record<string, unknown>
+  return {
+    name: typeof snapshot.name === "string" ? snapshot.name : null,
+    config:
+      snapshot.config && typeof snapshot.config === "object"
+        ? (snapshot.config as AgentPolicyConfig)
+        : {},
+  }
+}
+function policyName(run: EvalRun) {
+  return policySnapshot(run).name
+}
+function displayRunName(run: EvalRun) {
+  return policyName(run) ?? run.name ?? evalRunTitle(run)
+}
+function readSnapshot(run: EvalRun, key: string) {
+  return run.configSnapshot?.[key]
+}
+function readAssistantField(run: EvalRun, key: string) {
+  const a = run.configSnapshot?.assistant
+  return a && typeof a === "object"
+    ? (a as Record<string, unknown>)[key]
+    : undefined
+}
+function readModel(run: EvalRun) {
+  return readSnapshot(run, "model") ?? readAssistantField(run, "model")
+}
+function formatConfigValue(value: unknown) {
+  if (value === undefined || value === null || value === "") return "-"
+  if (typeof value === "boolean") return value ? "启用" : "关闭"
+  if (Array.isArray(value)) return value.length ? value.join("、") : "-"
+  return String(value)
+}
+function formatMetricTransition(row: EvalRunCompareQueryChange, key: string) {
+  return `${formatMetricNumber(row.baseline.metrics?.[key])} → ${formatMetricNumber(row.candidate.metrics?.[key])}`
+}
+function formatMetricValue(value: unknown, kind: string) {
+  if (kind === "latency") return formatLatencyMs(value)
+  if (kind === "cost") return formatMetricNumber(value, 2)
+  return formatMetricNumber(value)
+}
+function formatDeltaValue(value: number | null | undefined, kind: string) {
+  if (kind === "latency")
+    return typeof value === "number" && Number.isFinite(value)
+      ? `${value > 0 ? "+" : ""}${formatLatencyMs(value)}`
+      : "-"
+  return formatSignedMetricDelta(value, kind === "cost" ? 2 : 3)
+}
+function Empty({ text, error }: { text: string; error?: boolean }) {
+  return (
+    <div
+      className={`rounded-lg border ${error ? "border-border bg-card text-destructive" : "border-dashed text-muted-foreground"} px-4 py-12 text-center text-sm`}
+    >
+      {text}
     </div>
   )
 }

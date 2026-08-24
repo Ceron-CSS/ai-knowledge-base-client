@@ -23,27 +23,29 @@ export function ChunkRefList({ chunkIds, hitByChunkId, loading }: ChunkRefListPr
         return (
           <li
             key={`${index}-${chunkId}`}
-            className="flex items-baseline justify-between gap-2 rounded-md bg-muted/30 px-2 py-1 text-sm"
+            className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-1.5 rounded-md bg-muted/30 px-2 py-1.5 text-sm"
             title={hit ? hitTooltip(hit) : chunkId}
           >
-            <span className="min-w-0 flex-1">
-              <span className="mr-1.5 shrink-0 tabular-nums text-muted-foreground">
-                {index + 1}.
-              </span>
+            <span className="tabular-nums text-muted-foreground">{index + 1}.</span>
+            <span className="min-w-0">
               {hit ? (
-                <>
-                  {hit.fileName}{" "}
-                  <span className="text-muted-foreground">#{hit.chunkIndex + 1}</span>
-                </>
+                <span className="block min-w-0">
+                  <span className="break-words">{hit.fileName}</span>{" "}
+                  <span className="whitespace-nowrap text-muted-foreground">
+                    #{hit.chunkIndex + 1}
+                  </span>
+                  <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground/70">
+                    {chunkId}
+                  </span>
+                </span>
               ) : loading ? (
                 <span className="text-muted-foreground">加载中…</span>
               ) : (
-                chunkId
+                <span className="block break-all font-mono text-xs text-muted-foreground">
+                  {chunkId}
+                </span>
               )}
             </span>
-            {hit ? (
-              <span className="shrink-0 text-xs text-muted-foreground/70">{chunkId}</span>
-            ) : null}
           </li>
         )
       })}

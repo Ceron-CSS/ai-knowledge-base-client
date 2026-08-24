@@ -7,7 +7,6 @@ type KbDeleteDialogProps = {
   kb: Kb | null
   linkedAssistants: KbLinkedAssistant[]
   confirming: boolean
-  hasError: boolean
   onCancel: () => void
   onConfirm: () => void
 }
@@ -16,7 +15,6 @@ export function KbDeleteDialog({
   kb,
   linkedAssistants,
   confirming,
-  hasError,
   onCancel,
   onConfirm,
 }: KbDeleteDialogProps) {
@@ -44,7 +42,6 @@ export function KbDeleteDialog({
               </p>
             )}
             <p className="text-sm text-muted-foreground">确定要继续删除吗？</p>
-            {hasError ? <div className="text-sm text-destructive">删除失败，请重试</div> : null}
           </div>
           <div className="mt-4 flex justify-end gap-3">
             <Button variant="dialog-cancel" size="dialog" onClick={onCancel} disabled={confirming}>

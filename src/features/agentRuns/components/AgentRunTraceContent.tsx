@@ -1,12 +1,11 @@
 import { useMemo } from "react"
-import { useNavigate } from "react-router-dom"
 import { Activity, ExternalLink } from "lucide-react"
 import type { AgentRunDetail } from "@/api/agentRuns"
 import { Button } from "@/components/ui/button"
 import { LoadingText } from "@/components/ui/loading-text"
 import { MarkdownMessage } from "@/components/ui/markdown-message"
 import { cn } from "@/lib/utils"
-import { openKbItemChunk } from "@/features/kb/lib/openKbItemChunk"
+import { openKbItemChunkInNewTab } from "@/features/kb/lib/openKbItemChunk"
 import { RunProcessPanel } from "@/features/assistantChat/components/RunProcessPanel"
 import {
   type RunProcess,
@@ -153,6 +152,33 @@ function readString(value: unknown) {
 
 function readNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+type CitationTarget = {
+  kbId: string
+  itemId: string
+  chunkIndex?: number
+  chunkId?: string
+  pageStart?: number
+  fileName?: string
+}
+
+function readCitationTarget(row: Record<string, unknown>): CitationTarget | null {
+  const kbId = readString(row.kbId)
+  const itemId = readString(row.itemId)
+  if (!kbId || !itemId) return null
+  const chunkIndex = readNumber(row.chunkIndex)
+  const pageStart = readNumber(row.pageStart)
+  const chunkId = readString(row.chunkId)
+  const fileName = readString(row.fileName)
+  return {
+    kbId,
+    itemId,
+    ...(chunkIndex != null ? { chunkIndex } : {}),
+    ...(chunkId ? { chunkId } : {}),
+    ...(pageStart != null ? { pageStart } : {}),
+    ...(fileName ? { fileName } : {}),
+  }
 }
 
 export function stepToolName(step: TimelineStep) {
@@ -611,6 +637,7 @@ function AgentRunTracePageContent({
       <section className="grid auto-cols-[minmax(9.5rem,1fr)] grid-flow-col gap-3 overflow-x-auto pb-1">
         <MetricCard label="状态" value={statusLabel(detail.status)} />
         <MetricCard label="模型" value={detail.model || "-"} />
+        <MetricCard label="策略" value={policyLabel(detail)} />
         <MetricCard
           label="首字等待"
           value={formatDuration(detail.summary.ttftMs)}
@@ -748,6 +775,7 @@ function SummaryBlock({
         <div>状态：{statusLabel(detail.status)}</div>
         <div>模式：{modeLabel(detail.executionMode)}</div>
         <div>模型：{detail.model || "-"}</div>
+        <div title={detail.policy?.id}>策略：{policyLabel(detail)}</div>
         <div>工具调用：{detail.summary.toolCallCount}</div>
         <div>引用：{detail.summary.usedCitationCount}</div>
       </div>
@@ -786,6 +814,13 @@ function SummaryBlock({
       ) : null}
     </div>
   )
+}
+
+function policyLabel(detail: AgentRunDetail) {
+  if (!detail.policy) return "未记录"
+  return detail.policy.version
+    ? `${detail.policy.name} · ${detail.policy.version}`
+    : detail.policy.name
 }
 
 function DurationSummary({
@@ -997,16 +1032,70 @@ function QuestionBlock({ detail }: { detail: AgentRunDetail }) {
 }
 
 function AnswerBlock({ detail }: { detail: AgentRunDetail }) {
+  const citationTargets = useMemo(
+    () =>
+      (detail.citations.used ?? [])
+        .map(readCitationTarget)
+        .filter((target): target is CitationTarget => Boolean(target)),
+    [detail.citations.used]
+  )
+
   return (
     <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-sm">
       {detail.answer ? (
-        <MarkdownMessage
-          content={detail.answer}
-          citationCount={detail.summary.usedCitationCount}
-        />
+        <>
+          <MarkdownMessage
+            content={detail.answer}
+            citationCount={citationTargets.length}
+            onCitationClick={(index) => {
+              const citation = citationTargets[index]
+              if (citation) openKbItemChunkInNewTab(citation)
+            }}
+          />
+          <AnswerCitationSources citations={citationTargets} />
+        </>
       ) : (
         <div className="text-muted-foreground">暂无回答记录</div>
       )}
+    </div>
+  )
+}
+
+function AnswerCitationSources({ citations }: { citations: CitationTarget[] }) {
+  if (citations.length === 0) return null
+
+  return (
+    <div className="mt-3 border-t border-border/60 pt-2">
+      <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+        引用来源
+      </div>
+      <ol className="space-y-1">
+        {citations.map((citation, index) => {
+          const chunkLabel =
+            typeof citation.chunkIndex === "number"
+              ? ` #${citation.chunkIndex + 1}`
+              : ""
+          const label = `${citation.fileName || citation.itemId}${chunkLabel}`
+          return (
+            <li key={`${citation.itemId}-${citation.chunkIndex ?? index}-${index}`}>
+              <button
+                type="button"
+                className="group flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-background/80"
+                onClick={() => openKbItemChunkInNewTab(citation)}
+                title="在新标签页打开原文"
+              >
+                <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-muted-foreground/35 bg-background px-1 text-[11px] tabular-nums text-muted-foreground">
+                  {index + 1}
+                </span>
+                <span className="flex min-w-0 flex-1 items-center gap-1 text-xs font-medium text-foreground">
+                  <span className="truncate">{label}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-70" />
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ol>
     </div>
   )
 }
@@ -1018,8 +1107,6 @@ function CitationColumn({
   title: string
   rows: Array<Record<string, unknown>>
 }) {
-  const navigate = useNavigate()
-
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground">{title}</div>
@@ -1027,12 +1114,12 @@ function CitationColumn({
         <div className="text-sm text-muted-foreground">无</div>
       ) : (
         rows.map((row, index) => {
-          const kbId = String(row.kbId ?? "")
           const itemId = String(row.itemId ?? "")
           const fileName = String(row.fileName ?? "document")
           const chunkIndex =
             typeof row.chunkIndex === "number" ? row.chunkIndex : 0
           const label = `${fileName} #${chunkIndex + 1}`
+          const citationTarget = readCitationTarget(row)
           return (
             <div
               key={`${itemId}-${index}`}
@@ -1041,14 +1128,13 @@ function CitationColumn({
               <span className="min-w-0 truncate font-medium" title={label}>
                 {label}
               </span>
-              {kbId && itemId ? (
+              {citationTarget ? (
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={() =>
-                    openKbItemChunk(navigate, { kbId, itemId, chunkIndex })
-                  }
-                  aria-label="打开原文"
+                  onClick={() => openKbItemChunkInNewTab(citationTarget)}
+                  aria-label="在新标签页打开原文"
+                  title="在新标签页打开原文"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Button>

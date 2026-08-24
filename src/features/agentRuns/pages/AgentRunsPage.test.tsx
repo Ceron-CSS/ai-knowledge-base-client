@@ -43,6 +43,11 @@ describe("AgentRunsPage", () => {
           source: "chat",
           executionMode: "agent",
           model: "gpt-5-mini",
+          policy: {
+            id: "policy-strict-v3",
+            name: "严格检索策略",
+            version: "v3",
+          },
           question: "这是一个很长的运行日志问题，用于确认问题列会获得更多宽度并在超出时显示省略号。",
           answer: "进入二级页面查看。",
           errorCode: "MODEL_TIMEOUT",
@@ -88,6 +93,11 @@ describe("AgentRunsPage", () => {
     expect(status.querySelector("[aria-hidden='true']")).toHaveClass("bg-emerald-500")
 
     expect(screen.getByRole("columnheader", { name: "来源" })).toHaveClass("w-20")
+    expect(screen.getByRole("columnheader", { name: "策略" })).toBeInTheDocument()
+    expect(screen.getByText("严格检索策略 · v3")).toHaveAttribute(
+      "title",
+      "严格检索策略 · v3（policy-strict-v3）",
+    )
     expect(screen.getByRole("columnheader", { name: "工具调用" })).toHaveClass("w-20")
     expect(screen.getByRole("columnheader", { name: "错误码" })).toHaveClass("w-24")
   })
@@ -98,7 +108,7 @@ describe("AgentRunsPage", () => {
       totalRuns: 0,
       successRate: 0,
       p95TtftMs: null,
-      p95LatencyMs: null,
+      p95LatencyMs: 900,
       avgToolCallCount: 0,
       plannerFallbackRate: 0,
       insufficientContextRate: 0,
@@ -132,6 +142,7 @@ describe("AgentRunsPage", () => {
       )
       expect(apiMocks.getAgentRunMetrics).toHaveBeenCalledWith({ assistantId: undefined, days: 7 })
     })
+    expect(screen.queryByText("900 ms")).not.toBeInTheDocument()
   })
 
   it("navigates to the run detail page from the table action", async () => {

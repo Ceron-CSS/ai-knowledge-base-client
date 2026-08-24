@@ -18,8 +18,8 @@ export function KbDocDistChart({ kbDocDist }: KbDocDistChartProps) {
         <CardTitle className="text-sm">知识库文档数量统计</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-center gap-4">
-          <ChartContainer config={pieConfig} className="mt-2 h-48 w-48 shrink-0">
+        <div className="flex min-w-0 flex-col items-center justify-center gap-4 sm:flex-row">
+          <ChartContainer config={pieConfig} className="mt-2 h-44 w-full max-w-48 shrink-0 sm:h-48 sm:w-48">
             <PieChart>
               <Pie
                 data={kbDocDist.map((d, i) => ({ ...d, fill: PIE_COLORS[i % PIE_COLORS.length] }))}
@@ -38,16 +38,16 @@ export function KbDocDistChart({ kbDocDist }: KbDocDistChartProps) {
               <ChartTooltip isAnimationActive={false} content={<ChartTooltipContent nameKey="name" />} />
             </PieChart>
           </ChartContainer>
-          <div className="space-y-1.5">
+          <div className="w-full min-w-0 space-y-1.5 sm:w-auto">
             {kbDocDist
               .filter((d) => d.name !== "其他")
               .map((d, i) => (
-                <div key={d.name} className="flex items-center gap-1 text-sm">
+                <div key={d.name} className="flex min-w-0 items-center gap-1 text-sm">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-sm"
                     style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
                   />
-                  <span className="truncate">{d.name}</span>
+                  <span className="min-w-0 flex-1 truncate">{d.name}</span>
                   <span className="shrink-0 tabular-nums font-medium">{d.docCount}</span>
                 </div>
               ))}

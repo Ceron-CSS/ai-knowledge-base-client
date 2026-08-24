@@ -277,7 +277,6 @@ export function AssistantListPage() {
           onCancel={cancelDelete}
           onConfirm={confirmDelete}
           description={deleting ? `将删除问答助手「${deleting.name}」，此操作不可恢复` : undefined}
-          errorText={deleteAssistant.isError ? "删除失败，请重试" : null}
           confirming={deleteAssistant.isPending}
         />
       </PageBody>

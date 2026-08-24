@@ -16,6 +16,12 @@ export type AgentRunSummary = {
   estimatedCost?: number | null
 }
 
+export type AgentRunPolicySummary = {
+  id: string
+  name: string
+  version: string | null
+}
+
 export type AgentRunListItem = {
   id: string
   assistantId: string | null
@@ -27,6 +33,7 @@ export type AgentRunListItem = {
   status: string
   provider: string | null
   model: string | null
+  policy?: AgentRunPolicySummary | null
   summary: AgentRunSummary
   stopReason: string | null
   errorCode: string | null

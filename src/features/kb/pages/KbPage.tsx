@@ -35,7 +35,6 @@ export function KbPage() {
           kb={kb.deleting}
           linkedAssistants={kb.deletingLinked}
           confirming={kb.deleteKb.isPending}
-          hasError={kb.deleteKb.isError}
           onCancel={kb.cancelDelete}
           onConfirm={kb.confirmDelete}
         />

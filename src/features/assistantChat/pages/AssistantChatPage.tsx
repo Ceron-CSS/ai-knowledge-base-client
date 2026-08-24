@@ -171,9 +171,6 @@ export function AssistantChatPage() {
                 ? `将删除对话「${normalizeConversationTitle(chat.confirmDelete.title)}」，该操作不可恢复`
                 : undefined
             }
-            errorText={
-              chat.deleteConversation.isError ? "删除失败，请重试" : null
-            }
             confirming={chat.deleteConversation.isPending}
           />
           <Dialog

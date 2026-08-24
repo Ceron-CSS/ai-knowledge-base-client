@@ -32,6 +32,7 @@ import {
 } from "@/api/evals"
 import type { ListQuery } from "@/api/listQuery"
 import { isEvalRunActive } from "@/features/evals/lib/labels"
+import { showDeleteFailureToast } from "@/lib/deleteError"
 
 export const evalKeys = {
   all: ["evals"] as const,
@@ -176,6 +177,7 @@ export function useDeleteAgentPolicy() {
     onSuccess: async (_data, variables) => {
       await invalidatePolicyQueries(qc, variables.policyId)
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }
 
@@ -276,6 +278,7 @@ export function useCreateEvalDataset() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: evalKeys.datasets() })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }
 
@@ -319,6 +322,7 @@ export function useCreateEvalQuery(datasetId: string) {
       await qc.invalidateQueries({ queryKey: evalKeys.dataset(datasetId) })
       await qc.invalidateQueries({ queryKey: evalKeys.datasets() })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }
 

@@ -111,7 +111,6 @@ export function KbDetailPage() {
               ? `将删除文档「${kb.deleting.fileName}」，该操作不可恢复`
               : undefined
           }
-          errorText={kb.deleteItem.isError ? "删除失败，请重试" : null}
           confirming={kb.deleteItem.isPending}
         />
       </PageBody>

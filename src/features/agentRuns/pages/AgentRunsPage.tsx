@@ -55,6 +55,14 @@ function formatTtft(row: AgentRunListItem) {
   }
 }
 
+function formatPolicy(row: AgentRunListItem) {
+  if (!row.policy) return { text: "未记录", title: "该运行日志没有策略快照" }
+  return {
+    text: row.policy.version ? `${row.policy.name} · ${row.policy.version}` : row.policy.name,
+    title: `${row.policy.name}${row.policy.version ? ` · ${row.policy.version}` : ""}（${row.policy.id}）`,
+  }
+}
+
 type AgentRunFilters = {
   assistantId: string
   status: string
@@ -140,6 +148,20 @@ export function AgentRunsPage() {
         className: "w-20 whitespace-nowrap",
         cellClassName: "whitespace-nowrap",
         render: (row) => <span className="whitespace-nowrap">{sourceLabel(row.source)}</span>,
+      },
+      {
+        key: "policy",
+        header: "策略",
+        className: "w-40",
+        cellClassName: "min-w-0",
+        render: (row) => {
+          const policy = formatPolicy(row)
+          return (
+            <span className="block truncate text-xs" title={policy.title}>
+              {policy.text}
+            </span>
+          )
+        },
       },
       {
         key: "question",
@@ -250,9 +272,7 @@ export function AgentRunsPage() {
             value={
               metrics?.p95TtftMs != null
                 ? formatLatency(Math.round(metrics.p95TtftMs))
-                : metrics?.p95LatencyMs != null
-                  ? formatLatency(Math.round(metrics.p95LatencyMs))
-                  : "-"
+                : "-"
             }
           />
           <MetricCard label="平均工具次数" value={metrics ? metrics.avgToolCallCount.toFixed(2) : "-"} />

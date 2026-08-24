@@ -19,6 +19,7 @@ import {
   type PaginatedResult,
 } from "@/api/kb"
 import { MAX_PAGE_SIZE } from "@/api/listQuery"
+import { showDeleteFailureToast } from "@/lib/deleteError"
 
 const KB_FEED_PAGE_SIZE = 20
 
@@ -122,6 +123,7 @@ export function useDeleteKb() {
       await qc.invalidateQueries({ queryKey: kbKeys.all })
       await qc.invalidateQueries({ queryKey: ["assistants"] })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }
 
@@ -248,5 +250,6 @@ export function useDeleteKbItem() {
       await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
       await qc.invalidateQueries({ queryKey: kbKeys.all })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }

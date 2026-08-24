@@ -7,7 +7,6 @@ type ModelProviderDeleteDialogProps = {
   config: ModelConfig | null
   linkedAssistants: ModelConfigLinkedAssistant[]
   confirming: boolean
-  hasError: boolean
   onCancel: () => void
   onConfirm: () => void
 }
@@ -16,7 +15,6 @@ export function ModelProviderDeleteDialog({
   config,
   linkedAssistants,
   confirming,
-  hasError,
   onCancel,
   onConfirm,
 }: ModelProviderDeleteDialogProps) {
@@ -33,7 +31,6 @@ export function ModelProviderDeleteDialog({
           ? `将删除「${providerLabel(config.provider)}」模型提供商，此操作不可恢复`
           : undefined
       }
-      errorText={hasError ? "删除失败，请重试" : null}
       confirming={confirming}
     >
       {config && hasLinkedAssistants ? (

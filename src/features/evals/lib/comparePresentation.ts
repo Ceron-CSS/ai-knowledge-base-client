@@ -1,37 +1,59 @@
-export function classificationLabel(value: string) {
-  if (value === "improved") return "改善"
-  if (value === "regressed") return "回归"
-  if (value === "unchanged") return "不变"
-  if (value === "incomparable") return "不可比"
+import type { EvalRunCompareQueryChange } from "@/api/evals"
+
+const QUALITY_METRICS = [
+  { key: "recallAtK", label: "Recall" },
+  { key: "mrrAtK", label: "MRR" },
+  { key: "ndcgAtK", label: "NDCG" },
+] as const
+
+export function comparisonClassificationLabel(value: string) {
+  if (value === "improved") return "B 较高"
+  if (value === "regressed") return "A 较高"
+  if (value === "unchanged") return "基本一致"
+  if (value === "incomparable") return "无法比较"
   return value
 }
 
-export function buildReleaseConclusion({
-  improved,
-  regressed,
-  unchanged,
-}: {
-  improved: number
-  regressed: number
-  unchanged: number
-}) {
-  if (regressed > 0) {
+export function buildQueryComparisonSummary(change: EvalRunCompareQueryChange) {
+  const label = comparisonClassificationLabel(change.classification)
+  if (change.classification === "incomparable") {
+    return { label, detail: "缺少一侧结果或指标", metric: null, delta: null }
+  }
+
+  for (const metric of QUALITY_METRICS) {
+    const a = readNumber(change.baseline.metrics?.[metric.key])
+    const b = readNumber(change.candidate.metrics?.[metric.key])
+    if (a === null || b === null) continue
+    const delta = b - a
+    if (Math.abs(delta) <= 1e-6) continue
     return {
-      tone: "risk" as const,
-      title: "暂不建议发布",
-      description: `发现 ${regressed} 个回归问题。先打开回归样本，确认是检索、Planner 还是证据判断导致。`,
+      label,
+      detail: `${metric.label} ${formatSignedMetricDelta(delta)}`,
+      metric: metric.key,
+      delta,
     }
   }
-  if (improved > 0) {
-    return {
-      tone: "ready" as const,
-      title: "候选策略值得进入发布检查",
-      description: `候选运行改善 ${improved} 个问题，未发现回归。继续核对延迟、成本和策略门槛。`,
-    }
-  }
+
   return {
-    tone: "neutral" as const,
-    title: "候选策略未体现明确收益",
-    description: `当前 ${unchanged} 个问题没有质量变化。除非延迟或成本明显下降，否则不建议发布。`,
+    label,
+    detail:
+      change.classification === "unchanged"
+        ? "主要质量指标相同"
+        : "质量指标存在差异",
+    metric: null,
+    delta: null,
   }
+}
+
+export function formatSignedMetricDelta(
+  value: number | null | undefined,
+  digits = 3
+) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "-"
+  const sign = value > 0 ? "+" : ""
+  return `${sign}${value.toFixed(digits)}`
+}
+
+function readNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
 }

@@ -1,10 +1,26 @@
-import { render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { AgentRunDetail } from "@/api/agentRuns"
 import { AgentRunTraceContent } from "@/features/agentRuns/components/AgentRunTraceContent"
+import { openKbItemChunkInNewTab } from "@/features/kb/lib/openKbItemChunk"
+
+vi.mock("@/features/kb/lib/openKbItemChunk", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/features/kb/lib/openKbItemChunk")>()
+  return {
+    ...actual,
+    openKbItemChunkInNewTab: vi.fn(),
+  }
+})
+
+const mockedOpenKbItemChunkInNewTab = vi.mocked(openKbItemChunkInNewTab)
 
 describe("AgentRunTraceContent", () => {
+  beforeEach(() => {
+    mockedOpenKbItemChunkInNewTab.mockClear()
+  })
+
   it("keeps question and answer in drawer content by default but can hide them for chat context", () => {
     const { rerender } = render(
       <MemoryRouter>
@@ -17,6 +33,10 @@ describe("AgentRunTraceContent", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("如何查看运行详情？")).toBeInTheDocument()
     expect(screen.getByText("进入二级页面查看。")).toBeInTheDocument()
+    expect(screen.getByText("策略：严格检索策略 · v3")).toHaveAttribute(
+      "title",
+      "policy-strict-v3",
+    )
 
     rerender(
       <MemoryRouter>
@@ -197,6 +217,91 @@ describe("AgentRunTraceContent", () => {
       "https://react.dev"
     )
   })
+
+  it("opens the cited source when an answer citation marker is clicked", () => {
+    render(
+      <MemoryRouter>
+        <AgentRunTraceContent
+          runId="run-123"
+          detail={{
+            ...detail(),
+            answer: "See citation [1]",
+            citations: {
+              retrieved: [],
+              used: [
+                {
+                  kbId: "kb-1",
+                  itemId: "item-1",
+                  chunkIndex: 2,
+                  chunkId: "chunk-1",
+                  pageStart: 5,
+                  fileName: "rules.md",
+                },
+              ],
+            },
+          }}
+          variant="page"
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getAllByText("rules.md #3").length).toBeGreaterThan(1)
+    const citationButton = screen.getByRole("button", { name: "1" })
+    expect(citationButton).toHaveTextContent("1")
+
+    fireEvent.click(citationButton)
+
+    expect(mockedOpenKbItemChunkInNewTab).toHaveBeenCalledTimes(1)
+    expect(mockedOpenKbItemChunkInNewTab).toHaveBeenCalledWith({
+      kbId: "kb-1",
+      itemId: "item-1",
+      chunkIndex: 2,
+      chunkId: "chunk-1",
+      pageStart: 5,
+      fileName: "rules.md",
+    })
+  })
+
+  it("opens citation result rows in a new tab", () => {
+    render(
+      <MemoryRouter>
+        <AgentRunTraceContent
+          runId="run-123"
+          detail={{
+            ...detail(),
+            citations: {
+              retrieved: [],
+              used: [
+                {
+                  kbId: "kb-1",
+                  itemId: "item-1",
+                  chunkIndex: 0,
+                  chunkId: "chunk-1",
+                  pageStart: 3,
+                  fileName: "rules.md",
+                },
+              ],
+            },
+          }}
+          variant="page"
+        />
+      </MemoryRouter>
+    )
+
+    const row = screen.getAllByText("rules.md #1")[0].closest("div")
+    expect(row).not.toBeNull()
+    fireEvent.click(within(row!).getByRole("button"))
+
+    expect(mockedOpenKbItemChunkInNewTab).toHaveBeenCalledWith({
+      kbId: "kb-1",
+      itemId: "item-1",
+      chunkIndex: 0,
+      chunkId: "chunk-1",
+      pageStart: 3,
+      fileName: "rules.md",
+    })
+  })
+
   it("renders decision-oriented thinking details for trace steps", () => {
     render(
       <MemoryRouter>
@@ -280,6 +385,11 @@ function detail(): AgentRunDetail {
     status: "succeeded",
     provider: null,
     model: "gpt-5-mini",
+    policy: {
+      id: "policy-strict-v3",
+      name: "严格检索策略",
+      version: "v3",
+    },
     summary: {
       latencyMs: 900,
       ttftMs: 120,

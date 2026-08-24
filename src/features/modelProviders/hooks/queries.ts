@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createModelConfig, deleteModelConfig, listModelConfigs, updateModelConfig } from "@/api/models"
+import { showDeleteFailureToast } from "@/lib/deleteError"
 
 const modelProviderKeys = {
   all: ["model-configs"] as const,
@@ -42,5 +43,6 @@ export function useDeleteModelConfig() {
       await qc.invalidateQueries({ queryKey: modelProviderKeys.all })
       await qc.invalidateQueries({ queryKey: ["assistants"] })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }

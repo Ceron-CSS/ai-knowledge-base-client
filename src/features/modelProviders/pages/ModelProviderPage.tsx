@@ -81,7 +81,6 @@ export function ModelProviderPage() {
           config={providers.deleting}
           linkedAssistants={providers.deletingLinked}
           confirming={providers.deleteModel.isPending}
-          hasError={providers.deleteModel.isError}
           onCancel={providers.cancelDelete}
           onConfirm={providers.confirmDelete}
         />

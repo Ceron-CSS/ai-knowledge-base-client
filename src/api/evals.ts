@@ -30,6 +30,7 @@ export type AgentPolicyConfig = {
   answerContextTopK?: number
   maxToolCalls?: number
   maxPlannerCalls?: number
+  maxToolFailureRetries?: number
   minEvidenceScore?: number
   plannerPrompt?: string
   plannerPromptHash?: string

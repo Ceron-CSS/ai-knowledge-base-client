@@ -72,7 +72,6 @@ export function KbItemsPage() {
               ? `将删除文档「${page.deleting.fileName}」，该操作不可恢复`
               : undefined
           }
-          errorText={page.deleteItem.isError ? "删除失败，请重试" : null}
           confirming={page.deleteItem.isPending}
         />
       </PageBody>

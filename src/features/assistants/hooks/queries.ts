@@ -9,6 +9,7 @@ import {
   unpublishAssistant,
   updateAssistant,
 } from "@/api/assistants"
+import { showDeleteFailureToast } from "@/lib/deleteError"
 
 const assistantKeys = {
   all: ["assistants"] as const,
@@ -37,6 +38,7 @@ export function useCreateAssistant() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: assistantKeys.all })
     },
+    onError: (error) => showDeleteFailureToast(error),
   })
 }
 

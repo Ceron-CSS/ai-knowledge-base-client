@@ -11,6 +11,7 @@ import {
   type PaginatedResult,
 } from "@/api/assistantChat"
 import { MAX_PAGE_SIZE } from "@/api/listQuery"
+import { showDeleteFailureToast } from "@/lib/deleteError"
 
 const CONVERSATION_PAGE_SIZE = 50
 
@@ -129,6 +130,7 @@ export function useDeleteAssistantConversation(assistantId: string) {
       for (const [key, value] of ctx.snapshots) {
         qc.setQueryData(key, value)
       }
+      showDeleteFailureToast(_err)
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })

@@ -9,6 +9,7 @@ const DIFF_FIELDS: DiffField[] = [
   { label: "回答上下文数量", read: (config) => config.answerContextTopK ?? config.defaultTopK },
   { label: "最大工具调用次数", read: (config) => config.maxToolCalls },
   { label: "最大 Planner 调用次数", read: (config) => config.maxPlannerCalls },
+  { label: "工具失败重试次数", read: (config) => config.maxToolFailureRetries },
   {
     label: "最低证据分数",
     read: (config) => config.minEvidenceScore ?? config.evidenceVerification?.minConfidence,
