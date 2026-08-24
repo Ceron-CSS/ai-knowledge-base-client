@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { LoaderCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LoadingText } from "@/components/ui/loading-text"
 import { createFeishuAuthorize } from "@/api/feishu"
 import { loadFeishuQrSdk } from "@/features/feishu/lib/feishuQrSdk"
 
@@ -80,8 +80,8 @@ export function FeishuQrLogin({ onError, returnTo }: FeishuQrLoginProps) {
   return (
     <div className="flex flex-col items-center gap-3">
       {loading ? (
-        <div className="flex h-72 w-72 items-center justify-center text-muted-foreground">
-          <LoaderCircle className="h-6 w-6 animate-spin" />
+        <div className="flex h-72 w-72 items-center justify-center">
+          <LoadingText className="px-8" />
         </div>
       ) : null}
       <div
@@ -91,7 +91,9 @@ export function FeishuQrLogin({ onError, returnTo }: FeishuQrLoginProps) {
       />
       {localError ? (
         <div className="flex flex-col items-center gap-3">
-          <div className="text-center text-sm text-destructive">{localError}</div>
+          <div className="text-center text-sm text-destructive">
+            {localError}
+          </div>
           {authorizeUrl ? (
             <Button
               type="button"

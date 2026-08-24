@@ -1,7 +1,7 @@
 import { useEffect } from "react"
-import { LoaderCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
+import { LoadingText } from "@/components/ui/loading-text"
 import { message } from "@/components/ui/message"
 import { FeishuDocPicker } from "@/features/feishu/components/FeishuDocPicker"
 import { FeishuQrLogin } from "@/features/feishu/components/FeishuQrLogin"
@@ -59,9 +59,7 @@ export function FeishuImportDialog({
     >
       <div className="space-y-3">
         {statusQuery.isLoading ? (
-          <div className="flex items-center justify-center py-10 text-muted-foreground">
-            <LoaderCircle className="h-6 w-6 animate-spin" />
-          </div>
+          <LoadingText className="py-10" />
         ) : connected ? (
           <>
             <div className="flex items-center justify-between gap-3">

@@ -110,16 +110,17 @@ export function useEvalDatasetDetailPage() {
     () => [
       {
         key: "question",
+        className: "w-[25%]",
         header: "问题",
-        render: (row) => <span className="line-clamp-2 max-w-[360px]">{row.question}</span>,
+        render: (row) => <span className="line-clamp-2 max-w-[260px]">{row.question}</span>,
       },
       {
         key: "reference",
-        className: "w-[22%]",
+        className: "w-[25%]",
         header: "参考答案",
         render: (row) => (
           <span
-            className="block max-w-[220px] truncate text-muted-foreground"
+            className="block truncate text-muted-foreground"
             title={row.referenceAnswer || "-"}
           >
             {row.referenceAnswer || "-"}
@@ -128,7 +129,7 @@ export function useEvalDatasetDetailPage() {
       },
       {
         key: "labels",
-        className: "w-[72px] text-center",
+        className: "w-[150px] text-center",
         header: "相关 Chunk数",
         cellClassName: "text-center tabular-nums",
         render: (row) => row.relevantChunkIds.length,
@@ -149,6 +150,7 @@ export function useEvalDatasetDetailPage() {
       },
       {
         key: "updatedAt",
+        className: "w-[100px]",
         header: "更新时间",
         render: (row) => (
           <span className="whitespace-nowrap text-xs">{formatEvalDateTime(row.updatedAt)}</span>

@@ -28,7 +28,7 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
                 data-onboarding-target={onboardingTarget}
                 title={collapsed ? label : undefined}
                 className={cn(
-                  "relative flex min-w-0 items-center rounded-md px-2 py-2 text-sm transition-colors",
+                  "relative flex min-w-0 items-center rounded-md px-2 py-2 text-sm outline-none transition-colors focus-visible:bg-sidebar-accent focus-visible:text-sidebar-accent-foreground",
                   collapsed ? "justify-center" : "gap-2",
                   active
                     ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"

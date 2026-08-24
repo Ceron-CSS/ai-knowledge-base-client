@@ -430,7 +430,7 @@ function MetricCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 truncate text-xs text-muted-foreground">{label}</div>
         {help ? (
-          <Tooltip content={help} className="max-w-64 whitespace-normal text-left leading-relaxed">
+          <Tooltip content={help} side="left" className="max-w-64 whitespace-normal text-left leading-relaxed">
             <button
               type="button"
               className="rounded-full text-muted-foreground/70 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"

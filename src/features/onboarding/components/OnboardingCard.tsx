@@ -64,7 +64,7 @@ export function OnboardingCard({
         </div>
         <div className="min-w-0">
           <div className="text-base font-semibold">{step.title}</div>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.subtitle}</p>
+          <p className="mt-1 text-sm leading-relaxed text-pretty text-muted-foreground">{step.subtitle}</p>
         </div>
       </div>
 
@@ -72,12 +72,12 @@ export function OnboardingCard({
         {step.points.map((point) => (
           <div key={point} className="flex gap-2 text-sm leading-relaxed">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            <span>{point}</span>
+            <span className="text-pretty">{point}</span>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 rounded-md bg-muted/40 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
+      <div className="mt-4 rounded-md bg-muted/40 px-3 py-2 text-sm leading-relaxed text-pretty text-muted-foreground">
         {step.action}
       </div>
 

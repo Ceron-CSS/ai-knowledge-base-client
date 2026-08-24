@@ -88,9 +88,16 @@ export function ChunkLabelingPanel({ labeling, queryText }: ChunkLabelingPanelPr
                   key={id}
                   className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs"
                 >
-                  <span className="truncate" title={hit ? label : id}>
-                    {label}
-                  </span>
+                  <button
+                    type="button"
+                    className="inline-flex min-w-0 items-center gap-1 rounded-sm text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    onClick={() => hit && labeling.openHit(hit)}
+                    disabled={!hit}
+                    title={hit ? `${label}，新标签页查看原文` : id}
+                  >
+                    <span className="truncate">{label}</span>
+                    {hit ? <ExternalLink className="h-3 w-3 shrink-0" /> : null}
+                  </button>
                   <button
                     type="button"
                     className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"

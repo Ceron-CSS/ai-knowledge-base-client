@@ -1,7 +1,8 @@
 import { Fragment, type ComponentProps, type Key, type ReactNode } from "react"
-import { LoaderCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useDelayedLoading } from "@/hooks/useDelayedLoading"
 import { cn } from "@/lib/utils"
 
 export type DataTableColumn<T> = {
@@ -41,8 +42,15 @@ function shouldShowPagination(pagination: DataTablePagination | undefined) {
   return pagination.total > pagination.pageSize || pagination.page > 1
 }
 
-function DataTablePaginationBar({ pagination }: { pagination: DataTablePagination }) {
-  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
+function DataTablePaginationBar({
+  pagination,
+}: {
+  pagination: DataTablePagination
+}) {
+  const totalPages = Math.max(
+    1,
+    Math.ceil(pagination.total / pagination.pageSize)
+  )
 
   return (
     <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
@@ -83,14 +91,25 @@ function DataTable<T>({
   isRowExpanded,
   renderExpanded,
 }: DataTableProps<T>) {
-  if (loading) return <DataTableEmpty loading>加载中</DataTableEmpty>
-  if (error) return <DataTableEmpty className="text-destructive">{errorText}</DataTableEmpty>
+  if (loading)
+    return (
+      <DataTableSkeleton
+        columns={columns}
+        containerClassName={containerClassName}
+      />
+    )
+  if (error)
+    return (
+      <DataTableEmpty className="text-destructive">{errorText}</DataTableEmpty>
+    )
 
   if (!data.length) {
     return (
       <div className="space-y-2">
         <DataTableEmpty>{emptyText}</DataTableEmpty>
-        {shouldShowPagination(pagination) ? <DataTablePaginationBar pagination={pagination!} /> : null}
+        {shouldShowPagination(pagination) ? (
+          <DataTablePaginationBar pagination={pagination!} />
+        ) : null}
       </div>
     )
   }
@@ -98,7 +117,9 @@ function DataTable<T>({
   return (
     <div className="space-y-2">
       <DataTableContainer className={containerClassName}>
-        <table className={cn("w-full table-fixed text-left text-sm", tableClassName)}>
+        <table
+          className={cn("w-full table-fixed text-left text-sm", tableClassName)}
+        >
           <thead>
             <tr className="border-b border-border bg-[#F1F5F9]">
               {columns.map((column) => (
@@ -106,7 +127,7 @@ function DataTable<T>({
                   key={column.key}
                   className={cn(
                     "px-4 py-3 align-middle text-sm font-semibold text-[#17243D]",
-                    column.className,
+                    column.className
                   )}
                 >
                   {column.header}
@@ -124,7 +145,11 @@ function DataTable<T>({
                     {columns.map((column) => (
                       <td
                         key={column.key}
-                        className={cn("px-4 py-2.5 align-middle", column.cellClassName, "font-normal")}
+                        className={cn(
+                          "px-4 py-2.5 align-middle",
+                          column.cellClassName,
+                          "font-normal"
+                        )}
                       >
                         {column.render(item)}
                       </td>
@@ -144,29 +169,96 @@ function DataTable<T>({
         </table>
       </DataTableContainer>
 
-      {shouldShowPagination(pagination) ? <DataTablePaginationBar pagination={pagination!} /> : null}
+      {shouldShowPagination(pagination) ? (
+        <DataTablePaginationBar pagination={pagination!} />
+      ) : null}
     </div>
   )
 }
 
+function DataTableSkeleton<T>({
+  columns,
+  containerClassName,
+}: {
+  columns: Array<DataTableColumn<T>>
+  containerClassName?: string
+}) {
+  const show = useDelayedLoading(true)
+
+  if (!show) return null
+
+  const visibleColumns = Math.max(1, columns.length)
+
+  return (
+    <DataTableContainer className={containerClassName}>
+      <div className="w-full">
+        <div
+          className="grid border-b border-border bg-[#F1F5F9]"
+          style={{
+            gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))`,
+          }}
+        >
+          {Array.from({ length: visibleColumns }).map((_, index) => (
+            <div key={index} className="px-4 py-3">
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ))}
+        </div>
+        <div>
+          {Array.from({ length: 6 }).map((_, rowIndex) => (
+            <div
+              key={rowIndex}
+              className="grid border-b border-border last:border-b-0"
+              style={{
+                gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))`,
+              }}
+            >
+              {Array.from({ length: visibleColumns }).map((_, columnIndex) => (
+                <div key={columnIndex} className="px-4 py-3">
+                  <Skeleton
+                    className={cn(
+                      "h-4 w-full",
+                      columnIndex === visibleColumns - 1 ? "w-2/3" : null,
+                      rowIndex % 2 === 1 && columnIndex === 0 ? "w-5/6" : null
+                    )}
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </DataTableContainer>
+  )
+}
+
 function DataTableContainer({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("overflow-x-auto rounded-lg border border-border bg-card shadow-sm", className)} {...props} />
+  return (
+    <div
+      className={cn(
+        "overflow-x-auto rounded-lg border border-border bg-card shadow-sm",
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
-type DataTableEmptyProps = ComponentProps<"div"> & {
-  loading?: boolean
-}
+type DataTableEmptyProps = ComponentProps<"div">
 
-function DataTableEmpty({ className, children, loading = false, ...props }: DataTableEmptyProps) {
+function DataTableEmpty({
+  className,
+  children,
+  ...props
+}: DataTableEmptyProps) {
   return (
     <div
       className={cn(
         "flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-sm",
-        className,
+        className
       )}
       {...props}
     >
-      {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
       <span>{children}</span>
     </div>
   )

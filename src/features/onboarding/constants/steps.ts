@@ -1,4 +1,4 @@
-import { Activity, BookOpen, Bot, Cpu, FlaskConical, Home, Search, Settings, Shield } from "lucide-react"
+import { Activity, BookOpen, Bot, Cpu, FileText, FlaskConical, Home, Search, Settings, Shield } from "lucide-react"
 import type { OnboardingStep } from "../types"
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -21,13 +21,13 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     action: "点击下一步会进入知识库页面，后续可以从这里开始导入资料。",
   },
   {
-    title: "模型提供商",
-    subtitle: "这里配置助手调用的大模型能力。",
-    Icon: Cpu,
-    route: "/model-providers",
-    target: "nav-model-providers",
-    points: ["维护 OpenAI 兼容的模型提供商", "设置 API 地址和密钥", "统一管理助手可选择的模型服务"],
-    action: "发布助手前，需要先准备至少一个可用的模型提供商。",
+    title: "文档条目",
+    subtitle: "这里集中查看已经进入知识库的文档。",
+    Icon: FileText,
+    route: "/items",
+    target: "nav-kb-items",
+    points: ["按知识库、状态和关键词筛选文档", "查看解析状态与启用情况", "进入详情页定位原文和分段内容"],
+    action: "资料上传后，可在这里检查文档是否已可用于召回问答。",
   },
   {
     title: "问答助手",
@@ -73,6 +73,15 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     target: "nav-retrieval-debug",
     points: ["比较不同检索模式", "检查 Chunk 排名和分数", "打开文档详情定位原文"],
     action: "当某个样本退化时，先用调试台验证是检索问题还是 Agent 决策问题。",
+  },
+  {
+    title: "模型供应商",
+    subtitle: "这里配置助手调用的大模型能力。",
+    Icon: Cpu,
+    route: "/model-providers",
+    target: "nav-model-providers",
+    points: ["维护 OpenAI 兼容的模型供应商", "设置 API 地址和密钥", "统一管理助手可选择的模型服务"],
+    action: "发布助手前，需要先准备至少一个可用的模型供应商。",
   },
   {
     title: "设置",

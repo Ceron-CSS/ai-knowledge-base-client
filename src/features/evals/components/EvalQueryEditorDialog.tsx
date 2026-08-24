@@ -165,7 +165,7 @@ function EvalQueryEditorForm({
         />
       </div>
 
-      <div className="sticky bottom-0 -mx-1 mt-4 flex items-center justify-end gap-3 border-t border-border bg-card px-1 py-3">
+      <div className="sticky bottom-0 -mx-1 mt-4 flex items-center justify-end gap-3 bg-card px-1 py-3">
         {hasError ? (
           <div className="mr-auto text-sm text-destructive">
             {errorText || "保存失败，请稍后重试"}

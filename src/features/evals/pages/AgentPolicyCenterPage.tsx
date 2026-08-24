@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react"
+import { useMemo, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { History } from "lucide-react"
 import { HttpError } from "@/api/http"
@@ -32,8 +32,10 @@ export function AgentPolicyCenterPage() {
   const activate = useActivateAgentPolicy()
 
   const [editing, setEditing] = useState<AgentPolicyListItem | null>(null)
+  const [isOpeningEditor, setIsOpeningEditor] = useState(false)
   const [pendingActivate, setPendingActivate] = useState<AgentPolicyListItem | null>(null)
   const [pendingDelete, setPendingDelete] = useState<AgentPolicyListItem | null>(null)
+  const editorRequestRef = useRef(0)
 
   const active = useMemo(
     () => (policies.data ?? []).find((item) => item.isActive) ?? null,
@@ -60,7 +62,29 @@ export function AgentPolicyCenterPage() {
                 : null
 
   function editAfterCreate(promise: Promise<AgentPolicyListItem>) {
-    void promise.then((created) => setEditing(created))
+    const requestId = editorRequestRef.current + 1
+    editorRequestRef.current = requestId
+    patchPolicy.reset()
+    setEditing(null)
+    setIsOpeningEditor(true)
+    void promise.then(
+      (created) => {
+        if (editorRequestRef.current !== requestId) return
+        setEditing(created)
+        setIsOpeningEditor(false)
+      },
+      () => {
+        if (editorRequestRef.current !== requestId) return
+        setIsOpeningEditor(false)
+      },
+    )
+  }
+
+  function closeEditor() {
+    if (patchPolicy.isPending) return
+    editorRequestRef.current += 1
+    setEditing(null)
+    setIsOpeningEditor(false)
   }
 
   return (
@@ -146,8 +170,9 @@ export function AgentPolicyCenterPage() {
       </PageBody>
 
       <AgentPolicyEditDialog
-        open={Boolean(editing)}
+        open={isOpeningEditor || Boolean(editing)}
         policy={editing}
+        isLoading={isOpeningEditor && !editing}
         isSaving={patchPolicy.isPending}
         errorText={
           patchPolicy.error instanceof HttpError
@@ -156,9 +181,7 @@ export function AgentPolicyCenterPage() {
               ? patchPolicy.error.message
               : null
         }
-        onCancel={() => {
-          if (!patchPolicy.isPending) setEditing(null)
-        }}
+        onCancel={closeEditor}
         onSubmit={async (body) => {
           if (!editing) return
           await patchPolicy.mutateAsync({ policyId: editing.id, body })

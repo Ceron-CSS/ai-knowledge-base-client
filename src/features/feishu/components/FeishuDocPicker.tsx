@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ChevronLeft, Folder, LoaderCircle } from "lucide-react"
+import { ChevronLeft, Folder } from "lucide-react"
 import type { FeishuSourceItem } from "@/api/feishu"
 import { Button } from "@/components/ui/button"
+import { LoadingText } from "@/components/ui/loading-text"
 import type { FeishuDocPickerState } from "@/features/feishu/hooks/useFeishuDocPicker"
 
 const TYPE_LABELS: Record<string, string> = {
@@ -167,9 +168,7 @@ export function FeishuDocPicker({ state }: FeishuDocPickerProps) {
               )}
             </div>
             {driveLoading ? (
-              <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                <LoaderCircle className="h-4 w-4 animate-spin" /> 加载中
-              </div>
+              <LoadingText className="py-8" />
             ) : driveError ? (
               <div className="px-2 py-4 text-sm text-destructive">
                 {driveError}
@@ -213,9 +212,7 @@ export function FeishuDocPicker({ state }: FeishuDocPickerProps) {
                   <span className="truncate">{activeSpace.name}</span>
                 </div>
                 {wikiLoading ? (
-                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                    <LoaderCircle className="h-4 w-4 animate-spin" /> 加载中
-                  </div>
+                  <LoadingText className="py-8" />
                 ) : (
                   wikiNodes.map((item) => (
                     <SourceRow
@@ -232,9 +229,7 @@ export function FeishuDocPicker({ state }: FeishuDocPickerProps) {
             ) : (
               <div className="space-y-0.5">
                 {wikiLoading ? (
-                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                    <LoaderCircle className="h-4 w-4 animate-spin" /> 加载中
-                  </div>
+                  <LoadingText className="py-8" />
                 ) : (
                   spaces.map((space) => (
                     <button

@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { LoadingText } from "@/components/ui/loading-text"
 import { Textarea } from "@/components/ui/textarea"
 
 type AgentPolicyEditDialogProps = {
   open: boolean
   policy: AgentPolicyListItem | null
+  isLoading?: boolean
   isSaving: boolean
   errorText?: string | null
   onCancel: () => void
@@ -61,6 +63,7 @@ function toForm(policy: AgentPolicyListItem | null): FormState {
 export function AgentPolicyEditDialog({
   open,
   policy,
+  isLoading = false,
   isSaving,
   errorText,
   onCancel,
@@ -76,7 +79,11 @@ export function AgentPolicyEditDialog({
       description="只编辑会进入运行时的 Agent 护栏与 Planner Prompt。Seed、Active 和 Archived Policy 需要先复制为 Draft。"
       contentClassName="max-w-3xl w-full"
     >
-      {open ? (
+      {isLoading ? (
+        <div className="flex min-h-64 items-center justify-center">
+          <LoadingText>创建策略</LoadingText>
+        </div>
+      ) : open ? (
         <AgentPolicyEditForm
           key={policy?.id ?? "new-draft"}
           policy={policy}
