@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createModelConfig, deleteModelConfig, listModelConfigs, updateModelConfig } from "@/api/models"
 import { showDeleteFailureToast } from "@/lib/deleteError"
+import { queryKeys } from "@/app/queryKeys"
 
 const modelProviderKeys = {
-  all: ["model-configs"] as const,
+  all: queryKeys.modelConfigs.root,
 }
 
 export function useModelConfigList() {
@@ -41,7 +42,7 @@ export function useDeleteModelConfig() {
       deleteModelConfig(id, { acknowledgeLinked }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: modelProviderKeys.all })
-      await qc.invalidateQueries({ queryKey: ["assistants"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.assistants.root })
     },
     onError: (error) => showDeleteFailureToast(error),
   })

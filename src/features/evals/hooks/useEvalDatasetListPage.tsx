@@ -95,13 +95,14 @@ export function useEvalDatasetListPage() {
         key: "name",
         header: "名称",
         render: (row) => (
-          <button
-            type="button"
-            className="text-left font-medium text-foreground hover:underline"
+          <Button
+            variant="ghost"
+            className="h-auto max-w-[18rem] truncate px-0 font-medium text-foreground hover:bg-transparent hover:text-primary"
             onClick={() => navigate(`/evals/${row.id}`)}
+            title={row.name}
           >
             {row.name}
-          </button>
+          </Button>
         ),
       },
       {

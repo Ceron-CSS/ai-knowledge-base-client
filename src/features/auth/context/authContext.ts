@@ -2,11 +2,11 @@ import { createContext, useContext } from "react"
 
 type AuthContextValue = {
   isAuthed: boolean
-  token: string | null
+  isLoading: boolean
   username: string | null
   displayName: string | null
   provider: "local" | "github" | null
-  loginWithToken: (token: string) => void
+  refreshSession: () => Promise<unknown>
   logout: () => void
 }
 

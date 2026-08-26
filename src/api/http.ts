@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from "@/app/env"
-import { clearAccessToken, getAccessToken, redirectToLogin, resolvePostLoginPath } from "@/features/auth"
+import { redirectToLogin, resolvePostLoginPath } from "@/features/auth/lib/redirect"
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
 
@@ -60,7 +60,6 @@ export async function parseApiError(response: Response) {
 }
 
 export function handleUnauthorized() {
-  clearAccessToken()
   redirectToLogin(resolvePostLoginPath(window.location.pathname))
 }
 
@@ -96,12 +95,8 @@ export type AuthenticatedFetchOptions = {
 }
 
 export async function authenticatedFetch(path: string, options: AuthenticatedFetchOptions = {}) {
-  const token = getAccessToken()
   const headers: Record<string, string> = {
     ...options.headers,
-  }
-  if (token) {
-    headers.authorization = `Bearer ${token}`
   }
 
   return fetch(buildApiUrl(path, options.query), {
@@ -109,6 +104,7 @@ export async function authenticatedFetch(path: string, options: AuthenticatedFet
     headers,
     body: options.body ?? undefined,
     signal: options.signal,
+    credentials: "include",
   })
 }
 
@@ -124,11 +120,11 @@ export async function requestJson<T>(path: string, options: RequestOptions = {})
   const response = await authenticatedFetch(path, {
     method: options.method,
     headers: {
-      ...(options.body ? { "content-type": "application/json" } : {}),
+      ...(options.body !== undefined ? { "content-type": "application/json" } : {}),
       ...options.headers,
     },
     query: options.query,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     signal: options.signal,
   })
 

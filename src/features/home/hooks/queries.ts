@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { getDashboardStats } from "@/api/stats"
-
-const dashboardStatsKey = ["dashboard-stats"] as const
+import { queryKeys } from "@/app/queryKeys"
 
 export function useDashboardStats() {
   return useQuery({
-    queryKey: dashboardStatsKey,
+    queryKey: queryKeys.dashboard.stats(),
     queryFn: getDashboardStats,
+    staleTime: 60_000,
   })
 }

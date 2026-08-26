@@ -8,6 +8,7 @@ import {
   type FeishuSourceItem,
 } from "@/api/feishu"
 import { message } from "@/components/ui/message"
+import { queryKeys } from "@/app/queryKeys"
 
 const SELECTABLE_TYPES = new Set(["docx", "doc", "sheet", "file"])
 
@@ -139,7 +140,7 @@ export function useFeishuDocPicker(kbId: string) {
         )
         setResults(importResults)
         // 刷新 KB 文档列表，让新导入的条目立即显示。
-        await queryClient.invalidateQueries({ queryKey: ["kb", "items", kbId] })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeBases.items(kbId) })
         const imported = importResults.filter(
           (r) => r.status === "importing"
         ).length

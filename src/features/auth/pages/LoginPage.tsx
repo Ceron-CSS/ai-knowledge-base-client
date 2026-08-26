@@ -12,7 +12,6 @@ import { usePasswordPolicyValidation } from "../hooks/usePasswordPolicyValidatio
 import { cn } from "@/lib/utils"
 
 type OAuthHashResult = {
-  accessToken: string | null
   redirectTo: string | null
   oauthError: string | null
   shouldClearHash: boolean
@@ -20,26 +19,25 @@ type OAuthHashResult = {
 
 function parseOAuthHash(): OAuthHashResult {
   if (typeof window === "undefined") {
-    return { accessToken: null, redirectTo: null, oauthError: null, shouldClearHash: false }
+    return { redirectTo: null, oauthError: null, shouldClearHash: false }
   }
 
   const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash
   if (!hash) {
-    return { accessToken: null, redirectTo: null, oauthError: null, shouldClearHash: false }
+    return { redirectTo: null, oauthError: null, shouldClearHash: false }
   }
 
   const params = new URLSearchParams(hash)
-  const accessToken = params.get("accessToken")
   const redirectTo = params.get("redirectTo")
   const oauthError = params.get("oauthError")
 
-  if (accessToken) {
-    return { accessToken, redirectTo: redirectTo || "/home", oauthError: null, shouldClearHash: true }
+  if (redirectTo) {
+    return { redirectTo, oauthError: null, shouldClearHash: true }
   }
   if (oauthError) {
-    return { accessToken: null, redirectTo: null, oauthError, shouldClearHash: true }
+    return { redirectTo: null, oauthError, shouldClearHash: true }
   }
-  return { accessToken: null, redirectTo: null, oauthError: null, shouldClearHash: false }
+  return { redirectTo: null, oauthError: null, shouldClearHash: false }
 }
 
 export function LoginPage() {
@@ -53,11 +51,6 @@ export function LoginPage() {
   const [password2, setPassword2] = useState("")
   const [registerAttempted, setRegisterAttempted] = useState(false)
   const [oauthHash] = useState(parseOAuthHash)
-
-  useEffect(() => {
-    if (!oauthHash.accessToken) return
-    auth.loginWithToken(oauthHash.accessToken)
-  }, [auth, oauthHash.accessToken])
 
   useEffect(() => {
     if (!oauthHash.shouldClearHash) return
@@ -74,8 +67,8 @@ export function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: () => login({ username: username.trim(), password }),
-    onSuccess: (data) => {
-      auth.loginWithToken(data.accessToken)
+    onSuccess: async () => {
+      await auth.refreshSession()
       navigate(from, { replace: true })
     },
   })
@@ -105,7 +98,7 @@ export function LoginPage() {
     mode === "register",
   )
 
-  if (auth.isAuthed) return <Navigate to={from} replace />
+  if (!auth.isLoading && auth.isAuthed) return <Navigate to={from} replace />
 
   const canSubmit =
     mode === "login"

@@ -404,11 +404,18 @@ function StrategySetTable({
   const columns: Array<DataTableColumn<AgentPolicyListItem>> = [
     {
       key: "name",
-      header: "策略",
+      header: "策略名称",
       cellClassName: "w-[25%]",
       render: (policy) => (
-        <div>
-          <div className="truncate font-medium text-foreground">{policy.name}</div>
+        <div className="min-w-0">
+          <Button
+            variant="ghost"
+            className="h-auto max-w-[18rem] truncate px-0 font-medium text-foreground hover:bg-transparent hover:text-primary"
+            onClick={() => onEdit(policy)}
+            title={policy.name}
+          >
+            {policy.name}
+          </Button>
           <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
             {policy.description || "暂无说明"}
           </div>

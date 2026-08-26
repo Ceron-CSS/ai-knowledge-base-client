@@ -6,12 +6,22 @@ export type LoginRequest = {
   password: string
 }
 
-export type LoginResponse = {
-  accessToken: string
+export type AuthSession = {
+  username: string
+  displayName: string
+  provider: "local" | "github"
 }
 
 export function login(body: LoginRequest) {
-  return requestJson<LoginResponse>("/auth/login", { method: "POST", body })
+  return requestJson<unknown>("/auth/login", { method: "POST", body })
+}
+
+export function getSession() {
+  return requestJson<AuthSession>("/auth/session")
+}
+
+export function logout() {
+  return requestJson<void>("/auth/logout", { method: "POST" })
 }
 
 export type RegisterRequest = {

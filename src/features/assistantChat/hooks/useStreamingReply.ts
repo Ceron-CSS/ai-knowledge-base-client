@@ -16,6 +16,7 @@ import {
   type RunProcess,
 } from "@/features/assistantChat/lib/runProcess"
 import { message } from "@/components/ui/message"
+import { queryKeys } from "@/app/queryKeys"
 
 type CreateConversationMutation = {
   mutateAsync: () => Promise<{ id: string }>
@@ -117,16 +118,10 @@ export function useStreamingReply({
   function invalidateConversationQueries(conversationId: string) {
     return Promise.all([
       qc.invalidateQueries({
-        queryKey: ["assistantChat", assistantId, "conversations"],
+        queryKey: queryKeys.assistantChat.conversations(assistantId),
       }),
       qc.invalidateQueries({
-        queryKey: [
-          "assistantChat",
-          assistantId,
-          "conversations",
-          conversationId,
-          "messages",
-        ],
+        queryKey: queryKeys.assistantChat.messages(assistantId, conversationId),
       }),
     ])
   }
@@ -141,13 +136,7 @@ export function useStreamingReply({
     assistantMessage: AssistantMessage
   ) {
     qc.setQueryData<AssistantMessage[]>(
-      [
-        "assistantChat",
-        assistantId,
-        "conversations",
-        conversationId,
-        "messages",
-      ],
+      queryKeys.assistantChat.messages(assistantId, conversationId),
       (current) => {
         let next = current ?? baseMessages
         if (userMessage) next = appendMessageIfMissing(next, userMessage)

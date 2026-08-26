@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { describe, expect, it, vi } from "vitest"
@@ -47,10 +47,8 @@ describe("EvalComparePage", () => {
     expect(screen.queryByText("基线 Run")).not.toBeInTheDocument()
     expect(screen.queryByText("候选 Run")).not.toBeInTheDocument()
 
-    await userEvent.hover(
-      screen.getByRole("button", { name: "重排成本代理 指标说明" })
-    )
-    expect(screen.getByRole("tooltip")).toHaveTextContent(
+    fireEvent.focus(screen.getByRole("button", { name: "重排成本代理 指标说明" }))
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
       "它是整次运行的累计值，不是实际金额"
     )
 

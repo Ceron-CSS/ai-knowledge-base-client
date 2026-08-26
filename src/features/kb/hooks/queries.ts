@@ -20,6 +20,7 @@ import {
 } from "@/api/kb"
 import { MAX_PAGE_SIZE } from "@/api/listQuery"
 import { showDeleteFailureToast } from "@/lib/deleteError"
+import { queryKeys } from "@/app/queryKeys"
 
 const KB_FEED_PAGE_SIZE = 20
 
@@ -28,12 +29,14 @@ export type KbFeedParams = Omit<KbListParams, "page" | "pageSize"> & {
 }
 
 const kbKeys = {
-  all: ["kb"] as const,
-  detail: (kbId: string) => ["kb", "detail", kbId] as const,
-  list: (params: KbListParams) => ["kb", "list", params] as const,
-  feed: (params: KbFeedParams) => ["kb", "feed", params] as const,
-  items: (kbId: string, params: KbItemListParams) => ["kb", "items", kbId, params] as const,
-  allItems: (params: KbItemListParams) => ["kb", "items", "all", params] as const,
+  all: queryKeys.knowledgeBases.root,
+  detail: queryKeys.knowledgeBases.detail,
+  list: (params: KbListParams) => [...queryKeys.knowledgeBases.root, "list", params] as const,
+  feed: (params: KbFeedParams) => [...queryKeys.knowledgeBases.root, "feed", params] as const,
+  items: (kbId: string, params: KbItemListParams) =>
+    [...queryKeys.knowledgeBases.items(kbId), params] as const,
+  allItems: (params: KbItemListParams) =>
+    [...queryKeys.knowledgeBases.allItems(), params] as const,
 }
 
 const EMPTY_LIST_PARAMS: KbListParams = {}
@@ -108,7 +111,7 @@ export function useSetKbEnabled() {
     onSuccess: async (_data, vars) => {
       await qc.invalidateQueries({ queryKey: kbKeys.all })
       if (!vars.enabled) {
-        await qc.invalidateQueries({ queryKey: ["assistants"] })
+        await qc.invalidateQueries({ queryKey: queryKeys.assistants.root })
       }
     },
   })
@@ -121,7 +124,7 @@ export function useDeleteKb() {
       deleteKb(id, { acknowledgeLinked }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: kbKeys.all })
-      await qc.invalidateQueries({ queryKey: ["assistants"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.assistants.root })
     },
     onError: (error) => showDeleteFailureToast(error),
   })
@@ -170,7 +173,7 @@ function findCachedKbItemsPage(
   params: KbItemListParams,
 ) {
   const matches = qc.getQueriesData<PaginatedResult<KbItem>>({
-    queryKey: ["kb", "items", kbId],
+    queryKey: queryKeys.knowledgeBases.items(kbId),
   })
   const found = matches.find(([key, data]) => {
     if (!data || !Array.isArray(key) || key.length < 4) return false
@@ -190,7 +193,7 @@ function findCachedAllKbItemsPage(
   params: KbItemListParams,
 ) {
   const matches = qc.getQueriesData<PaginatedResult<KbItemWithKb>>({
-    queryKey: ["kb", "items", "all"],
+    queryKey: queryKeys.knowledgeBases.allItems(),
   })
   const found = matches.find(([key, data]) => {
     if (!data || !Array.isArray(key) || key.length < 4) return false
@@ -211,8 +214,8 @@ export function useRetryKbItemExtraction() {
     mutationFn: ({ kbId, itemId }: { kbId: string; itemId: string }) =>
       retryKbItemExtraction(kbId, itemId),
     onSuccess: async (_data, vars) => {
-      await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
-      await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.knowledgeBases.items(vars.kbId) })
+      await qc.invalidateQueries({ queryKey: queryKeys.knowledgeBases.allItems() })
     },
   })
 }
@@ -223,8 +226,8 @@ export function useRetryKbItemIndexing() {
     mutationFn: ({ kbId, itemId }: { kbId: string; itemId: string }) =>
       retryKbItemIndexing(kbId, itemId),
     onSuccess: async (_data, vars) => {
-      await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
-      await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.knowledgeBases.items(vars.kbId) })
+      await qc.invalidateQueries({ queryKey: queryKeys.knowledgeBases.allItems() })
     },
   })
 }
@@ -235,8 +238,8 @@ export function useSetKbItemEnabled() {
     mutationFn: ({ kbId, itemId, enabled }: { kbId: string; itemId: string; enabled: boolean }) =>
       setKbItemEnabled(kbId, itemId, enabled),
     onSuccess: async (_data, vars) => {
-      await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
-      await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.knowledgeBases.items(vars.kbId) })
+      await qc.invalidateQueries({ queryKey: queryKeys.knowledgeBases.allItems() })
     },
   })
 }
@@ -246,8 +249,8 @@ export function useDeleteKbItem() {
   return useMutation({
     mutationFn: ({ kbId, itemId }: { kbId: string; itemId: string }) => deleteKbItem(kbId, itemId),
     onSuccess: async (_data, vars) => {
-      await qc.invalidateQueries({ queryKey: ["kb", "items", vars.kbId] })
-      await qc.invalidateQueries({ queryKey: ["kb", "items", "all"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.knowledgeBases.items(vars.kbId) })
+      await qc.invalidateQueries({ queryKey: queryKeys.knowledgeBases.allItems() })
       await qc.invalidateQueries({ queryKey: kbKeys.all })
     },
     onError: (error) => showDeleteFailureToast(error),

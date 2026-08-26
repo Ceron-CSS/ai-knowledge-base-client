@@ -1,65 +1,57 @@
-import { useEffect, useMemo, useState } from "react"
-import { AuthContext } from "./authContext"
-import { redirectToLogin } from "../lib/redirect"
-import {
-  AUTH_STORAGE_EVENT,
-  clearAccessToken,
-  getAccessToken,
-  readAccessTokenPayload,
-  setAccessToken,
-} from "../lib/storage"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
-function readTokenPayload(token: string | null): {
-  username: string | null
-  displayName: string | null
-  provider: "local" | "github" | null
-} {
-  if (!token) return { username: null, displayName: null, provider: null }
-  const payload = readAccessTokenPayload(token)
-  if (!payload) {
-    return { username: null, displayName: null, provider: "local" }
-  }
-  return {
-    username: typeof payload.username === "string" ? payload.username : null,
-    displayName: typeof payload.displayName === "string" ? payload.displayName : null,
-    provider: payload.provider === "github" ? "github" : "local",
-  }
-}
+import { getSession, logout as logoutRequest, type AuthSession } from "@/api/auth"
+import { redirectToLogin } from "../lib/redirect"
+import { clearLegacyAccessToken } from "../lib/storage"
+import { AuthContext } from "./authContext"
 
 export function AuthProvider(props: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => getAccessToken())
-  const { username, displayName, provider } = readTokenPayload(token)
+  const [session, setSession] = useState<AuthSession | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const refreshSession = useCallback(async () => {
+    const nextSession = await getSession()
+    setSession(nextSession)
+    setIsLoading(false)
+    return nextSession
+  }, [])
 
   useEffect(() => {
-    const syncToken = () => setToken(getAccessToken())
+    clearLegacyAccessToken()
+    let cancelled = false
 
-    window.addEventListener(AUTH_STORAGE_EVENT, syncToken)
-    window.addEventListener("storage", syncToken)
+    void getSession()
+      .then((nextSession) => {
+        if (!cancelled) setSession(nextSession)
+      })
+      .catch(() => {
+        if (!cancelled) setSession(null)
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
 
     return () => {
-      window.removeEventListener(AUTH_STORAGE_EVENT, syncToken)
-      window.removeEventListener("storage", syncToken)
+      cancelled = true
     }
   }, [])
 
   const value = useMemo(
     () => ({
-      isAuthed: Boolean(token),
-      token,
-      username,
-      displayName,
-      provider,
-      loginWithToken: (newToken: string) => {
-        setAccessToken(newToken)
-        setToken(newToken)
-      },
+      isAuthed: Boolean(session),
+      isLoading,
+      username: session?.username ?? null,
+      displayName: session?.displayName ?? null,
+      provider: session?.provider ?? null,
+      refreshSession,
       logout: () => {
-        clearAccessToken()
-        setToken(null)
-        redirectToLogin("/home")
+        void logoutRequest().finally(() => {
+          setSession(null)
+          redirectToLogin("/home")
+        })
       },
     }),
-    [displayName, provider, token, username],
+    [isLoading, refreshSession, session],
   )
 
   return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>

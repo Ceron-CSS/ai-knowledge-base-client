@@ -1,5 +1,5 @@
-import { useEffect } from "react"
-import { createPortal } from "react-dom"
+import { Dialog as BaseDialog } from "@base-ui/react/dialog"
+
 import { cn } from "@/lib/utils"
 
 export type DialogProps = {
@@ -28,56 +28,53 @@ export function Dialog({
   fullscreen = false,
   headerActions,
 }: DialogProps) {
-  useEffect(() => {
-    if (!open) return
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onOpenChange(false)
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [open, onOpenChange])
+  return (
+    <BaseDialog.Root open={open} onOpenChange={onOpenChange} modal>
+      <BaseDialog.Portal>
+        <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-black/40" />
+        <BaseDialog.Viewport
+          className={cn(
+            "fixed inset-0 z-50 flex items-center justify-center overflow-y-auto",
+            fullscreen ? "p-0" : "p-4",
+          )}
+        >
+          <BaseDialog.Popup
+            className={cn(
+              "relative flex w-full flex-col border border-border bg-card shadow-lg outline-none",
+              fullscreen
+                ? "h-dvh max-w-none rounded-none p-4"
+                : "max-w-2xl rounded-lg p-5",
+              contentClassName,
+            )}
+          >
+            {(title || description || headerActions) && (
+              <div className="flex shrink-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  {title ? (
+                    <BaseDialog.Title className="text-base font-semibold">
+                      {title}
+                    </BaseDialog.Title>
+                  ) : null}
+                  {description ? (
+                    <BaseDialog.Description className="text-sm text-muted-foreground">
+                      {description}
+                    </BaseDialog.Description>
+                  ) : null}
+                </div>
+                {headerActions ? (
+                  <div className="flex shrink-0 items-center gap-2">{headerActions}</div>
+                ) : null}
+              </div>
+            )}
 
-  if (!open) return null
-  if (typeof document === "undefined") return null
-
-  return createPortal(
-    <div
-      className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center",
-        fullscreen ? "p-0" : "p-4",
-      )}
-    >
-      <button
-        aria-label="Close dialog"
-        className="absolute inset-0 bg-black/40"
-        onClick={() => onOpenChange(false)}
-        type="button"
-      />
-      <div
-        className={cn(
-          "relative flex w-full flex-col border border-border bg-card shadow-lg",
-          fullscreen
-            ? "h-dvh max-w-none rounded-none p-4"
-            : "max-w-2xl rounded-lg p-5",
-          contentClassName,
-        )}
-      >
-        {(title || description || headerActions) && (
-          <div className="flex shrink-0 items-start justify-between gap-3">
-            <div className="min-w-0">
-              {title ? <div className="text-base font-semibold">{title}</div> : null}
-              {description ? (
-                <div className="text-sm text-muted-foreground">{description}</div>
-              ) : null}
-            </div>
-            {headerActions ? <div className="flex shrink-0 items-center gap-2">{headerActions}</div> : null}
-          </div>
-        )}
-
-        <div className={cn("mt-4", bodyClassName)}>{children}</div>
-        {footer ? <div className="mt-4 flex shrink-0 justify-end gap-3">{footer}</div> : null}
-      </div>
-    </div>,
-    document.body,
+            <div className={cn("mt-4", bodyClassName)}>{children}</div>
+            {footer ? (
+              <div className="mt-4 flex shrink-0 justify-end gap-3">{footer}</div>
+            ) : null}
+            <BaseDialog.Close className="sr-only">关闭弹窗</BaseDialog.Close>
+          </BaseDialog.Popup>
+        </BaseDialog.Viewport>
+      </BaseDialog.Portal>
+    </BaseDialog.Root>
   )
 }

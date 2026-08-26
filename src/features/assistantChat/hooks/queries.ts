@@ -12,18 +12,19 @@ import {
 } from "@/api/assistantChat"
 import { MAX_PAGE_SIZE } from "@/api/listQuery"
 import { showDeleteFailureToast } from "@/lib/deleteError"
+import { queryKeys } from "@/app/queryKeys"
 
 const CONVERSATION_PAGE_SIZE = 50
 
 const assistantChatKeys = {
   conversations: (assistantId: string, params: AssistantConversationListParams) =>
-    ["assistantChat", assistantId, "conversations", params] as const,
+    [...queryKeys.assistantChat.conversations(assistantId), params] as const,
   conversationFeed: (
     assistantId: string,
     params: Omit<AssistantConversationListParams, "page" | "pageSize">,
-  ) => ["assistantChat", assistantId, "conversations", "feed", params] as const,
+  ) => [...queryKeys.assistantChat.conversations(assistantId), "feed", params] as const,
   messages: (assistantId: string, conversationId: string) =>
-    ["assistantChat", assistantId, "conversations", conversationId, "messages"] as const,
+    queryKeys.assistantChat.messages(assistantId, conversationId),
 }
 
 const EMPTY_CONVERSATION_PARAMS: AssistantConversationListParams = {}
@@ -89,7 +90,7 @@ export function useCreateAssistantConversation(assistantId: string) {
   return useMutation({
     mutationFn: () => createAssistantConversation(assistantId),
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.assistantChat.conversations(assistantId) })
     },
   })
 }
@@ -100,9 +101,9 @@ export function useDeleteAssistantConversation(assistantId: string) {
     mutationFn: ({ conversationId }: { conversationId: string }) =>
       deleteAssistantConversation(assistantId, conversationId),
     onMutate: async ({ conversationId }) => {
-      await qc.cancelQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })
+      await qc.cancelQueries({ queryKey: queryKeys.assistantChat.conversations(assistantId) })
       const snapshots = qc.getQueriesData({
-        queryKey: ["assistantChat", assistantId, "conversations"],
+        queryKey: queryKeys.assistantChat.conversations(assistantId),
       })
       for (const [key, value] of snapshots) {
         if (isConversationPage(value)) {
@@ -133,7 +134,7 @@ export function useDeleteAssistantConversation(assistantId: string) {
       showDeleteFailureToast(_err)
     },
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.assistantChat.conversations(assistantId) })
     },
   })
 }
@@ -144,7 +145,7 @@ export function useRenameAssistantConversation(assistantId: string) {
     mutationFn: ({ conversationId, title }: { conversationId: string; title: string }) =>
       renameAssistantConversation(assistantId, conversationId, title),
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["assistantChat", assistantId, "conversations"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.assistantChat.conversations(assistantId) })
     },
   })
 }

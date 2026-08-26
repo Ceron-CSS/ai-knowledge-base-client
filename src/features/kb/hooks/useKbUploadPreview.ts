@@ -1,13 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   createKbItem,
   fetchKbChunkPreview,
   finalizeKbItem,
-  getKbItemDetail,
-  getKbItemIngestion,
-  listKbItemPages,
-  retryKbItemExtraction,
   streamKbChunkPreview,
   streamKbItemChunkPreview,
   updateKbItem,
@@ -15,7 +11,6 @@ import {
   type ChunkPreviewMode,
   type ChunkPreviewSeparator,
   type ItemChunkPreviewChunk,
-  type KbItemPage,
 } from "@/api/kb"
 import { clampMaxLength } from "@/features/kb/lib/clampMaxLength"
 import {
@@ -24,6 +19,7 @@ import {
 } from "@/features/kb/lib/chunkPreviewSnapshot"
 import { formatCharCountK } from "@/features/kb/lib/formatCharCountK"
 import type { KbUploadNavigationState } from "@/features/kb/types"
+import { useKbIngestionDraft } from "@/features/kb/hooks/useKbIngestionDraft"
 
 export type UploadWizardStep = "source" | "chunking"
 
@@ -153,13 +149,6 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
   const [isImportFlow] = useState(() => initial?.isImportFlow ?? false)
   const [preferredStartStep] = useState<UploadWizardStep>(() => initial?.startStep ?? "source")
   const [initialChunks] = useState(() => initial?.chunks ?? [])
-  const [pages, setPages] = useState<KbItemPage[]>([])
-  const [ingestionStatus, setIngestionStatus] = useState<string | null>(null)
-  const [ingestionError, setIngestionError] = useState<string | null>(null)
-  const [warnings, setWarnings] = useState<
-    Array<{ pageNumber: number; errorCode?: string | null; extractionMethod: string }>
-  >([])
-  const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [pageRevision, setPageRevision] = useState<string | null>(null)
   const [configHash, setConfigHash] = useState<string | null>(null)
   const [mode, setMode] = useState<ChunkPreviewMode>(() => initial?.mode ?? "recursive")
@@ -188,6 +177,32 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  const handleIngestionReady = useCallback(
+    (draft: { content: string; pageRevision: string | null }) => {
+      setPageRevision(draft.pageRevision)
+      setText(draft.content)
+      if (preferredStartStep === "chunking" && initialChunks.length) {
+        setChunks(initialChunks)
+        setStep("chunking")
+      } else {
+        setStep("source")
+      }
+    },
+    [initialChunks, preferredStartStep],
+  )
+
+  const ingestion = useKbIngestionDraft({
+    enabled: isImportFlow,
+    kbId,
+    itemId: ingestItemId,
+    onReady: handleIngestionReady,
+  })
+  const pages = ingestion.readyDraft?.pages ?? []
+  const ingestionStatus = ingestion.status
+  const ingestionError = ingestion.error
+  const warnings = ingestion.warnings
+  const expiresAt = ingestion.expiresAt
+
   const extracting = isImportFlow && (ingestionStatus === "extracting" || ingestionStatus === null)
   const extractionFailed = isImportFlow && ingestionStatus === "extraction_failed"
   const readyForChunking =
@@ -198,65 +213,6 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     ingestionStatus === "indexing_failed"
   const requiresStructureSeparators =
     (mode === "structure" || mode === "parent_child") && separators.length === 0
-
-  useEffect(() => {
-    if (!isImportFlow || !ingestItemId) return
-    let cancelled = false
-    let timer: number | undefined
-
-    async function loadReady(status: Awaited<ReturnType<typeof getKbItemIngestion>>) {
-      setPageRevision(status.pageRevision ?? null)
-      const [detail, pageRows] = await Promise.all([
-        getKbItemDetail(kbId, ingestItemId!),
-        listKbItemPages(kbId, ingestItemId!),
-      ])
-      if (cancelled) return
-      setText(detail.content)
-      setPages(pageRows)
-      if (preferredStartStep === "chunking" && initialChunks.length) {
-        setChunks(initialChunks)
-        setStep("chunking")
-      } else {
-        setStep("source")
-      }
-    }
-
-    async function poll() {
-      try {
-        const status = await getKbItemIngestion(kbId, ingestItemId!)
-        if (cancelled) return
-        setIngestionStatus(status.status)
-        setIngestionError(status.errorCode ?? null)
-        setWarnings(status.warnings ?? [])
-        setExpiresAt(status.expiresAt ?? null)
-        if (
-          status.status === "draft" ||
-          status.status === "active" ||
-          status.status === "indexing" ||
-          status.status === "indexing_failed"
-        ) {
-          await loadReady(status)
-          return
-        }
-        if (status.status === "extraction_failed") return
-        // Still extracting (or uploading edge cases).
-        if (status.status !== "extracting") {
-          setIngestionStatus("extracting")
-        }
-        timer = window.setTimeout(() => void poll(), 1500)
-      } catch (e) {
-        if (cancelled) return
-        setIngestionError(e instanceof Error ? e.message : "抽取状态查询失败")
-        timer = window.setTimeout(() => void poll(), 2500)
-      }
-    }
-
-    void poll()
-    return () => {
-      cancelled = true
-      if (timer) window.clearTimeout(timer)
-    }
-  }, [isImportFlow, ingestItemId, kbId, preferredStartStep, initialChunks])
 
   useEffect(() => {
     if (highlightChunkIndex === null || step !== "chunking") return
@@ -499,18 +455,6 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
     }
   }
 
-  async function onRetryExtraction() {
-    if (!ingestItemId) return
-    setIngestionError(null)
-    setIngestionStatus("extracting")
-    setPages([])
-    try {
-      await retryKbItemExtraction(kbId, ingestItemId)
-    } catch (e) {
-      setIngestionError(e instanceof Error ? e.message : "重试失败")
-    }
-  }
-
   function handleMaxLengthInputChange(next: string) {
     if (!/^\d*$/.test(next)) return
     setMaxLengthInput(next)
@@ -645,7 +589,7 @@ export function useKbUploadPreview({ kbId }: UseKbUploadPreviewOptions) {
         setError(e instanceof Error ? e.message : "预览失败")
       })
     },
-    onRetryExtraction: () => void onRetryExtraction(),
+    onRetryExtraction: () => void ingestion.retry(),
     handleMaxLengthInputChange,
     handleMaxLengthBlur,
     handleOverlapLengthInputChange,

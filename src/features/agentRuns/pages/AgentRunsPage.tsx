@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useEffect, useMemo, useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { Activity, Eye, RotateCcw, Search } from "lucide-react"
-import { getAgentRunMetrics, listAgentRuns, type AgentRunListItem } from "@/api/agentRuns"
+import { getAgentRun, getAgentRunMetrics, listAgentRuns, type AgentRunListItem } from "@/api/agentRuns"
 import { listAssistants } from "@/api/assistants"
 import { Button } from "@/components/ui/button"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { Select } from "@/components/ui/select"
 import { formatShanghaiDateTime, shanghaiDateInputToUtcIso } from "@/lib/dateTime"
+import { queryKeys } from "@/app/queryKeys"
 
 function statusLabel(status: string) {
   if (status === "succeeded") return "成功"
@@ -81,12 +82,13 @@ const EMPTY_FILTERS: AgentRunFilters = {
 
 export function AgentRunsPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<AgentRunFilters>(EMPTY_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<AgentRunFilters>(EMPTY_FILTERS)
 
   const assistantsQuery = useQuery({
-    queryKey: ["assistants", "agent-runs-filter"],
+    queryKey: [...queryKeys.assistants.root, "agent-runs-filter"],
     queryFn: () => listAssistants(),
   })
 
@@ -98,7 +100,7 @@ export function AgentRunsPage() {
     : undefined
 
   const runsQuery = useQuery({
-    queryKey: ["agent-runs", page, appliedFilters],
+    queryKey: queryKeys.agentRuns.list(page, appliedFilters),
     queryFn: () =>
       listAgentRuns({
         page,
@@ -111,8 +113,27 @@ export function AgentRunsPage() {
       }),
   })
 
+  useEffect(() => {
+    if (!runsQuery.data || page * 10 >= runsQuery.data.total) return
+
+    const nextPage = page + 1
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.agentRuns.list(nextPage, appliedFilters),
+      queryFn: () =>
+        listAgentRuns({
+          page: nextPage,
+          pageSize: 10,
+          assistantId: appliedFilters.assistantId || undefined,
+          status: appliedFilters.status || undefined,
+          source: appliedFilters.source || undefined,
+          ...(dateFromIso ? { dateFrom: dateFromIso } : {}),
+          ...(dateToIso ? { dateTo: dateToIso } : {}),
+        }),
+    })
+  }, [appliedFilters, dateFromIso, dateToIso, page, queryClient, runsQuery.data])
+
   const metricsQuery = useQuery({
-    queryKey: ["agent-runs-metrics", appliedFilters.assistantId],
+    queryKey: queryKeys.agentRuns.metrics(appliedFilters.assistantId),
     queryFn: () => getAgentRunMetrics({ assistantId: appliedFilters.assistantId || undefined, days: 7 }),
   })
 
@@ -230,6 +251,12 @@ export function AgentRunsPage() {
             variant="ghost"
             size="icon-sm"
             className="text-foreground/80 hover:bg-primary/10 hover:text-primary"
+            onMouseEnter={() => {
+              void queryClient.prefetchQuery({
+                queryKey: queryKeys.agentRuns.detail(row.id),
+                queryFn: () => getAgentRun(row.id),
+              })
+            }}
             onClick={() => navigate(`/agent-runs/${row.id}`)}
             title="详情"
             aria-label="详情"
@@ -239,7 +266,7 @@ export function AgentRunsPage() {
         ),
       },
     ],
-    [navigate],
+    [navigate, queryClient],
   )
 
   const metrics = metricsQuery.data

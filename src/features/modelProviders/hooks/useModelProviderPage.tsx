@@ -16,6 +16,7 @@ import { getModelProviderFormError, initialModelProviderFormState } from "@/feat
 import { providerLabel } from "@/features/modelProviders/lib/providerLabel"
 import type { ModelProviderFormState } from "@/features/modelProviders/types"
 import { useQueryClient } from "@tanstack/react-query"
+import { queryKeys } from "@/app/queryKeys"
 
 export function useModelProviderPage() {
   const modelConfigs = useModelConfigList()
@@ -212,7 +213,7 @@ export function useModelProviderPage() {
         id,
         acknowledgeLinked,
       })
-      await qc.invalidateQueries({ queryKey: ["assistants"] })
+      await qc.invalidateQueries({ queryKey: queryKeys.assistants.root })
     } catch {
       // Error toast is handled by the delete mutation.
     }

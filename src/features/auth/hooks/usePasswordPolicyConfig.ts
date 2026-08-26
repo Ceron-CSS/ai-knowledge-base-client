@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 import { getPasswordPolicyConfig } from "@/api/auth"
+import { queryKeys } from "@/app/queryKeys"
 
 export function usePasswordPolicyConfig() {
   return useQuery({
-    queryKey: ["auth", "password-policy"],
+    queryKey: queryKeys.auth.passwordPolicy(),
     queryFn: getPasswordPolicyConfig,
     staleTime: Infinity,
   })

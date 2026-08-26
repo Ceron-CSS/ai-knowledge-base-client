@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { DEFAULT_BASE_MODEL, getBaseModelOptionsForProvider } from "@/features/assistants/constants/baseModelOptions"
+import { queryKeys } from "@/app/queryKeys"
+import { evalKeys } from "@/features/evals/hooks/queries"
 
 type EvalRunCreateDialogProps = {
   open: boolean
@@ -90,12 +92,12 @@ function EvalRunCreateForm({
   const [includeCitationSupport, setIncludeCitationSupport] = useState(false)
 
   const modelConfigs = useQuery({
-    queryKey: ["model-configs", "eval-run-create"],
+    queryKey: queryKeys.modelConfigs.context("eval-run-create"),
     queryFn: listModelConfigs,
   })
 
   const policies = useQuery({
-    queryKey: ["evals", "agent-policies"],
+    queryKey: evalKeys.policies(),
     queryFn: listAgentPolicies,
   })
 

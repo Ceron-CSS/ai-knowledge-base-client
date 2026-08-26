@@ -10,10 +10,11 @@ import {
   updateAssistant,
 } from "@/api/assistants"
 import { showDeleteFailureToast } from "@/lib/deleteError"
+import { queryKeys } from "@/app/queryKeys"
 
 const assistantKeys = {
-  all: ["assistants"] as const,
-  byId: (id: string) => ["assistants", id] as const,
+  all: queryKeys.assistants.root,
+  byId: queryKeys.assistants.detail,
 }
 
 export function useAssistantList() {

@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { getSearchChunks, type SearchHit } from "@/api/search"
+import { queryKeys } from "@/app/queryKeys"
 
 /**
  * 按 ID 批量解析 chunk 元信息（文件名、编号、摘要），
@@ -12,7 +13,7 @@ export function useChunkHits(chunkIds: string[]) {
   )
   const key = [...uniqueIds].sort().join("|")
   const query = useQuery({
-    queryKey: ["search", "chunks", key],
+    queryKey: queryKeys.search.chunks(key),
     queryFn: () => getSearchChunks(uniqueIds),
     enabled: uniqueIds.length > 0,
   })

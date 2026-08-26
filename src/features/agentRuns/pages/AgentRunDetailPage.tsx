@@ -3,11 +3,12 @@ import { useParams } from "react-router-dom"
 import { getAgentRun } from "@/api/agentRuns"
 import { Page, PageBody, PageHeader } from "@/components/ui/page-header"
 import { AgentRunTraceContent } from "@/features/agentRuns/components/AgentRunTraceContent"
+import { queryKeys } from "@/app/queryKeys"
 
 export function AgentRunDetailPage() {
   const { runId = "" } = useParams()
   const runQuery = useQuery({
-    queryKey: ["agent-run", runId],
+    queryKey: queryKeys.agentRuns.detail(runId),
     queryFn: () => getAgentRun(runId),
     enabled: Boolean(runId),
     refetchInterval: (query) => (query.state.data?.status === "running" ? 2000 : false),

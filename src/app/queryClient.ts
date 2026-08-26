@@ -5,6 +5,8 @@ export function createQueryClient() {
     defaultOptions: {
       queries: {
         retry: 1,
+        staleTime: 30_000,
+        gcTime: 5 * 60_000,
         refetchOnWindowFocus: false,
       },
       mutations: {
@@ -13,4 +15,3 @@ export function createQueryClient() {
     },
   })
 }
-
